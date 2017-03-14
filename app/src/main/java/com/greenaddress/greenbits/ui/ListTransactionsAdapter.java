@@ -65,7 +65,7 @@ public class ListTransactionsAdapter extends
                 // strip extra decimals (over 2 places) because that's what the old JS client does
                 fiatValue = fiatValue.subtract(fiatValue.divideAndRemainder((long) Math.pow(10, Fiat.SMALLEST_UNIT_EXPONENT - 2))[1]);
                 UI.setAmountText(holder.fiatValue, fiatValue.toPlainString());
-                AmountFields.changeFiatIcon(holder.fiatIcon, mService.getFiatCurrency());
+                AmountFields.changeFiatIcon(holder.fiatIcon, mService.getFiatCurrency(), false);
                 UI.show(holder.fiatView);
             } catch (final ArithmeticException | IllegalArgumentException e) {
                 UI.hide(holder.fiatView);

@@ -86,7 +86,7 @@ public class MainFragment extends SubaccountFragment {
         UI.setAmountText(balanceFiatText, service.getFiatBalance(mSubaccount));
 
         if (!GaService.IS_ELEMENTS)
-            AmountFields.changeFiatIcon(balanceFiatIcon, service.getFiatCurrency());
+            AmountFields.changeFiatIcon(balanceFiatIcon, service.getFiatCurrency(), true);
         else {
             balanceUnit.setText(service.getAssetSymbol() + ' ');
             balanceText.setText(service.getAssetFormat().format(balance));

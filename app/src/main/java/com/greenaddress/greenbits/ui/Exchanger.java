@@ -47,7 +47,7 @@ class Exchanger implements AmountFields.OnConversionFinishListener {
         final String currency = mService.getFiatCurrency();
 
         final FontAwesomeTextView fiatView = UI.find(mView, R.id.commissionFiatIcon);
-        AmountFields.changeFiatIcon(fiatView, currency);
+        AmountFields.changeFiatIcon(fiatView, currency, true);
 
         if (GaService.IS_ELEMENTS) {
             bitcoinUnitText.setText(mService.getAssetSymbol() + ' ');

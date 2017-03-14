@@ -73,7 +73,7 @@ class AmountFields {
             return;
         }
 
-        changeFiatIcon(mFiatView, mGaService.getFiatCurrency());
+        changeFiatIcon(mFiatView, mGaService.getFiatCurrency(), true);
 
         if (!mGaService.hasFiatRate()) {
             // Disable fiat editing
@@ -95,7 +95,7 @@ class AmountFields {
         return mIsPausing;
     }
 
-    public static void changeFiatIcon(final FontAwesomeTextView fiatIcon, final String currency) {
+    public static void changeFiatIcon(final FontAwesomeTextView fiatIcon, final String currency, final boolean useStaticFontSize) {
         final String symbol;
         switch (currency) {
             case "USD": symbol = "&#xf155; "; break;
@@ -110,12 +110,14 @@ class AmountFields {
             default:
                 fiatIcon.setText(currency);
                 fiatIcon.setDefaultTypeface();
-                fiatIcon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+                if (useStaticFontSize)
+                    fiatIcon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
                 return;
         }
         fiatIcon.setText(Html.fromHtml(symbol));
         fiatIcon.setAwesomeTypeface();
-        fiatIcon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
+        if (useStaticFontSize)
+            fiatIcon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
     }
 
     void convertBtcToFiat() {
