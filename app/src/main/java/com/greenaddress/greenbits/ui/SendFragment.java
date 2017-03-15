@@ -16,6 +16,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.view.WindowManager;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -520,6 +521,8 @@ public class SendFragment extends SubaccountFragment {
     public void setPageSelected(final boolean isSelected) {
         final boolean needReload = isDirty();
         super.setPageSelected(isSelected);
+        if (!isZombie() && isSelected)
+            getGaActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         if (needReload && isSelected) {
             Log.d(TAG, "Dirty, reloading");
             updateBalance();

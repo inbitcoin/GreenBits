@@ -524,6 +524,8 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
     public void setPageSelected(final boolean isSelected) {
         final boolean needToRegenerate = isSelected && !IsPageSelected();
         super.setPageSelected(isSelected);
+        if (!isZombie() && isSelected)
+            getGaActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         if (needToRegenerate)
             generateNewAddress();
         else if (!isSelected)
