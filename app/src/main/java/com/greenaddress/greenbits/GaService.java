@@ -616,6 +616,10 @@ public class GaService extends Service implements INotificationHandler {
         mState.transitionTo(ConnState.DISCONNECTED);
     }
 
+    public void stopSyncForced() {
+        mSPV.stopSyncForced();
+    }
+
     public void updateBalance(final int subAccount) {
         Futures.addCallback(getSubaccountBalance(subAccount), new FutureCallback<Map<String, Object>>() {
             @Override

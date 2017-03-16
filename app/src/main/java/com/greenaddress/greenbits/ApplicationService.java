@@ -52,7 +52,7 @@ public class ApplicationService extends Service {
         if (mService != null) {
             // FIXME
             mService.disconnect(false);
-            //mService.mSPV.stopSync();
+            mService.stopSyncForced();
         }
         super.onTaskRemoved(rootIntent);
     }

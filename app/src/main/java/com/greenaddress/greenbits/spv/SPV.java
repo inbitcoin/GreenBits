@@ -727,6 +727,10 @@ public class SPV {
         mExecutor.execute(new Runnable() { public void run() { stopSync(); } });
     }
 
+    public void stopSyncForced() {
+        stopSync();
+    }
+
     private void stopSync() {
         synchronized (mStateLock) {
             Log.d(TAG, "stopSync: " + Var("isEnabled", isEnabled()));
