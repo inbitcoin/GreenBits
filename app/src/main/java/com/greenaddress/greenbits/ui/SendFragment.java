@@ -42,6 +42,8 @@ import org.bitcoinj.utils.MonetaryFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import de.schildbach.wallet.ui.ScanActivity;
 
@@ -49,6 +51,8 @@ public class SendFragment extends SubaccountFragment {
 
     private static final String TAG = SendFragment.class.getSimpleName();
     private static final int REQUEST_SEND_QR_SCAN = 0;
+    private static final Pattern PATTERN_LABEL = Pattern.compile(".*label=(.*?)(&\\w+=.*)?");
+    private static final Pattern PATTERN_MESSAGE = Pattern.compile(".*message=(.*?)(&\\w+=.*)?");
     private Dialog mSummary;
     private Dialog mTwoFactor;
     private EditText mAmountEdit;
@@ -272,6 +276,24 @@ public class SendFragment extends SubaccountFragment {
         }
     }
 
+    private static String fixUriParameter(
+            final String parameter, final Pattern PATTERN, String uri) {
+        final Matcher m = PATTERN.matcher(uri);
+        if (m.matches() && m.group(1) != null){
+            Log.d(TAG, parameter + ": " + m.group(1));
+            final String value = m.group(1);
+            final String fixed = value.replaceAll("&", "%26").replaceAll("=", "%3D");
+
+            if(!value.equals(fixed)) {
+                uri = uri.replace(parameter + "=" + value, parameter + "=" + fixed);
+                Log.d(TAG, parameter + " old: " + value);
+                Log.d(TAG, parameter + " new: " + fixed);
+                Log.d(TAG, "New uri: " + uri);
+            }
+        }
+        return uri;
+    }
+
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
                              final Bundle savedInstanceState) {
@@ -323,10 +345,16 @@ public class SendFragment extends SubaccountFragment {
             bitcoinUnitText.setText(R.string.fa_btc_space);
 
         if (container.getTag(R.id.tag_bitcoin_uri) != null) {
-            final Uri uri = (Uri) container.getTag(R.id.tag_bitcoin_uri);
+            String uri = ((Uri) container.getTag(R.id.tag_bitcoin_uri)).toString();
+            Log.e(TAG, "" + uri);
             BitcoinURI bitcoinUri = null;
+
+            // Fix label and message parameters
+            uri = fixUriParameter("label", PATTERN_LABEL, uri);
+            uri = fixUriParameter("message", PATTERN_MESSAGE, uri);
+
             try {
-                bitcoinUri = new BitcoinURI(uri.toString());
+                bitcoinUri = new BitcoinURI(uri);
             } catch (final BitcoinURIParseException e) {
                 gaActivity.toast(R.string.err_send_invalid_bitcoin_uri);
             }
