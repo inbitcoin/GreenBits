@@ -12,6 +12,11 @@
         android:title="@string/pref_header_twofactor"/>
 
     <header
+        android:fragment="com.greenaddress.greenbits.ui.preferences.SubaccountsPreferenceFragment"
+        android:icon="@drawable/ic_fa_list_24dp"
+        android:title="@string/manageSubaccounts"/>
+
+    <header
         android:fragment="com.greenaddress.greenbits.ui.preferences.SPVPreferenceFragment"
         android:icon="@drawable/ic_sync_black_24dp"
         android:title="@string/spvNoWiFiTitle"/>

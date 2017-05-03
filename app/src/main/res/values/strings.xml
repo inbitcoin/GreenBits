@@ -317,6 +317,12 @@
     <string name="bitid_login_to">Login to %s</string>
     <string name="bitid_login_successful">Login successful to %s</string>
     <string name="bitid_dialog_title">BitID authentication</string>
+    <string name="create2to2">Add simple account</string>
+    <string name="create2to2Desc">Create accounts that allow you to separate your funds. Each account will have its own receiving addresses.</string>
+    <string name="create2to2OK">Simple account added</string>
+    <string name="create2to2error">Error adding simple account</string>
+    <string name="subaccountLabel">Account label</string>
+    <string name="manageSubaccounts">Manage simple accounts</string>
     <string name="backup_mnemonic_passphrase">Backup mnemonic passphrase</string>
     <string name="backup_mnemonic_passphrase_desc">Backup your mnemonic passphrase with password and export via QR Code or tag NFC</string>
     <string name="mnemonic_passphrase_with_password">Mnemonic passphrase with password</string>

@@ -897,4 +897,10 @@ public class WalletClient {
     public ListenableFuture<Boolean> disableTwoFac(final String type, final Map<String, String> twoFacData) {
         return simpleCall("twofactor.disable_" + type, Boolean.class, twoFacData);
     }
+
+    public ListenableFuture<String> create2to2subaccount(final int pointer, final String name,
+                                                      final String user_public, final String user_chaincode) {
+
+        return simpleCall("txs.create_subaccount", String.class, pointer, name, user_public, user_chaincode);
+    }
 }

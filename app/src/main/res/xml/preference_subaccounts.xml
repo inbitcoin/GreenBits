@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <Preference android:key="create2to2"
+        android:title="@string/create2to2"
+        android:summary="@string/create2to2Desc" >
+    </Preference>
+
+</PreferenceScreen>

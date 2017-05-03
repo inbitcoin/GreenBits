@@ -251,4 +251,9 @@
   <string name="err_password_length">La password deve essere lunga almeno %d caratteri</string>
   <string name="repeat_password">Ripeti password</string>
   <string name="mnemonic_passphrase_with_password">Passphrase mnemonica con password</string>
+  <string name="create2to2">Aggiungi account</string>
+  <string name="create2to2OK">Account aggiunto</string>
+  <string name="create2to2error">Errore durante l\'aggiunta dell\'account</string>
+  <string name="manageSubaccounts">Gestisci account semplici</string>
+  <string name="subaccountLabel">Etichetta account</string>
 </resources>

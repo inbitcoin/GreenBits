@@ -70,6 +70,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -464,6 +465,7 @@ public class GaService extends Service implements INotificationHandler {
         }
         mState.transitionTo(ConnState.LOGGEDIN);
     }
+
 
     public ListenableFuture<LoginData> login(final ISigningWallet signingWallet) {
         return loginImpl(mClient.login(signingWallet, mDeviceId, null));
@@ -890,6 +892,16 @@ public class GaService extends Service implements INotificationHandler {
         return findSubaccountByType(subAccount, null);
     }
 
+    public void addSubaccount(final Integer pointer, final String name, final String type) {
+        mBalanceObservables.put(pointer, new GaObservable());
+        updateBalance(pointer);
+        final Map<String, Object> subaccount = new HashMap<>();
+        subaccount.put("pointer", pointer);
+        subaccount.put("name", name);
+        subaccount.put("type", type);
+        mSubAccounts.add(subaccount);
+    }
+
     public Map<?, ?> getTwoFactorConfig() {
         return mTwoFactorConfig;
     }
@@ -938,6 +950,19 @@ public class GaService extends Service implements INotificationHandler {
             @Override
             public Boolean apply(final Boolean input) {
                 getAvailableTwoFactorMethods();
+                return input;
+            }
+        });
+    }
+
+    public ListenableFuture<String> create2to2subaccount(final Integer pointer, final String name,
+                                                          final String user_public, final String user_chaincode,
+                                                          final String type) {
+        return Futures.transform(mClient.create2to2subaccount(pointer, name, user_public, user_chaincode), new Function<String, String>() {
+            @Override
+            public String apply(final String input) {
+                if (input != null && input.startsWith("GA"))
+                    addSubaccount(pointer, name, type);
                 return input;
             }
         });
