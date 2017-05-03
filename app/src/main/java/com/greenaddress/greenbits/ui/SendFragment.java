@@ -279,7 +279,7 @@ public class SendFragment extends SubaccountFragment {
     private static String fixUriParameter(
             final String parameter, final Pattern PATTERN, String uri) {
         final Matcher m = PATTERN.matcher(uri);
-        if (m.matches() && m.group(1) != null){
+        if (m.matches() && m.group(1) != null) {
             Log.d(TAG, parameter + ": " + m.group(1));
             final String value = m.group(1);
             final String fixed = value.replaceAll("&", "%26").replaceAll("=", "%3D");
@@ -346,7 +346,6 @@ public class SendFragment extends SubaccountFragment {
 
         if (container.getTag(R.id.tag_bitcoin_uri) != null) {
             String uri = ((Uri) container.getTag(R.id.tag_bitcoin_uri)).toString();
-            Log.e(TAG, "" + uri);
             BitcoinURI bitcoinUri = null;
 
             // Fix label and message parameters
