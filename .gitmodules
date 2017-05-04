@@ -1,3 +1,6 @@
 [submodule "android-keystores"]
 	path = android-keystores
 	url = git@dev.pagoinbit.it:android-keystores
+[submodule "app/altana-android-res"]
+	path = app/altana-android-res
+	url = git@dev.pagoinbit.it:altana-android-res

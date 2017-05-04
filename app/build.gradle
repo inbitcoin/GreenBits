@@ -126,11 +126,12 @@ android {
         production_21 {
             java { srcDir 'src/production/java' }
             assets { srcDir 'src/production/assets' }
+            res { srcDir 'altana-android-res/production/res' }
         }
         btctestnet_21 {
             java { srcDir 'src/btctestnet/java' }
             assets { srcDir 'src/btctestnet/assets' }
-            res { srcDir 'src/btctestnet/res' }
+            res { srcDirs = [ 'src/btctestnet/res', 'altana-android-res/btctestnet/res' ]}
         }
         publicregtest_21 {
             java { srcDir 'src/publicregtest/java' }
@@ -145,7 +146,7 @@ android {
         alpha_21 {
             java { srcDir 'src/alpha/java' }
             assets { srcDir 'src/alpha/assets' }
-            res { srcDir 'src/alpha/res' }
+            res { srcDirs = [ 'src/alpha/res', 'altana-android-res/alpha/res' ]}
         }
      }
 
