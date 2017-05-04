@@ -12,7 +12,7 @@
     <string name="title_activity_sign_up">Crear cuenta</string>
     <string name="signupContinueButtonText">CONTINUAR</string>
     <string name="signupCheckBoxText">He puesto a salvo la frase clave y he leído los Términos y Condiciones de servicio</string>
-    <string name="termsofservice"><a href="https://greenaddress.it/es/tos/">Términos y Condiciones de servicio</a></string>
+    <string name="termsofservice"><a href="http://altanawallet.it/tos/">Términos y Condiciones de servicio</a></string>
     <string name="firstSignUpText">INSCRIBIRSE</string>
     <string name="firstLogInText">INGRESAR</string>
     <string name="receive_title">RECIBIR</string>
@@ -60,8 +60,8 @@
     <string name="greenaddress_headline">La billetera de Bitcoin mas fácil, segura y rápida</string>
     <string name="pinSkipText">SALTEAR</string>
     <string name="sendOptionalMemo">Memo opcional</string>
-    <string name="madeBy">creado por GreenAddress</string>
-    <string name="welcomeGreenBits">Bienvenido a GreenBits</string>
+    <string name="madeBy">creado por inbitcoin</string>
+    <string name="welcomeGreenBits">Bienvenido a Altana</string>
     <string name="attemptsFinished">PIN inválido, usted no dispone de mas intentos. Por favor, ingrese usando su frase clave.</string>
     <string name="attemptsLeftLong">PIN inválido, usted dispone de %1$d intentos restantes</string>
     <string name="warnOnPaste">Sea cuidadoso, algunas aplicaciones podrían leer o alterar su portapapeles</string>
@@ -72,7 +72,7 @@
     <string name="txTypeIn">Depositar</string>
     <string name="txTypeOut">Retirar</string>
     <string name="txTypeRedeposit">Redepositar</string>
-    <string name="mnemonicHint">Ingrese su frase clave de GreenAddress o escanee un código qr</string>
+    <string name="mnemonicHint">Ingrese su frase clave de cartera o escanee un código qr</string>
     <string name="title_activity_settings">Configuración</string>
     <string name="ago">%1$d %2$s hace</string>
     <string name="txSubTitle">Detalles de tansacción</string>
@@ -207,5 +207,5 @@
   <string name="remember_warn_content">Guardar el nombre de usuario en el dispositivo puede ser peligroso, si alguien accede a la memoria puede saber tu nombre de usuario. Si quiere continuar pulse "Aceptar".</string>
   <string name="generating_address">Generando dirección...</string>
   <string name="loading_transactions">Cargando transacciones...</string>
-    
+
 </resources>

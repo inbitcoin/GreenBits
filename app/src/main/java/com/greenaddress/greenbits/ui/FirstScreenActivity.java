@@ -3,6 +3,7 @@ package com.greenaddress.greenbits.ui;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -47,7 +48,7 @@ public class FirstScreenActivity extends LoginActivity {
 
         UI.mapClick(this, R.id.firstLogInButton, new Intent(this, MnemonicActivity.class));
         UI.mapClick(this, R.id.firstSignUpButton, new Intent(this, SignUpActivity.class));
-        final Uri homepage = Uri.parse("https://greenaddress.it");
+        final Uri homepage = Uri.parse("https://inbitcoin.it");
         UI.mapClick(this, R.id.firstMadeByText, new Intent(Intent.ACTION_VIEW, homepage));
 
         Log.d(TAG, "Create FirstScreenActivity : TUI " + tuiCall);
@@ -129,6 +130,9 @@ public class FirstScreenActivity extends LoginActivity {
                 return null;
             }
         });
+        final Toolbar toolbar = UI.find(this, R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
     }
 
     private void proceedTEE(final LedgerTransportTEEProxy transport, final BTChipDongle dongle, final boolean setup) {
@@ -249,6 +253,7 @@ public class FirstScreenActivity extends LoginActivity {
 
     @Override
     public boolean onCreateOptionsMenu(final Menu menu) {
+        getMenuInflater().inflate(R.menu.camera_menu_no_login, menu);
         getMenuInflater().inflate(R.menu.preauth_menu, menu);
         return true;
     }

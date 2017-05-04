@@ -12,7 +12,7 @@
     <string name="title_activity_sign_up">הירשם</string>
     <string name="signupContinueButtonText">המשך</string>
     <string name="signupCheckBoxText">מסכים לתנאי השימוש ושמרתי את הסיסמא</string>
-    <string name="termsofservice"><a href="https://greenaddress.it/iw/tos/">לתנאי השימוש</a></string>
+    <string name="termsofservice"><a href="http://altanawallet.it/tos/">לתנאי השימוש</a></string>
 
     <string name="firstSignUpText">הירשם</string>
     <string name="firstLogInText">כניסה</string>
@@ -59,8 +59,8 @@
     <string name="save_password_now">עליך לשמור את הסיסמא הזאת עכשיו!</string>
     <string name="greenaddress_headline">ארנק הביטקוין הקל המהיר והבטוח</string>
     <string name="pinSkipText">דלג</string>
-    <string name="madeBy">מאת GreenAddress</string>
-    <string name="welcomeGreenBits">ברוכים הבאים אל ארנק GreenBits</string>
+    <string name="madeBy">מאת inbitcoin</string>
+    <string name="welcomeGreenBits">ברוכים הבאים אל ארנק Altana</string>
     <string name="attemptsFinished">קוד PIN שגוי, אזלו מספר הנסיונות. אנא כנסו באמצעות הסיסמא.</string>
     <string name="attemptsLeftLong">קוד PIN שגוי, נותרו %s נסיונות.</string>
     <string name="warnOnPaste">שימו לב! אפליקציות אחרות יכולות לקרוא ולשנות את תוכן העתק-הדבק.</string>
@@ -70,7 +70,7 @@
     <string name="txTypeIn">הפקדה</string>
     <string name="txTypeOut">משוך</string>
     <string name="txTypeRedeposit">הפקדה מחדש</string>
-    <string name="mnemonicHint">יש להקיש את סיסמאת GreenAddress או לסרוק את הברקוד.</string>
+    <string name="mnemonicHint">יש להקיש את סיסמאת אַרְנָק או לסרוק את הברקוד.</string>
     <string name="title_activity_settings">הגדרות</string>
     <string name="ago">%1$d %2$s לפני</string>
     <string name="txSubTitle">פרטי פעולה</string>

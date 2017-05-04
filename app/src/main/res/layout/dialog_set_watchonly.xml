@@ -8,28 +8,28 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/username"
-        android:textColor="@color/whiteSecondary"
+        android:textColor="@color/secondaryTextColor"
         android:textSize="20sp" />
 
     <EditText
         android:id="@+id/input_user"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/white"
+        android:textColor="@color/textColor"
         android:inputType="textNoSuggestions|textVisiblePassword" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/password"
-        android:textColor="@color/whiteSecondary"
+        android:textColor="@color/secondaryTextColor"
         android:textSize="20sp" />
 
     <com.maksim88.passwordedittext.PasswordEditText
         android:id="@+id/input_password"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/white"
+        android:textColor="@color/textColor"
         android:inputType="textPassword" />
 
 </LinearLayout>

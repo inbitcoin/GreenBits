@@ -1,11 +1,14 @@
 package com.greenaddress.greenapi;
 
 import com.blockstream.libwally.Wally;
+import com.mysql.jdbc.NotImplemented;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.crypto.DeterministicKey;
+
+import java.io.IOException;
 
 public abstract class HWWallet extends ISigningWallet {
 
@@ -25,7 +28,7 @@ public abstract class HWWallet extends ISigningWallet {
 
         // Generate a path for the challenge.
         // We use "GA" + 0xB11E as the child path as this allows btchip to skip HID auth.
-        final HWWallet child = this.derive(0x4741b11e); // 0x4741 = Ascii G << 8 + A
+        final HWWallet child = (HWWallet) this.derive(0x4741b11e); // 0x4741 = Ascii G << 8 + A
 
         // Generate a message to sign from the challenge
         final String challenge = "greenaddress.it      login " + challengeString;
@@ -48,11 +51,11 @@ public abstract class HWWallet extends ISigningWallet {
     }
 
     private HWWallet getMyKey(final int subAccount) {
-        HWWallet parent = this;
+        ISigningWallet parent = this;
         if (subAccount != 0)
             parent = parent.derive(ISigningWallet.HARDENED | 3)
                            .derive(ISigningWallet.HARDENED | subAccount);
-        return parent;
+        return (HWWallet) parent;
     }
 
     protected Object[] getChallengeArguments(boolean isTrezor) {
@@ -61,7 +64,10 @@ public abstract class HWWallet extends ISigningWallet {
         return new Object[]{ "login.get_trezor_challenge", addr.toString(), !isTrezor };
     }
 
-    protected abstract DeterministicKey getPubKey();
-    protected abstract HWWallet derive(Integer childNumber);
-    protected abstract ECKey.ECDSASignature signMessage(String message);
+    @Override
+    public ISigningWallet getBitIdWallet(final String uri, final Integer index) throws IOException {
+        // FIXME app crash on signMessage with ledger nano
+        //return HDKey.deriveBitidKey(this, uri, index);
+        throw new UnsupportedOperationException();
+    }
 }

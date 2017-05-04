@@ -10,7 +10,7 @@
   <string name="title_activity_sign_up">Nuovo</string>
   <string name="signupContinueButtonText">CONTINUA</string>
   <string name="signupCheckBoxText">Ho custodito la passphrase e ho letto le condizioni</string>
-  <string name="termsofservice"><a href="https://greenaddress.it/it/tos/">Condizioni d\'utilizzo</a></string>
+  <string name="termsofservice"><a href="http://altanawallet.it/tos/">Condizioni d\'utilizzo</a></string>
 
   <string name="firstSignUpText">NUOVO</string>
   <string name="firstLogInText">RIPRISTINA</string>
@@ -56,8 +56,8 @@
   <string name="greenaddress_headline">il più semplice, sicuro e veloce wallet bitcoin</string>
   <string name="pinSkipText">SALTA</string>
   <string name="sendOptionalMemo">Memo opzionale</string>
-  <string name="madeBy">da GreenAddress</string>
-  <string name="welcomeGreenBits">Benvenuti in GreenBits</string>
+  <string name="madeBy">da inbitcoin</string>
+  <string name="welcomeGreenBits">Benvenuti in Altana</string>
   <string name="attemptsFinished">PIN non valido, non sono rimasti tentativi. Per piacere accedi con la passphrase.</string>
   <string name="attemptsLeftLong">PIN non valido, hai %1$d tentativi rimanenti</string>
   <string name="warnOnPaste">Agire con cautela, altre applicazioni posso leggere o cambiare la clipboard</string>
@@ -67,7 +67,7 @@
   <string name="txTypeIn">Ricevuto</string>
   <string name="txTypeOut">Mandato</string>
   <string name="txTypeRedeposit">Giroconto</string>
-  <string name="mnemonicHint">Inserisci la tua passphrase GreenAddress o fai lo scan del qrcode</string>
+  <string name="mnemonicHint">Inserisci la passphrase del tuo wallet o fai lo scan del qrcode</string>
   <string name="title_activity_settings">Configurazione</string>
   <string name="ago">%1$d %2$s fa</string>
   <string name="txSubTitle">Dettagli transazione</string>
@@ -133,7 +133,7 @@
   <string name="phoneNumber">numero telefonico</string>
   <string name="newAddress">Nuovo</string>
   <string name="txReceivedOn">Ricevuto su</string>
-    <string name="copyAddress">Copia</string>
+  <string name="copyAddress">Copia</string>
   <string name="trustedspv">Collegati solo ad un nodo fidato per SPV</string>
   <string name="enterValidAddressTitle">Indirizzo invalido</string>
   <string name="enterValidAddressText">Per piacere inserisci un indirizzo valido .onion on un indirizzo IP (.onion preferibilmente)</string>
@@ -158,7 +158,7 @@
   <string name="set2FA">Configura 2FA</string>
   <string name="resetSPV">Azzera SPV</string>
   <string name="err_send_invalid_bitcoin_uri">Indirizzo Bitcoin invalido</string>
-  <string name="err_send_not_connected_will_resume">Disonnessi dal server, connessione in corso.</string>
+  <string name="err_send_not_connected_will_resume">Disconnessi dal server, connessione in corso.</string>
   <string name="err_send_need_recipient">Per piacere fornisci un destinatario</string>
   <string name="err_request_login_no_pin">PIN necessario, grazie.</string>
   <string name="err_tabbed_sweep_failed">Validazione fallita: indirizzo invalido</string>
@@ -203,10 +203,44 @@
   <string name="notConnected">Non sei connesso, si prega di attendere</string>
   <string name="pinErrorLength">Il PIN deve essere compreso tra 4 e 15 numeri</string>
   <string name="problemWithKey">Problemi con la chiave %s</string>
+  <string name="sendPay">Paga</string>
+  <string name="confirm">Conferma</string>
+  <string name="advanced_options">Mostra opzioni avanzate</string>
+  <string name="mainEmptyTransInbitcoinText">Qui appariranno tutte le tue transazioni non appena comincerai ad utilizzare Altana</string>
+  <string name="scanQrcode">Scansiona QR code</string>
+  <string name="warningMaxAmount">Sei sicuro di voler inviare tutti i tuoi bitcoin?</string>
+  <string name="mnemonicWriteToNfc">Scrivi la passphrase mnemonica su una tag NFC</string>
+  <string name="warningExchange">al tasso di cambio impostato</string>
   <string name="showAmountInReceive">Campi per l\'importo in ricevi</string>
   <string name="showAmountInReceiveDetail">Mostra i campi per l\'importo nella tab ricevi</string>
+  <string name="verify_paperwallet">Verifica paperwallet</string>
+  <string name="err_tabbed_verify_paperwallet_requires_camera_permissions">Per piacere consenti l\'utilizzo della fotocamera per verificare un paperwallet.</string>
+  <string name="invalid_paperwallet">Indirizzo paperwallet invalido</string>
+  <string name="recipientAddress">Indirizzo destinatario</string>
   <string name="segwit_dialog_title">Wallet aggiornato</string>
   <string name="segwit_dialog_content">Il tuo wallet è stato automaticamente aggiornato a segregated witness. Puoi disabilitare l\'aggiornamento in configurazione solo prima di aver generato il prossimo indirizzo.</string>
   <string name="segwit_disable">Disabilita Segwit</string>
   <string name="segwit_enable">Abilita Segwit</string>
+  <string name="commissionOnTheSale">Commissione sulla vendita</string>
+  <string name="total">Totale</string>
+  <string name="sellBitcoin">Vendi bitcoin</string>
+  <string name="sweep_wait_message">Questa operazione può richiedere alcuni secondi…</string>
+  <string name="sharedVia">Condiviso via</string>
+  <string name="shareAddress">Condividi</string>
+  <string name="action_sweep">Leggi paperwallet</string>
+  <string name="warningSweepPrivKey">Il paperwallet contiene %s BTC. Vuoi continuare prelevandone tutto il contenuto?</string>
+  <string name="qrcodeContentDialogTitle">Contenuto QR code</string>
+  <string name="vendorMessage">Puoi vendere i tuoi bitcoin tramite l\'apposita pagina di vendita nel menù a tendina</string>
+  <string name="tryAgainInSeconds">Riprova fra %1$d secondi</string>
+  <string name="waitBeforeRetry">Aspetta prima di riprovare</string>
+  <string name="oneAttemptLeft">Attenzione, il wallet sul dispositivo verrà cancellato al prossimo errore e sarà necessaria la passphrase mnemonica per ripristinarlo.</string>
+  <string name="serviceUnavailable">Servizio momentaneamente non disponibile</string>
+  <string name="err_unsupported_wallet">Wallet non supportato</string>
+  <string name="err_unsupported_bitid">Indirizzo BitID non supportato</string>
+  <string name="err_bitid_login_error">Errore di login (%d)</string>
+  <string name="bitid_request_login_from">vuole autenticarsi via protocollo BitID. Vuoi firmare la richiesta?</string>
+  <string name="bitid_request_login_from_http">Attenzione: la comunicazione sarà effettuata tramite una connesione http non sicura. Per il trasferimento di dati sensibili dovrebbe essere utilizzata una connesione https.</string>
+  <string name="bitid_login_to">Login su %s</string>
+  <string name="bitid_login_successful">Login effettuato con successo su %s</string>
+  <string name="bitid_dialog_title">Autenticazione BitID</string>
 </resources>

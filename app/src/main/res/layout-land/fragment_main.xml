@@ -2,16 +2,38 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="@dimen/activity_vertical_margin"
+    android:padding="@dimen/activity_content_margin"
     tools:context="com.greenaddress.greenbits.ui.MainFragment">
 
     <LinearLayout
-        android:id="@+id/mainBalanceLayout"
+        android:id="@+id/mainEmptyTransText"
         android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:gravity="center"
+        android:background="@color/white">
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="50dp"
+            android:text="@string/mainEmptyTransInbitcoinText"
+            android:textSize="20sp"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/mainBalanceLayout"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/whiteSecondary">
+    <LinearLayout
+        android:layout_width="550dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="end|bottom"
-        android:paddingLeft="@dimen/activity_horizontal_margin">
+        android:paddingLeft="@dimen/activity_horizontal_margin"
+        android:background="@color/white">
 
 
         <LinearLayout
@@ -54,8 +76,8 @@
             android:layout_height="wrap_content"
 
             android:paddingBottom="8dp"
-            android:paddingEnd="@dimen/activity_horizontal_margin"
-            android:paddingRight="@dimen/activity_horizontal_margin">
+            android:paddingEnd="10dp"
+            android:paddingRight="10dp">
 
             <com.greenaddress.greenbits.ui.FontAwesomeTextView
 
@@ -77,27 +99,33 @@
         </LinearLayout>
 
     </LinearLayout>
+    </LinearLayout>
 
-    <LinearLayout
+    <android.support.v4.widget.SwipeRefreshLayout
+        android:id="@+id/mainTransactionListSwipe"
+        android:visibility="gone"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="fill_parent"
         android:orientation="vertical"
-        android:layout_below="@id/mainBalanceLayout">
+        android:gravity="center|top"
+        android:layout_below="@id/mainBalanceLayout"
+        android:background="@color/whiteSecondary">
+
         <android.support.v7.widget.RecyclerView
+            android:background="@color/white"
             android:id="@+id/mainTransactionList"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:visibility="gone"
+            android:layout_width="550dp"
+            android:layout_height="fill_parent"
+            android:paddingBottom="60dp"
+            android:clipToPadding="false"
             android:scrollbars="vertical"/>
 
         <LinearLayout
             android:gravity="center"
-            android:id="@+id/mainEmptyTransText"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:visibility="gone">
-
 
             <TextView
                 android:id="@+id/mainFirstParagraphText"
@@ -127,5 +155,5 @@
                 android:textSize="20sp" />
 
         </LinearLayout>
-    </LinearLayout>
+    </android.support.v4.widget.SwipeRefreshLayout>
 </RelativeLayout>

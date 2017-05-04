@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:orientation="vertical">
+
+    <ImageView
+
+        android:id="@+id/inDialogImageView"
+        android:layout_width="360dp"
+        android:layout_height="360dp"
+        android:background="@color/white"
+        android:padding="15dp" />
+
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/ic_action_share"
+        android:backgroundTint="@color/accent"
+        android:layout_margin="15dp"
+        android:id="@+id/inDialogShare" />
+</LinearLayout>

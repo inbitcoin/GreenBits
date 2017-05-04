@@ -16,8 +16,11 @@ import android.widget.TextView;
 import com.greenaddress.greenbits.GaService;
 
 import org.bitcoinj.core.Coin;
+import org.bitcoinj.utils.ExchangeRate;
+import org.bitcoinj.utils.Fiat;
 import org.bitcoinj.utils.MonetaryFormat;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class ListTransactionsAdapter extends
@@ -62,6 +65,32 @@ public class ListTransactionsAdapter extends
         final String btcBalance = bitcoinFormat.noCode().format(coin).toString();
         UI.setAmountText(holder.textValue, btcBalance);
 
+        // Show actual fiat value
+        float exchangeRate = mService.getFiatRate();
+        final Fiat exchangeFiat = Fiat.valueOf("???", new BigDecimal(exchangeRate).movePointRight(Fiat.SMALLEST_UNIT_EXPONENT)
+                .toBigInteger().longValue());
+
+        try {
+            final ExchangeRate rate = new ExchangeRate(exchangeFiat);
+            Fiat fiatValue = rate.coinToFiat(coin);
+            // strip extra decimals (over 2 places) because that's what the old JS client does
+            fiatValue = fiatValue.subtract(fiatValue.divideAndRemainder((long) Math.pow(10, Fiat.SMALLEST_UNIT_EXPONENT - 2))[1]);
+            UI.setAmountText(holder.fiatValue, fiatValue.toPlainString());
+
+            final String currency = mService.getFiatCurrency();
+            final String converted = CurrencyMapper.map(currency);
+            if (converted != null) {
+                holder.fiatIcon.setText(Html.fromHtml(converted + " "));
+                holder.fiatIcon.setAwesomeTypeface();
+            } else {
+                holder.fiatIcon.setText(currency);
+                holder.fiatIcon.setDefaultTypeface();
+            }
+            UI.show(holder.fiatView);
+        } catch (final ArithmeticException | IllegalArgumentException e) {
+            UI.hide(holder.fiatView);
+        }
+
         // Hide question mark if we know this tx is verified
         // (or we are in watch only mode and so have no SPV to verify it with)
         final boolean verified = txItem.spvVerified || txItem.isSpent ||
@@ -103,19 +132,23 @@ public class ListTransactionsAdapter extends
             else
                 message = getTypeString(txItem.type);
         } else {
-            if (humanCpty)
+            if (humanCpty && !txItem.counterparty.contains("inbitcoin"))
                 message = String.format("%s %s", txItem.counterparty, txItem.memo);
             else
                 message = txItem.memo;
         }
-
-        holder.textWho.setText(message);
+        final String merchant = mService.getTxMerchant(txItem.txHash.toString());
+        if (!merchant.isEmpty()) {
+            holder.textWho.setText(Html.fromHtml(String.format("<b>%s</b>", merchant)));
+        } else {
+            holder.textWho.setText(message);
+        }
 
         final int color = txItem.amount > 0 ? R.color.superLightGreen : R.color.superLightPink;
         holder.mainLayout.setBackgroundColor(res.getColor(color));
 
         if (txItem.hasEnoughConfirmations()) {
-            final int glyph = txItem.amount > 0 ? R.string.fa_sign_in : R.string.fa_sign_out;
+            final int glyph = txItem.amount > 0 ? R.string.fa_chevron_circle_down : R.string.fa_chevron_up;
             holder.inOutIcon.setText(glyph);
             UI.hide(holder.listNumberConfirmation);
         } else {
@@ -160,10 +193,14 @@ public class ListTransactionsAdapter extends
         public final TextView textReplaceable;
         public final TextView bitcoinIcon;
         public final TextView textWho;
+        public final TextView paymentProcessorInfo;
         public final TextView inOutIcon;
         public final TextView bitcoinScale;
         public final TextView textValueQuestionMark;
         public final LinearLayout mainLayout;
+        public final TextView fiatValue;
+        public final View fiatView;
+        public final FontAwesomeTextView fiatIcon;
 
         public ViewHolder(final View v) {
 
@@ -174,11 +211,15 @@ public class ListTransactionsAdapter extends
             textWhen = UI.find(v, R.id.listWhenText);
             textReplaceable = UI.find(v, R.id.listReplaceableText);
             textWho = UI.find(v, R.id.listWhoText);
+            paymentProcessorInfo = UI.find(v, R.id.paymentProcessor);
             inOutIcon = UI.find(v, R.id.listInOutIcon);
             mainLayout = UI.find(v, R.id.list_item_layout);
             bitcoinIcon = UI.find(v, R.id.listBitcoinIcon);
             bitcoinScale = UI.find(v, R.id.listBitcoinScaleText);
             listNumberConfirmation = UI.find(v, R.id.listNumberConfirmation);
+            fiatValue = UI.find(v, R.id.fiatValue);
+            fiatView = UI.find(v, R.id.fiatView);
+            fiatIcon = UI.find(v, R.id.fiatIcon);
         }
     }
 }

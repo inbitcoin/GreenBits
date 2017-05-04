@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:padding="15dp"
+        android:textAlignment="center"
+        android:text="@string/qrcodeContentDialogTitle" />
+
+    <TextView
+        android:id="@+id/inDialogText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textIsSelectable="true"
+        android:textAlignment="center"
+        android:textSize="18sp"
+        android:padding="15dp" />
+
+    <ImageButton
+        android:id="@+id/inDialogShare"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="15dp"
+        android:background="@drawable/ic_action_share"
+        android:backgroundTint="@color/accent" />
+
+</LinearLayout>

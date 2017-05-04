@@ -11,7 +11,7 @@
   <string name="title_activity_sign_up">Créer</string>
   <string name="signupContinueButtonText">CONTINUER</string>
   <string name="signupCheckBoxText">J\'ai sécurisé la phrase de récupération et j\'ai lu les CGU</string>
-  <string name="termsofservice"><a href="https://greenaddress.it/en/tos/">CGU</a></string>
+  <string name="termsofservice"><a href="http://altanawallet.it/tos/">CGU</a></string>
   <string name="firstSignUpText">CRÉER</string>
   <string name="firstLogInText">RESTAURER</string>
   <string name="receive_title">Recevoir</string>
@@ -57,8 +57,8 @@
   <string name="greenaddress_headline">Le portefeuille bitcoin le plus simple, sécurisé et rapide</string>
   <string name="pinSkipText">PASSER</string>
   <string name="sendOptionalMemo">Note optionnelle</string>
-  <string name="madeBy">par GreenAddress</string>
-  <string name="welcomeGreenBits">Bienvenue sur GreenBits</string>
+  <string name="madeBy">par inbitcoin</string>
+  <string name="welcomeGreenBits">Bienvenue sur Altana</string>
   <string name="attemptsFinished">Code PIN invalide, vous n\'avez plus de tentatives restantes. Connectez-vous en utilisant votre phrase de récupération.</string>
   <string name="attemptsLeftLong">Code PIN invalide, vous avez %1$d tentatives restantes</string>
   <string name="warnOnPaste">Attention, d\'autres applications peuvent lire ou modifier votre presse-papier</string>
@@ -70,7 +70,7 @@
   <string name="txTypeIn">Reçus</string>
   <string name="txTypeOut">Envoyés</string>
   <string name="txTypeRedeposit">Déplacés</string>
-  <string name="mnemonicHint">Écrivez votre phrase de récupération GreenAddress ou numérisez son code QR</string>
+  <string name="mnemonicHint">Écrivez votre phrase de récupération portefeuille ou numérisez son code QR</string>
   <string name="title_activity_settings">Paramètres</string>
   <string name="ago">il y a %1$d %2$s</string>
   <string name="txSubTitle">Détails de la transaction</string>

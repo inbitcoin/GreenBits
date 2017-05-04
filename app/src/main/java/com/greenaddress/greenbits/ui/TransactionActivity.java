@@ -1,9 +1,16 @@
 package com.greenaddress.greenbits.ui;
 
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.text.Html;
 import android.text.TextUtils;
 import android.util.Log;
@@ -12,8 +19,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.afollestad.materialdialogs.DialogAction;
@@ -29,6 +40,7 @@ import com.greenaddress.greenapi.Network;
 import com.greenaddress.greenapi.Output;
 import com.greenaddress.greenapi.PreparedTransaction;
 import com.greenaddress.greenbits.GaService;
+import com.greenaddress.greenbits.QrBitmap;
 import com.greenaddress.greenbits.wallets.TrezorHWWallet;
 
 import org.bitcoinj.core.Address;
@@ -43,8 +55,14 @@ import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptChunk;
 import org.bitcoinj.utils.MonetaryFormat;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,18 +70,27 @@ import java.util.List;
 import java.util.Map;
 
 
+
 public class TransactionActivity extends GaActivity {
+
+    private PlaceholderFragment mPlaceholderFragment;
 
     @Override
     protected int getMainViewId() { return R.layout.activity_transaction; }
 
     @Override
     protected void onCreateWithService(final Bundle savedInstanceState) {
-        if (savedInstanceState == null)
+        if (savedInstanceState == null) {
+            mPlaceholderFragment = new PlaceholderFragment();
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, new PlaceholderFragment())
+                    .add(R.id.container, mPlaceholderFragment)
                     .commit();
+        }
         setResult(RESULT_OK);
+
+        final Toolbar toolbar = UI.find(this, R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
     @Override
@@ -82,6 +109,9 @@ public class TransactionActivity extends GaActivity {
                 sendIntent.setType("text/plain");
                 startActivity(sendIntent);
                 return true;
+            case android.R.id.home:
+                onBackPressed();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -92,6 +122,21 @@ public class TransactionActivity extends GaActivity {
         private static final String TAG = PlaceholderFragment.class.getSimpleName();
         private Dialog mSummary;
         private Dialog mTwoFactor;
+        private Dialog mDialog = null;
+        private final Runnable mDialogCB = new Runnable() { public void run() { mDialog = null; } };
+        private final static String IDENTICON_FILE_PREFIX = "identicon_";
+        private BitmapWorkerTask mBitmapWorkerTask;
+        private QrcodeWorkerTask mQrcodeWorkerTask;
+        private View mView;
+        private boolean changedData = false;
+
+        /**
+         * Return if some data are changed
+         * @return true on changed data
+         */
+        public boolean hasChangedData() {
+            return changedData;
+        }
 
         private void openInBrowser(final TextView textView, final String identifier, final String url) {
             textView.setText(identifier);
@@ -121,49 +166,207 @@ public class TransactionActivity extends GaActivity {
             });
         }
 
+        /**
+         * get bitmap from cache
+         * @param txid is a part of the unique filename in the cache
+         **/
+        public Bitmap getBitmapFromCache(String txid) {
+            final Context context = getContext();
+            if (context == null)
+                return null;
+            File file = new File(context.getCacheDir(), IDENTICON_FILE_PREFIX + txid);
+            if (file.exists()) {
+                Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+                return bitmap;
+            }
+            return null;
+        }
+
+        /**
+         * add bitmap to cache in PNG format
+         * @param txid will be a part of the unique filename in the cache
+         * @param bitmap the bitmap to save in PNG
+         **/
+        public void addBitmapToCache(String txid, Bitmap bitmap) {
+            final Context context = getContext();
+            if (context == null)
+                return;
+            File file = new File(context.getCacheDir(), IDENTICON_FILE_PREFIX + txid);
+            if (!file.exists()) {
+                try {
+                    file.createNewFile();
+                    OutputStream os = new BufferedOutputStream(new FileOutputStream(file));
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, os);
+                    os.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        private void onImageClicked(final Bitmap image, final String text) {
+            if (mDialog != null)
+                mDialog.dismiss();
+
+            final View v = getActivity().getLayoutInflater().inflate(R.layout.dialog_image_share_btn, null, false);
+
+            final ImageView qrCode = UI.find(v, R.id.inDialogImageView);
+            qrCode.setLayoutParams(UI.getScreenLayout(getActivity(), 0.8));
+
+            final ImageButton shareButton = UI.find(v, R.id.inDialogShare);
+            shareButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    mDialog.dismiss();
+                    UI.shareImageWithText(getActivity(), image, text);
+                }
+            });
+
+            final Dialog dialog = new Dialog(getActivity());
+            dialog.getWindow().requestFeature(Window.FEATURE_NO_TITLE);
+            dialog.setContentView(v);
+            UI.setDialogCloseHandler(dialog, mDialogCB);
+
+            qrCode.setImageBitmap(image);
+            mDialog = dialog;
+            mDialog.show();
+        }
+
+        /** try to get identicon image from server and save it to cache */
+        class BitmapWorkerTask extends AsyncTask<String, Void, Bitmap> {
+            private String txItem = "";
+
+            @Override
+            protected Bitmap doInBackground(String... params) {
+                txItem = params[0];
+                // try to get image from cache
+                Bitmap bitmap = getBitmapFromCache(txItem);
+                // if bitmap found, return it else try to fetch from the site
+                if (bitmap != null) {
+                    return bitmap;
+                }
+
+                try {
+                    URL newUrl = new URL("https://inbitcoin.it/identicon/image/" + txItem);
+                    bitmap = BitmapFactory.decodeStream(newUrl.openConnection().getInputStream());
+                    addBitmapToCache(txItem, bitmap);
+                    return  bitmap;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(final Bitmap bitmap) {
+                final ImageView identicon = UI.find(mView, R.id.identiconImage);
+                final ProgressBar identiconProgressbar = UI.find(mView, R.id.identiconProgressbar);
+                UI.hide(identiconProgressbar);
+                UI.show(identicon);
+                if (bitmap == null) {
+                    return;
+                }
+                identicon.setImageBitmap(bitmap);
+                identicon.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        onImageClicked(bitmap, "txid: " + txItem);
+                    }
+                });
+            }
+
+        }
+
+        class QrcodeWorkerTask extends  AsyncTask<String, Void, Bitmap> {
+
+            String mTxHash;
+
+            @Override
+            protected Bitmap doInBackground(String... strings) {
+                mTxHash = strings[0];
+                return new QrBitmap("txid:" + mTxHash, Color.WHITE, getContext()).getQRCode();
+            }
+
+            @Override
+            protected void onPostExecute(final Bitmap qrcodeBitmap) {
+                final ProgressBar qrcodeProgressbar = UI.find(mView, R.id.qrcodeProgressbar);
+                final ImageView qrcode = UI.find(mView, R.id.qrImage);
+                UI.hide(qrcodeProgressbar);
+                UI.show(qrcode);
+
+                qrcode.setImageBitmap(qrcodeBitmap);
+                qrcode.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        onImageClicked(qrcodeBitmap, "txid: " + mTxHash);
+                    }
+                });
+            }
+        }
+
+
         @Override
         public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
                                  final Bundle savedInstanceState) {
 
             final GaService service = getGAService();
 
-            final View v = inflater.inflate(R.layout.fragment_transaction, container, false);
+            mView = inflater.inflate(R.layout.fragment_transaction, container, false);
 
-            final TextView hashText = UI.find(v, R.id.txHashText);
+            final TextView hashText = UI.find(mView, R.id.txHashText);
 
-            final TextView amount = UI.find(v, R.id.txAmountText);
-            final TextView bitcoinScale = UI.find(v, R.id.txBitcoinScale);
-            final TextView bitcoinUnit = UI.find(v, R.id.txBitcoinUnit);
+            final TextView amount = UI.find(mView, R.id.txAmountText);
+            final TextView bitcoinScale = UI.find(mView, R.id.txBitcoinScale);
+            final TextView bitcoinUnit = UI.find(mView, R.id.txBitcoinUnit);
 
-            final TextView dateText = UI.find(v, R.id.txDateText);
-            final TextView memoText = UI.find(v, R.id.txMemoText);
+            final TextView dateText = UI.find(mView, R.id.txDateText);
+            final TextView memoText = UI.find(mView, R.id.txMemoText);
 
-            final TextView memoEdit = UI.find(v, R.id.sendToNoteIcon);
-            final EditText memoEditText = UI.find(v, R.id.sendToNoteText);
+            final TextView memoEdit = UI.find(mView, R.id.sendToNoteIcon);
+            final EditText memoEditText = UI.find(mView, R.id.sendToNoteText);
 
-            final TextView doubleSpentByText = UI.find(v, R.id.txDoubleSpentByText);
-            final TextView doubleSpentByTitle = UI.find(v, R.id.txDoubleSpentByTitle);
+            final TextView doubleSpentByText = UI.find(mView, R.id.txDoubleSpentByText);
+            final TextView doubleSpentByTitle = UI.find(mView, R.id.txDoubleSpentByTitle);
 
-            final TextView recipientText = UI.find(v, R.id.txRecipientText);
-            final TextView recipientTitle = UI.find(v, R.id.txRecipientTitle);
+            final TextView recipientText = UI.find(mView, R.id.txRecipientText);
+            final TextView recipientTitle = UI.find(mView, R.id.txRecipientTitle);
 
-            final TextView receivedOnText = UI.find(v, R.id.txReceivedOnText);
-            final TextView receivedOnTitle = UI.find(v, R.id.txReceivedOnTitle);
+            final TextView receivedOnText = UI.find(mView, R.id.txReceivedOnText);
+            final TextView receivedOnTitle = UI.find(mView, R.id.txReceivedOnTitle);
 
-            final TextView unconfirmedText = UI.find(v, R.id.txUnconfirmedText);
-            final TextView unconfirmedEstimatedBlocks = UI.find(v, R.id.txUnconfirmedEstimatedBlocks);
-            final TextView unconfirmedRecommendation = UI.find(v, R.id.txUnconfirmedRecommendation);
-            final Button unconfirmedIncreaseFee = UI.find(v, R.id.txUnconfirmedIncreaseFee);
-            final Button saveMemo = UI.find(v, R.id.saveMemo);
+            final TextView unconfirmedText = UI.find(mView, R.id.txUnconfirmedText);
+            final TextView unconfirmedEstimatedBlocks = UI.find(mView, R.id.txUnconfirmedEstimatedBlocks);
+            final TextView unconfirmedRecommendation = UI.find(mView, R.id.txUnconfirmedRecommendation);
+            final Button unconfirmedIncreaseFee = UI.find(mView, R.id.txUnconfirmedIncreaseFee);
+            final Button saveMemo = UI.find(mView, R.id.saveMemo);
 
-            final TextView feeScale = UI.find(v, R.id.txFeeScale);
-            final TextView feeUnit = UI.find(v, R.id.txFeeUnit);
-            final TextView feeInfoText = UI.find(v, R.id.txFeeInfoText);
+            final TextView feeScale = UI.find(mView, R.id.txFeeScale);
+            final TextView feeUnit = UI.find(mView, R.id.txFeeUnit);
+            final TextView feeInfoText = UI.find(mView, R.id.txFeeInfoText);
+
+            final TextView merchantName = UI.find(mView, R.id.merchantName);
+            final View merchantView = UI.find(mView, R.id.merchantView);
+            final TextView paymentProcessorInfo = UI.find(mView, R.id.paymentProcessor);
+            final View paymentProcessorView = UI.find(mView, R.id.paymentProcessorView);
+            final TextView invoiceInfo = UI.find(mView, R.id.invoiceInfo);
+            final View invoiceView = UI.find(mView, R.id.invoiceView);
 
             final TransactionItem txItem = (TransactionItem) getActivity().getIntent().getSerializableExtra("TRANSACTION");
             final GaActivity gaActivity = getGaActivity();
 
             openInBrowser(hashText, txItem.txHash.toString(), Network.BLOCKEXPLORER_TX);
+
+            mBitmapWorkerTask = new BitmapWorkerTask();
+            mQrcodeWorkerTask = new QrcodeWorkerTask();
+            if (Build.VERSION.SDK_INT>= Build.VERSION_CODES.HONEYCOMB) {
+                mBitmapWorkerTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, txItem.txHash.toString());
+                mQrcodeWorkerTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, txItem.txHash.toString());
+            } else {
+                mBitmapWorkerTask.execute(txItem.txHash.toString());
+                mQrcodeWorkerTask.execute(txItem.txHash.toString());
+            }
+
+
 
             final Coin fee = Coin.valueOf(txItem.fee);
             final Coin feePerKb;
@@ -179,7 +382,7 @@ public class TransactionActivity extends GaActivity {
             if (txItem.type.equals(TransactionItem.TYPE.OUT) || txItem.type.equals(TransactionItem.TYPE.REDEPOSIT) || txItem.isSpent) {
                 if (txItem.getConfirmations() > 0) {
                     // confirmed - hide unconfirmed widgets
-                    UI.hide((View) UI.find(v, R.id.txUnconfirmed),
+                    UI.hide((View) UI.find(mView, R.id.txUnconfirmed),
                             unconfirmedRecommendation, unconfirmedIncreaseFee,
                             unconfirmedEstimatedBlocks);
                 } else if (txItem.type.equals(TransactionItem.TYPE.OUT) || txItem.type.equals(TransactionItem.TYPE.REDEPOSIT)) {
@@ -222,7 +425,7 @@ public class TransactionActivity extends GaActivity {
                         unconfirmedEstimatedBlocks);
                 if (txItem.getConfirmations() > 0)
                     if (isWatchOnly || txItem.spvVerified)
-                        UI.hide((View) UI.find(v, R.id.txUnconfirmed));
+                        UI.hide((View) UI.find(mView, R.id.txUnconfirmed));
                     else {
                         final int blocksLeft = service.getSPVBlocksRemaining();
                         final String message = getResources().getString(R.string.txUnverifiedTx);
@@ -263,10 +466,29 @@ public class TransactionActivity extends GaActivity {
                 if (isWatchOnly)
                     UI.hide(memoEdit);
             } else {
-                UI.hide(memoText, (View) UI.find(v, R.id.txMemoMargin));
+                UI.hide(memoText, (View) UI.find(mView, R.id.txMemoMargin));
                 if (isWatchOnly)
-                    UI.hide((View) UI.find(v, R.id.txMemoTitle), memoEdit);
+                    UI.hide((View) UI.find(mView, R.id.txMemoTitle), memoEdit);
             }
+
+            final String merchant = service.getTxMerchant(txItem.txHash.toString());
+            if (!merchant.isEmpty()) {
+                merchantName.setText(merchant);
+                UI.show(merchantView);
+            }
+
+            final String paymentProcessor = service.getTxPaymentProcessor(txItem.txHash.toString());
+            if (!paymentProcessor.isEmpty()) {
+                paymentProcessorInfo.setText(paymentProcessor);
+                UI.show(paymentProcessorView);
+            }
+
+            final String invoice = service.getTxInvoice(txItem.txHash.toString());
+            if (!invoice.isEmpty()) {
+                invoiceInfo.setText(invoice);
+                UI.show(invoiceView);
+            }
+
             // FIXME: use a list instead of reusing a TextView to show all double spends to allow
             // for a warning to be shown before the browser is open
             // this is to prevent to accidentally leak to block explorers your addresses
@@ -293,22 +515,22 @@ public class TransactionActivity extends GaActivity {
                 doubleSpentByText.setText(res);
             } else
                 UI.hide(doubleSpentByText, doubleSpentByTitle,
-                        (View) UI.find(v, R.id.txDoubleSpentByMargin));
+                        (View) UI.find(mView, R.id.txDoubleSpentByMargin));
 
             if (txItem.counterparty != null && txItem.counterparty.length() > 0)
                 recipientText.setText(txItem.counterparty);
             else
                 UI.hide(recipientText, recipientTitle,
-                       (View) UI.find(v, R.id.txRecipientMargin));
+                       (View) UI.find(mView, R.id.txRecipientMargin));
 
             if (txItem.receivedOn != null && txItem.receivedOn.length() > 0)
                 openInBrowser(receivedOnText, txItem.receivedOn, Network.BLOCKEXPLORER_ADDRESS);
             else
                 UI.hide(receivedOnText, receivedOnTitle,
-                        (View) UI.find(v, R.id.txReceivedOnMargin));
+                        (View) UI.find(mView, R.id.txReceivedOnMargin));
 
             if (isWatchOnly)
-                return v;
+                return mView;
 
             memoEdit.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -329,9 +551,9 @@ public class TransactionActivity extends GaActivity {
                             memoText.setText(UI.getText(memoEditText));
                             UI.hide(saveMemo, memoEditText);
                             if (UI.getText(memoText).isEmpty())
-                                UI.hide(memoText, (View) UI.find(v, R.id.txMemoMargin));
+                                UI.hide(memoText, (View) UI.find(mView, R.id.txMemoMargin));
                             else
-                                UI.show((View) UI.find(v, R.id.txMemoMargin), memoText);
+                                UI.show((View) UI.find(mView, R.id.txMemoMargin), memoText);
                         }
                     });
                 }
@@ -345,6 +567,7 @@ public class TransactionActivity extends GaActivity {
                                     @Override
                                     public void onSuccess(final Boolean result) {
                                         onDisableEdit();
+                                        changedData = true;
                                     }
                                 });
                     } else {
@@ -353,7 +576,7 @@ public class TransactionActivity extends GaActivity {
                 }
             });
 
-            return v;
+            return mView;
         }
 
         private void replaceByFee(final TransactionItem txItem, final Coin feerate, Integer txSize, final int level) {
@@ -742,10 +965,24 @@ public class TransactionActivity extends GaActivity {
         @Override
         public void onDestroyView() {
             super.onDestroyView();
+            if (mBitmapWorkerTask != null)
+                mBitmapWorkerTask.cancel(true);
+            if (mQrcodeWorkerTask != null)
+                mQrcodeWorkerTask.cancel(true);
             if (mSummary != null)
                 mSummary.dismiss();
             if (mTwoFactor != null)
                 mTwoFactor.dismiss();
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mPlaceholderFragment != null && mPlaceholderFragment.hasChangedData()) {
+            Intent intent = new Intent();
+            intent.putExtra(TabbedMainActivity.REQUEST_RELOAD, true);
+            setResult(RESULT_OK, intent);
+        }
+        super.onBackPressed();
     }
 }

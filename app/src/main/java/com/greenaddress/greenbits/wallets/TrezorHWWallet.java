@@ -36,7 +36,7 @@ public class TrezorHWWallet extends HWWallet {
     }
 
     @Override
-    protected ECKey.ECDSASignature signMessage(final String message) {
+    public ECKey.ECDSASignature signMessage(final String message) {
         final Integer[] intArray = new Integer[addrn.size()];
         return trezor.MessageSignMessage(addrn.toArray(intArray), message);
     }

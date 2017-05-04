@@ -7,12 +7,15 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.security.keystore.KeyProperties;
+import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -56,6 +59,12 @@ public class PinActivity extends LoginActivity implements Observer {
     private CircularProgressButton mPinLoginButton;
     private EditText mPinText;
     private TextView mPinError;
+    private TextView mPinCountdown;
+    private TextView mOneAttempLeft;
+    private String nativePIN;
+    private final static int WAIT_TIME_SEC_1 = 5;
+    private final static int WAIT_TIME_SEC_2 = 20;
+    private final static int MAX_ATTEMPTS = 3;
 
     private void login() {
 
@@ -72,6 +81,18 @@ public class PinActivity extends LoginActivity implements Observer {
             return;
         }
 
+        final Long timestamp = System.currentTimeMillis()/1000;
+        final Long lastFailTimestamp = mService.cfg("pin").getLong("last_fail_timestamp", 0L);
+        if (lastFailTimestamp > 0 && (timestamp - lastFailTimestamp) < getWaitTimeSec()) {
+            PinActivity.this.toast(getString(R.string.waitBeforeRetry));
+            return;
+        }
+
+        // hide all menu entry during login
+        setMenuItemVisible(mMenu, R.id.action_qr, false);
+        setMenuItemVisible(mMenu, R.id.network_preferences, false);
+        setMenuItemVisible(mMenu, R.id.watchonly_preference, false);
+
         mPinLoginButton.setProgress(50);
         mPinText.setEnabled(false);
 
@@ -80,12 +101,20 @@ public class PinActivity extends LoginActivity implements Observer {
 
         setUpLogin(UI.getText(mPinText), new Runnable() {
              public void run() {
+                 // restore all menu entry on login error
+                 setMenuItemVisible(mMenu, R.id.action_qr, true);
+                 setMenuItemVisible(mMenu, R.id.network_preferences, true);
+                 setMenuItemVisible(mMenu, R.id.watchonly_preference, true);
+
                  mPinText.setText("");
                  mPinLoginButton.setProgress(0);
                  mPinText.setEnabled(true);
                  UI.show(mPinError);
                  final int counter = mService.cfg("pin").getInt("counter", 1);
-                 mPinError.setText(getString(R.string.attemptsLeft, 3 - counter));
+                 mPinError.setText(getString(R.string.attemptsLeft, MAX_ATTEMPTS - counter));
+                 if (counter == MAX_ATTEMPTS -1)
+                     UI.show(mOneAttempLeft);
+                 startCountdown(getWaitTimeSec());
               }
          });
      }
@@ -123,9 +152,11 @@ public class PinActivity extends LoginActivity implements Observer {
                 if (t instanceof GAException ||
                     Throwables.getRootCause(t) instanceof LoginFailed) {
                     final SharedPreferences.Editor editor = prefs.edit();
-                    if (counter < 3) {
+                    if (counter < MAX_ATTEMPTS) {
+                        final Long timestamp = System.currentTimeMillis()/1000;
+                        editor.putLong("last_fail_timestamp", timestamp);
                         editor.putInt("counter", counter);
-                        message = getString(R.string.attemptsLeftLong, 3 - counter);
+                        message = getString(R.string.attemptsLeftLong, MAX_ATTEMPTS - counter);
                     } else {
                         message = getString(R.string.attemptsFinished);
                         editor.clear();
@@ -139,7 +170,7 @@ public class PinActivity extends LoginActivity implements Observer {
                     public void run() {
                         PinActivity.this.toast(message);
 
-                        if (counter >= 3) {
+                        if (counter >= MAX_ATTEMPTS) {
                             startActivity(new Intent(PinActivity.this, FirstScreenActivity.class));
                             finish();
                             return;
@@ -167,10 +198,13 @@ public class PinActivity extends LoginActivity implements Observer {
         setContentView(R.layout.activity_pin);
         mPinLoginButton = UI.find(this, R.id.pinLoginButton);
         mPinLoginButton.setIndeterminateProgressMode(true);
+        mPinLoginButton.setProgress(50);
         mPinText = UI.find(this, R.id.pinText);
         mPinError = UI.find(this, R.id.pinErrorText);
+        mPinCountdown = UI.find(this, R.id.pinCountdownText);
+        mOneAttempLeft = UI.find(this, R.id.oneAttemptLeft);
 
-        final String nativePIN = prefs.getString("native", null);
+        nativePIN = prefs.getString("native", null);
 
         if (TextUtils.isEmpty(nativePIN)) {
 
@@ -189,10 +223,30 @@ public class PinActivity extends LoginActivity implements Observer {
             });
 
         } else  {
+            // force hide keyboard
+            getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
             mPinText.setEnabled(false);
             mPinLoginButton.setProgress(50);
             tryDecrypt();
         }
+
+        final Long timestamp = System.currentTimeMillis()/1000;
+        final Long lastFailTimestamp = mService.cfg("pin").getLong("last_fail_timestamp", 0L);
+        final Long timeLeft = timestamp - lastFailTimestamp;
+        if (lastFailTimestamp > 0 && (timestamp - lastFailTimestamp) < getWaitTimeSec())
+            startCountdown(getWaitTimeSec() - timeLeft.intValue());
+
+        final int counter = mService.cfg("pin").getInt("counter", 1);
+        if (counter > 0) {
+            UI.show(mPinError);
+            mPinError.setText(getString(R.string.attemptsLeft, MAX_ATTEMPTS - counter));
+            if (counter == MAX_ATTEMPTS -1)
+                UI.show(mOneAttempLeft);
+        }
+
+        final Toolbar toolbar = UI.find(this, R.id.toolbar);
+        setSupportActionBar(toolbar);
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -254,6 +308,7 @@ public class PinActivity extends LoginActivity implements Observer {
 
     @Override
     protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == ACTIVITY_REQUEST_CODE) {
             // Challenge completed, proceed with using cipher
             if (resultCode == RESULT_OK) {
@@ -281,6 +336,15 @@ public class PinActivity extends LoginActivity implements Observer {
     @Override
     public void onResumeWithService() {
         mService.addConnectionObserver(this);
+        // if is already connected, show the login button
+        if (TextUtils.isEmpty(nativePIN) && mPinLoginButton != null) {
+            if (mService.isConnected())
+                mPinLoginButton.setProgress(0);
+            else
+                mPinLoginButton.setProgress(50);
+        }
+        if (!mService.isConnected())
+            setMenuItemVisible(mMenu, R.id.network_unavailable, true);
         super.onResumeWithService();
     }
 
@@ -292,6 +356,7 @@ public class PinActivity extends LoginActivity implements Observer {
     @Override
     public boolean onCreateOptionsMenu(final Menu menu) {
         getMenuInflater().inflate(R.menu.common_menu, menu);
+        getMenuInflater().inflate(R.menu.camera_menu, menu);
         getMenuInflater().inflate(R.menu.preauth_menu, menu);
         mMenu = menu;
         final boolean connected = mService != null && mService.isConnected();
@@ -319,5 +384,43 @@ public class PinActivity extends LoginActivity implements Observer {
         final GaService.State state = (GaService.State) data;
         setMenuItemVisible(mMenu, R.id.network_unavailable,
                            !state.isConnected() && !state.isLoggedOrLoggingIn());
+        if (TextUtils.isEmpty(nativePIN)) {
+            if (state.isConnected()) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mPinLoginButton.setProgress(0);
+                    }
+                });
+            } else if (!state.isLoggedOrLoggingIn()){
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mPinLoginButton.setProgress(50);
+                    }
+                });
+            }
+        }
+    }
+
+    private void startCountdown(final int sec) {
+        UI.show(mPinCountdown);
+        new CountDownTimer(sec * 1000, 1000) {
+            public void onTick(long millisUntilFinished) {
+                mPinCountdown.setText(getString(R.string.tryAgainInSeconds, millisUntilFinished / 1000));
+            }
+            public void onFinish() {
+                mPinCountdown.setVisibility(View.INVISIBLE);
+            }
+        }.start();
+    }
+
+    private int getWaitTimeSec() {
+        final int counter = mService.cfg("pin").getInt("counter", 1);
+        if (counter == 1)
+            return WAIT_TIME_SEC_1;
+        else if (counter > 1)
+            return WAIT_TIME_SEC_2;
+        return 0;
     }
 }

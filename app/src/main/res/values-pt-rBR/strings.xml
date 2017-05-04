@@ -11,7 +11,7 @@
   <string name="title_activity_sign_up">Criar</string>
   <string name="signupContinueButtonText">CONTINUAR</string>
   <string name="signupCheckBoxText">Eu garanto a minha frase-senha e eu li os ToS</string>
-  <string name="termsofservice"><a href="https://greenaddress.it/en/tos/">Termos de serviço</a></string>
+  <string name="termsofservice"><a href="http://altanawallet.it/tos/">Termos de serviço</a></string>
   <string name="firstSignUpText">CRIAR</string>
   <string name="firstLogInText">RESTAURAR</string>
   <string name="receive_title">RECEBER</string>
@@ -57,8 +57,8 @@
   <string name="greenaddress_headline">a mais fácil, segura e rápida carteira bitcoin</string>
   <string name="pinSkipText">PULAR</string>
   <string name="sendOptionalMemo">Optional memo</string>
-  <string name="madeBy">por GreenAddress</string>
-  <string name="welcomeGreenBits">Bem-vindo ao GreenBits</string>
+  <string name="madeBy">por inbitcoin</string>
+  <string name="welcomeGreenBits">Bem-vindo ao Altana</string>
   <string name="attemptsFinished">PIN inválido, você não tem nenhuma tentativa restante. Por favor, faça o login usando sua senha.</string>
   <string name="attemptsLeftLong">PIN inválido, você tem %1$d tentativas restantes</string>
   <string name="warnOnPaste">Esteja ciente, outros aplicativos podem ler ou alterar a área de transferência</string>
@@ -67,7 +67,6 @@
   <string name="sendPayTo">Pagar para</string>
   <string name="action_sweep">Sweep</string>
   <string name="action_logout">Sair</string>
-  <string name="mnemonicHint">Digite sua senha GreenAddress ou escaneie o qrcode</string>
   <string name="title_activity_settings">Configurações</string>
   <string name="ago">%1$d %2$s atrás</string>
   <string name="txSubTitle">Detalhes da transação</string>
@@ -198,4 +197,5 @@
   <string name="no_peers_connected">Nenhum par conectado</string>
   <string name="settings_currency">Fazer a troca da moeda</string>
   <string name="settings_denomination">Denominação Bitcoin </string>
+  <string name="mnemonicHint">Digite sua senha de carteira ou digitalize o qrcode</string>
 </resources>

@@ -2,13 +2,21 @@ package com.greenaddress.greenbits.ui;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.content.res.Resources;
+import android.net.Uri;
+import android.support.v4.content.FileProvider;
 import android.text.Editable;
 import android.util.DisplayMetrics;
 import android.view.KeyEvent;
+import android.view.Surface;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
@@ -21,6 +29,14 @@ import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.Theme;
 import com.greenaddress.greenbits.GaService;
 
+import org.bitcoinj.uri.BitcoinURI;
+import org.bitcoinj.uri.BitcoinURIParseException;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -79,11 +95,9 @@ public abstract class UI {
         final MaterialDialog.Builder b;
         b = new MaterialDialog.Builder(a)
                 .title(title)
-                .titleColorRes(R.color.white)
+                .theme(Theme.LIGHT)
                 .positiveColorRes(R.color.accent)
-                .negativeColorRes(R.color.accent)
-                .contentColorRes(R.color.white)
-                .theme(Theme.DARK);
+                .negativeColorRes(R.color.accent);
         if (pos != INVALID_RESOURCE_ID)
             b.positiveText(pos);
         if (neg != INVALID_RESOURCE_ID)
@@ -156,6 +170,11 @@ public abstract class UI {
         final MaterialDialog dialog = popup(a, title, id).progress(true, 0).build();
         dialog.show();
         return dialog;
+    }
+
+    public static MaterialDialog.Builder popupWaitCustom(final Activity a, final int title) {
+        final int id = INVALID_RESOURCE_ID;
+        return popup(a, title, id).progress(true, 0);
     }
 
     public static void toast(final Activity activity, final int id, final int len) {
@@ -260,10 +279,20 @@ public abstract class UI {
     }
 
     public static void showDialog(final Dialog dialog) {
-        // (FIXME not sure if there's any smaller subset of these 3 calls below which works too)
-        dialog.getWindow().clearFlags(LayoutParams.FLAG_NOT_FOCUSABLE |
-                                   LayoutParams.FLAG_ALT_FOCUSABLE_IM);
-        dialog.getWindow().setSoftInputMode(LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        showDialog(dialog, false);
+    }
+
+    /**
+     * Show dialog
+     * @param dialog the dialog to show
+     * @param forceFocus force request focus
+     */
+    public static void showDialog(final Dialog dialog, Boolean forceFocus) {
+        if (forceFocus) {
+            dialog.getWindow().clearFlags(LayoutParams.FLAG_NOT_FOCUSABLE |
+                    LayoutParams.FLAG_ALT_FOCUSABLE_IM);
+            dialog.getWindow().setSoftInputMode(LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        }
         dialog.show();
     }
 
@@ -279,5 +308,121 @@ public abstract class UI {
         if (v != null)
             v.setText(res);
         return res;
+    }
+
+    public static void shareImageWithText(Activity activity, Bitmap image, String text) {
+        final File file = new File(activity.getCacheDir(), "imagetoshare.png");
+        final FileOutputStream fOut;
+        final String textToShare = String.format("%s \n\n%s %s", text,
+                activity.getResources().getString(R.string.sharedVia),
+                activity.getResources().getString(R.string.app_name));
+        try {
+            fOut = new FileOutputStream(file);
+            image.compress(Bitmap.CompressFormat.PNG, 100, fOut);
+            fOut.flush();
+            fOut.close();
+            file.setReadable(true, false);
+
+            Uri fileUri = FileProvider.getUriForFile(activity,
+                    BuildConfig.APPLICATION_ID + ".provider",
+                    file);
+
+            final Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.putExtra(Intent.EXTRA_STREAM, fileUri);
+            intent.putExtra(Intent.EXTRA_TEXT, textToShare);
+            intent.setType("image/*");
+            activity.startActivity(intent);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void shareVcard(Activity activity, String text) {
+        final Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_VIEW);
+
+        final File file = new File(activity.getCacheDir(), "contact");
+        final FileOutputStream fOut;
+        try {
+            fOut = new FileOutputStream(file);
+            fOut.write(text.getBytes());
+            fOut.flush();
+            fOut.close();
+            file.setReadable(true, false);
+
+            Uri fileUri = FileProvider.getUriForFile(activity,
+                    BuildConfig.APPLICATION_ID + ".provider",
+                    file);
+            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.setDataAndType(fileUri, "text/x-vcard");
+            activity.startActivity(intent);
+        } catch (Exception e) {
+            throw new RuntimeException();
+        }
+    }
+
+    public static void shareQrcodeAddress(Activity activity, Bitmap bitmap, String text) {
+        final String sharedViaShare = String.format("%s %s",
+                activity.getResources().getString(R.string.sharedVia),
+                activity.getResources().getString(R.string.app_name));
+
+        String address = "", amount = "0", label = sharedViaShare;
+
+        if (text.startsWith("bitcoin:")) {
+            try {
+                BitcoinURI bitcoinURI = new BitcoinURI(text);
+                if (bitcoinURI.getAddress() != null)
+                    address = bitcoinURI.getAddress().toString();
+                if (bitcoinURI.getAmount() != null)
+                    amount = bitcoinURI.getAmount().toPlainString();
+                if (bitcoinURI.getLabel() != null)
+                    label = bitcoinURI.getLabel();
+            } catch (BitcoinURIParseException e) {
+                e.printStackTrace();
+            }
+            if (address.isEmpty()) {
+                Toast.makeText(activity, R.string.invalidAddress, Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (amount.isEmpty())
+                amount = "0";
+            if (label.isEmpty())
+                label = sharedViaShare;
+        } else {
+            address = text;
+        }
+
+        try {
+            label = URLEncoder.encode(label, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        final String url = String.format("http://inbitcoin.it/altana/%s/%s/%s", address, amount, label);
+        shareImageWithText(activity, bitmap, url);
+    }
+
+    /**
+     * Get current screen orientation
+     * @param activity the activity to use to get information
+     * @return int with orientation value
+     */
+    public static int getCurrentScreenOrientation(Activity activity) {
+        final int rotation = ((WindowManager) activity.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
+
+        final int orientation = activity.getResources().getConfiguration().orientation;
+        switch (orientation) {
+            case Configuration.ORIENTATION_PORTRAIT:
+                if (rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_270)
+                    return ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+                else
+                    return ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
+            case Configuration.ORIENTATION_LANDSCAPE:
+                if (rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_90)
+                    return ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+                else
+                    return ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+            default:
+                return ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+        }
     }
 }

@@ -1,19 +1,31 @@
 package com.greenaddress.greenapi;
 
+import android.database.CursorJoiner;
+import android.util.Log;
 import android.util.SparseArray;
 
 import com.blockstream.libwally.Wally;
+import com.fasterxml.jackson.core.util.ByteArrayBuilder;
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.greenaddress.greenbits.ui.BuildConfig;
+import com.subgraph.orchid.encoders.Hex;
 
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.HDKeyDerivation;
 import org.bitcoinj.crypto.LazyECPoint;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Locale;
 
 import static com.blockstream.libwally.Wally.BIP32_FLAG_KEY_PUBLIC;
 import static com.blockstream.libwally.Wally.BIP32_FLAG_SKIP_HASH;
@@ -39,6 +51,67 @@ public class HDKey {
     // Temporary methods for use while converting from DeterministicKey
     public static DeterministicKey deriveChildKey(final DeterministicKey parent, final Integer childNum) {
         return HDKeyDerivation.deriveChildKey(parent, new ChildNumber(childNum));
+    }
+
+    /**
+     * Derive BitID key from uri and index
+     * <a href="https://github.com/bitid/bitid/blob/master/BIP_draft.md#hd-wallet-derivation-path">See ref.</a>
+     * @param wallet used to sign
+     * @param uri String callback uri
+     * @param index Integer index, useful for multiple login on the same uri
+     * @return DeterministicKey derived key
+     * @throws IOException on possible IO exception during uri byte conversation
+     */
+    public static ISigningWallet deriveBitidKey(final ISigningWallet wallet,
+                                                  final String uri,
+                                                  final Integer index)throws IOException {
+        final int BITID_SUBACCOUNT = 13 | ChildNumber.HARDENED_BIT;
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(intToLittle(index));
+        outputStream.write(uri.getBytes(Charsets.UTF_8));
+
+        final byte concatenated[] = outputStream.toByteArray( );
+        final byte[] hash = Sha256Hash.hash(concatenated);
+
+        final Integer A = littleToInt(Arrays.copyOf(hash, 4));
+        final Integer B = littleToInt(Arrays.copyOfRange(hash, 4, 8));
+        final Integer C = littleToInt(Arrays.copyOfRange(hash, 8, 12));
+        final Integer D = littleToInt(Arrays.copyOfRange(hash, 12, 16));
+
+        final Integer A1 = A | ChildNumber.HARDENED_BIT;
+        final Integer B1 = B | ChildNumber.HARDENED_BIT;
+        final Integer C1 = C | ChildNumber.HARDENED_BIT;
+        final Integer D1 = D | ChildNumber.HARDENED_BIT;
+
+        final ISigningWallet bitIDwallet = wallet.derive(BITID_SUBACCOUNT);
+        final ISigningWallet walletA = bitIDwallet.derive(A1);
+        final ISigningWallet walletB = walletA.derive(B1);
+        final ISigningWallet walletC = walletB.derive(C1);
+        return walletC.derive(D1);
+    }
+
+    /**
+     * Convert little endian byte array to int
+     * @param value byte[] to convert
+     * @return Integer
+     */
+    private static Integer littleToInt(final byte[] value) {
+        return value[0] & 0xff | (value[1] << 8) & 0xff00 |
+                (value[2] << 16) & 0xff0000 | (value[3] << 24) & 0xff000000;
+    }
+
+    /**
+     * Convert int to little endian
+     * @param value Integer to convert
+     * @return byte[]
+     */
+    private static byte[] intToLittle(final Integer value) {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(value & 0xFF);
+        outputStream.write((value >>> 8) & 0xFF);
+        outputStream.write((value >>> 16) & 0xFF);
+        outputStream.write((value >>> 24) & 0xFF);
+        return outputStream.toByteArray();
     }
 
     public static DeterministicKey createMasterKeyFromSeed(final byte[] seed) {

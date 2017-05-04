@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.design.widget.Snackbar;
+import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.Spannable;
 import android.text.style.ForegroundColorSpan;
@@ -86,7 +87,7 @@ public class MnemonicActivity extends LoginActivity {
         final View snackbarView = snackbar.getView();
         snackbarView.setBackgroundColor(Color.DKGRAY);
         final TextView textView = UI.find(snackbarView, android.support.design.R.id.snackbar_text);
-        textView.setTextColor(Color.WHITE);
+        textView.setTextColor(Color.LTGRAY);
         snackbar.show();
     }
 
@@ -131,6 +132,9 @@ public class MnemonicActivity extends LoginActivity {
 
         mOkButton.setProgress(50);
         mMnemonicText.setEnabled(false);
+
+        // disable advanced option items
+        mService.cfgEdit("advanced_options").putBoolean("enabled", false).apply();
 
         final InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(mMnemonicText.getWindowToken(), 0);
@@ -307,6 +311,9 @@ public class MnemonicActivity extends LoginActivity {
             }
         });
 
+        final Toolbar toolbar = UI.find(this, R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         NFCIntentMnemonicLogin();
     }
 
@@ -337,7 +344,7 @@ public class MnemonicActivity extends LoginActivity {
         if (intent == null || !NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction()))
             return;
 
-        mMnemonicText.setTextColor(Color.WHITE);
+        mMnemonicText.setTextColor(Color.LTGRAY);
 
         if (intent.getType().equals("x-gait/mnc")) {
             // Unencrypted NFC

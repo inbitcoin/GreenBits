@@ -19,7 +19,7 @@
         <!-- Customize your theme here. -->
 
         <!-- colorPrimary is used for the default action bar background -->
-        <item name="colorPrimary">@color/primary</item>
+        <item name="android:actionBarStyle">@style/action_bar_theme</item>
 
         <!-- colorPrimaryDark is used for the status bar -->
         <item name="colorPrimaryDark">@color/primaryDark</item>
@@ -30,6 +30,10 @@
 
         <!-- You can also set colorControlNormal, colorControlActivated
              colorControlHighlight & colorSwitchThumbNormal. -->
+    </style>
+
+    <style name="action_bar_theme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="android:background">@color/primaryDark</item>
     </style>
 
     <style name="myButton">
@@ -44,5 +48,19 @@
     <style name="myProgressBar" parent="Widget.AppCompat.ProgressBar.Horizontal">
         <item name="android:progressDrawable">@drawable/material_progress_bar</item>
     </style>
+
+    <style name="myButtonVendor.base" parent="Widget.AppCompat.Button">
+        <item name="android:paddingLeft">8dp</item>
+        <item name="android:paddingRight">8dp</item>
+        <item name="android:textAllCaps">true</item>
+        <!--<item name="android:textStyle">bold</item>-->
+        <item name="android:layout_margin">4dp</item>
+        <item name="android:minHeight">48dp</item>
+    </style>
+    <style name="myButtonVendor" parent="myButtonVendor.base">
+        <item name="android:background">@drawable/material_button_light_images</item>
+    </style>
+
+    <style name="myButtonCircle" parent="myButton" />
 
 </resources>

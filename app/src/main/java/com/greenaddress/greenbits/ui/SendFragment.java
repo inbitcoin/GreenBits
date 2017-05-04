@@ -3,9 +3,11 @@ package com.greenaddress.greenbits.ui;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.support.v4.view.ViewPager;
 import android.text.Html;
 import android.util.Log;
@@ -24,9 +26,12 @@ import android.widget.Toast;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.androidadvance.topsnackbar.TSnackbar;
+import com.dd.CircularProgressButton;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.greenaddress.greenapi.PreparedTransaction;
+import com.greenaddress.greenbits.FormatMemo;
 import com.greenaddress.greenbits.GaService;
 
 import org.bitcoinj.core.Coin;
@@ -52,12 +57,14 @@ public class SendFragment extends SubaccountFragment {
     private EditText mNoteText;
     private CheckBox mInstantConfirmationCheckbox;
     private TextView mNoteIcon;
-    private Button mSendButton;
+    private CircularProgressButton mSendButton;
     private Switch mMaxButton;
     private TextView mMaxLabel;
     private TextView mScanIcon;
+    private Button mClearAllFields;
     private Map<?, ?> mPayreqData = null;
     private boolean mFromIntentURI = false;
+    private String [] mMerchantInvoiceData = null;
 
 
     private MonetaryFormat mBitcoinFormat;
@@ -117,7 +124,7 @@ public class SendFragment extends SubaccountFragment {
                 service.requestTwoFacCode(method, "send_tx", null);
         }
 
-        mSummary = UI.popup(gaActivity, R.string.newTxTitle, R.string.send, R.string.cancel)
+        mSummary = UI.popup(gaActivity, R.string.newTxTitle, R.string.confirm, R.string.cancel)
                 .customView(v, true)
                 .onPositive(new MaterialDialog.SingleButtonCallback() {
                     @Override
@@ -133,20 +140,23 @@ public class SendFragment extends SubaccountFragment {
                                     public void run() {
                                         UI.toast(gaActivity, R.string.transactionCompleted, Toast.LENGTH_LONG);
 
+                                        if (mMerchantInvoiceData != null) {
+                                            final String invoiceInfo = mMerchantInvoiceData[0];
+                                            final String paymentProcessor = mMerchantInvoiceData[1];
+                                            final String merchantName;
+                                            if (mMerchantInvoiceData.length == 3)
+                                                merchantName = mMerchantInvoiceData[2];
+                                            else
+                                                merchantName = null;
+                                            service.saveMerchantInvoiceData(result, merchantName, invoiceInfo, paymentProcessor);
+                                        }
+
                                         if (mFromIntentURI) {
                                             gaActivity.finish();
                                             return;
                                         }
 
-                                        mAmountEdit.setText("");
-                                        mRecipientEdit.setText("");
-                                        UI.enable(mAmountEdit, mRecipientEdit);
-                                        mMaxButton.setChecked(false);
-                                        UI.show(mMaxButton, mMaxLabel);
-
-                                        mNoteIcon.setText(R.string.fa_pencil);
-                                        mNoteText.setText("");
-                                        mNoteText.setVisibility(View.INVISIBLE);
+                                        resetAllFields();
 
                                         final ViewPager viewPager = UI.find(gaActivity, R.id.container);
                                         viewPager.setCurrentItem(1);
@@ -165,10 +175,11 @@ public class SendFragment extends SubaccountFragment {
         final GaActivity gaActivity = getGaActivity();
 
         if (URI.getPaymentRequestUrl() != null) {
+            mSendButton.setText(R.string.sendPay);
+            mSendButton.setIdleText(getResources().getString(R.string.sendPay));
             final ProgressBar bip70Progress = UI.find(mView, R.id.sendBip70ProgressBar);
             UI.show(bip70Progress);
             mRecipientEdit.setEnabled(false);
-            mSendButton.setEnabled(false);
             UI.hide(mNoteIcon);
             Futures.addCallback(service.processBip70URL(URI.getPaymentRequestUrl()),
                     new CB.Toast<Map<?, ?>>(gaActivity) {
@@ -176,11 +187,17 @@ public class SendFragment extends SubaccountFragment {
                         public void onSuccess(final Map<?, ?> result) {
                             mPayreqData = result;
 
-                            final String name;
+                            final String name, note;
                             if (result.get("merchant_cn") != null)
                                 name = (String) result.get("merchant_cn");
                             else
                                 name = (String) result.get("request_url");
+
+                            if (result.get("memo") != null) {
+                                note = (String) result.get("memo");
+                                mMerchantInvoiceData = FormatMemo.sanitizeMemo(note);
+                            }
+
 
                             long amount = 0;
                             for (final Map<?, ?> out : (ArrayList<Map>) result.get("outputs"))
@@ -216,13 +233,25 @@ public class SendFragment extends SubaccountFragment {
                                     mRecipientEdit.setEnabled(true);
                                     mSendButton.setEnabled(true);
                                     UI.show(mNoteIcon);
+                                    mSendButton.setText(R.string.send);
+                                    mSendButton.setIdleText(getResources().getString(R.string.send));
                                 }
                             });
                         }
                     });
         } else {
             mRecipientEdit.setText(URI.getAddress().toString());
-            if (URI.getAmount() == null)
+
+            if (URI.getLabel() != null) {
+                gaActivity.runOnUiThread(new Runnable() {
+                    public void run() {
+                        mNoteText.setText(URI.getLabel());
+                        UI.show(mNoteText);
+                    }
+                });
+            }
+
+            if (URI.getAmount() == null || (Float.valueOf(URI.getAmount().toString()) <= 0))
                 return;
 
             Futures.addCallback(service.getSubaccountBalance(mSubaccount), new CB.Op<Map<?, ?>>() {
@@ -256,6 +285,8 @@ public class SendFragment extends SubaccountFragment {
 
         mView = inflater.inflate(R.layout.fragment_send, container, false);
 
+        mMerchantInvoiceData = null;
+
         mAmountFields = new AmountFields(service, getContext(), mView, null);
         if (savedInstanceState != null) {
             final Boolean pausing = savedInstanceState.getBoolean("pausing", false);
@@ -279,6 +310,7 @@ public class SendFragment extends SubaccountFragment {
         mAmountFiatEdit = UI.find(mView, R.id.sendAmountFiatEditText);
         mRecipientEdit = UI.find(mView, R.id.sendToEditText);
         mScanIcon = UI.find(mView, R.id.sendScanIcon);
+        mClearAllFields = UI.find(mView, R.id.clearAllFields);
 
         final String btcUnit = (String) service.getUserConfig("unit");
         final TextView bitcoinScale = UI.find(mView, R.id.sendBitcoinScaleText);
@@ -308,6 +340,7 @@ public class SendFragment extends SubaccountFragment {
             container.setTag(R.id.tag_bitcoin_uri, null);
         }
 
+        mSendButton.setIndeterminateProgressMode(true);
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View v) {
@@ -380,7 +413,7 @@ public class SendFragment extends SubaccountFragment {
                 }
 
                 if (ptxFn != null) {
-                    mSendButton.setEnabled(false);
+                    mSendButton.setProgress(50);
                     CB.after(ptxFn,
                             new CB.Toast<PreparedTransaction>(gaActivity, mSendButton) {
                                 @Override
@@ -395,7 +428,7 @@ public class SendFragment extends SubaccountFragment {
                                                     // can be non-UI because validation talks to USB if hw wallet is used
                                                     gaActivity.runOnUiThread(new Runnable() {
                                                         public void run() {
-                                                            mSendButton.setEnabled(true);
+                                                            mSendButton.setProgress(0);
                                                             final Coin dialogAmount, dialogFee;
                                                             if (mMaxButton.isChecked()) {
                                                                 // 'fee' in reality is the sent amount in case passed amount=null
@@ -419,7 +452,32 @@ public class SendFragment extends SubaccountFragment {
                                                         }
                                                     });
                                                 }
+
+                                                @Override
+                                                public void onFailure(Throwable t) {
+                                                    gaActivity.runOnUiThread(new Runnable() {
+                                                        @Override
+                                                        public void run() {
+                                                            mSendButton.setProgress(0);
+                                                        }
+                                                    });
+
+                                                    super.onFailure(t);
+                                                }
+
                                             });
+                                }
+
+                                @Override
+                                public void onFailure(Throwable t) {
+                                    gaActivity.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            mSendButton.setProgress(0);
+                                        }
+                                    });
+
+                                    super.onFailure(t);
                                 }
                             });
                 }
@@ -429,19 +487,37 @@ public class SendFragment extends SubaccountFragment {
             }
         });
 
+        // warning dialog about max amount
+        final Dialog maxDialog = UI.popup(getGaActivity(), R.string.warning)
+                .cancelable(false)
+                .content(R.string.warningMaxAmount)
+                .onPositive(new MaterialDialog.SingleButtonCallback() {
+                    @Override
+                    public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                        mAmountEdit.setEnabled(false);
+                        mAmountFiatEdit.setEnabled(false);
+                        mAmountEdit.setText(getString(R.string.send_max_amount));
+                    }
+                })
+                .onNegative(new MaterialDialog.SingleButtonCallback() {
+                    @Override
+                    public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                        mMaxButton.setChecked(!mMaxButton.isChecked());
+                        dialog.cancel();
+                    }
+                }).build();
         mMaxButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 
             @Override
-            public void onCheckedChanged(CompoundButton v, boolean isChecked) {
-                if (isChecked) {
-                    mAmountEdit.setEnabled(false);
-                    mAmountFiatEdit.setEnabled(false);
-                    mAmountEdit.setText(getString(R.string.send_max_amount));
-                } else {
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                final Boolean isChecked = mMaxButton.isChecked();
+                if (!isChecked) {
                     mAmountEdit.setText("");
                     mAmountEdit.setEnabled(true);
                     mAmountFiatEdit.setEnabled(true);
+                    return;
                 }
+                UI.showDialog(maxDialog);
             }
         });
 
@@ -462,6 +538,13 @@ public class SendFragment extends SubaccountFragment {
                                         }
                                     }
         );
+
+        mClearAllFields.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                resetAllFields();
+            }
+        });
 
         mNoteIcon.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -549,6 +632,21 @@ public class SendFragment extends SubaccountFragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        if (isZombie())
+            return;
+
+        final GaService service = getGAService();
+        Boolean advancedOptionsValue = service.cfg("advanced_options").getBoolean("enabled", false);
+        if (!advancedOptionsValue) {
+            UI.hide(mInstantConfirmationCheckbox);
+            mInstantConfirmationCheckbox.setChecked(false);
+        }
+
+    }
+
+    @Override
     public void onSaveInstanceState(final Bundle outState) {
         super.onSaveInstanceState(outState);
         if (mAmountFields != null)
@@ -580,7 +678,17 @@ public class SendFragment extends SubaccountFragment {
         Log.d(TAG, "Updating balance");
         if (isZombie())
             return;
-        hideInstantIf2of3();
+
+        // disable and hide instant confirmation on advanced options disabled
+        final GaService service = getGAService();
+        Boolean advancedOptionsValue = service.cfg("advanced_options").getBoolean("enabled", false);
+        if (!advancedOptionsValue) {
+            UI.hide(mInstantConfirmationCheckbox);
+            mInstantConfirmationCheckbox.setChecked(false);
+        } else {
+            hideInstantIf2of3();
+        }
+
         makeBalanceObserver(mSubaccount);
         getGAService().updateBalance(mSubaccount);
     }
@@ -593,6 +701,62 @@ public class SendFragment extends SubaccountFragment {
             updateBalance();
             if (!isZombie())
                 setIsDirty(false);
+        } else if (!isZombie() && isSelected && getGAService().getTotalBalance() > 0) {
+            // show vendor snackbar on top only for 5 times
+            final Integer vendorMessageCount = getGAService().cfg("vendor_message").getInt("count", 0);
+            if (vendorMessageCount < 5) {
+                showVendorSnackbar();
+                getGAService().cfgEdit("vendor_message").putInt("count", vendorMessageCount + 1).apply();
+            }
         }
     }
+
+    public void showVendorSnackbar() {
+        final TSnackbar tsnackbar = TSnackbar.make(getActivity().findViewById(R.id.container), R.string.vendorMessage, TSnackbar.LENGTH_INDEFINITE);
+        tsnackbar.setAction(R.string.sellBitcoin, new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                final Intent intent = new Intent(getActivity(), VendorActivity.class);
+                startActivity(intent);
+                getActivity().overridePendingTransition(R.anim.slide_from_right, R.anim.fade_out);
+            }
+        });
+        tsnackbar.setActionTextColor(Color.WHITE);
+        final View snackbarView = tsnackbar.getView();
+        snackbarView.setBackgroundColor(getResources().getColor(R.color.accent));
+        TextView textView = (TextView) snackbarView.findViewById(com.androidadvance.topsnackbar.R.id.snackbar_text);
+        textView.setMaxLines(5);
+        textView.setTextColor(Color.BLACK);
+        tsnackbar.show();
+        new CountDownTimer(7*1000, 1000) {
+            @Override
+            public void onTick(long l) {
+            }
+
+            public void onFinish() {
+                tsnackbar.dismiss();
+            }
+        }.start();
+    }
+
+    private void resetAllFields() {
+        mAmountEdit.setText("");
+        mAmountFiatEdit.setText("");
+        mRecipientEdit.setText("");
+        UI.enable(mAmountEdit, mAmountFiatEdit,  mRecipientEdit);
+        mMaxButton.setChecked(false);
+        UI.show(mMaxButton, mMaxLabel);
+
+        mNoteIcon.setText(R.string.fa_pencil);
+        mNoteText.setText("");
+        mNoteText.setVisibility(View.INVISIBLE);
+
+        mSendButton.setText(R.string.send);
+        mSendButton.setIdleText(getResources().getString(R.string.send));
+        mSendButton.setProgress(0);
+        mSendButton.setEnabled(true);
+
+        mMerchantInvoiceData = null;
+    }
+
 }

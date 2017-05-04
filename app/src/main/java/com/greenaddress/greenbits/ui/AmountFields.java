@@ -2,6 +2,7 @@ package com.greenaddress.greenbits.ui;
 
 import android.content.Context;
 import android.text.Html;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.EditText;
@@ -29,6 +30,8 @@ class AmountFields {
     private Context mContext;
     private Boolean mIsPausing = false;
 
+    private static final String TAG = AmountFields.class.getSimpleName();
+
     interface OnConversionFinishListener {
         void conversionFinish();
     }
@@ -39,6 +42,11 @@ class AmountFields {
         mGaService = gaService;
         mContext = context;
         mOnConversionFinishListener = onConversionFinishListener;
+
+        if (!mGaService.isLoggedOrLoggingIn()) {
+            Log.d(TAG, "not logged in, return");
+            return;
+        }
 
         mAmountEdit = UI.find(view, R.id.sendAmountEditText);
         mAmountFiatEdit = UI.find(view, R.id.sendAmountFiatEditText);

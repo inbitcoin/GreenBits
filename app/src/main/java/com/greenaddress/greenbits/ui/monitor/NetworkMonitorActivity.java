@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.widget.Toolbar;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -56,6 +57,9 @@ public final class NetworkMonitorActivity extends GaActivity implements PeerConn
                 mRefreshHandler.postDelayed(mRefreshCallback, 2000);
             }
         };
+
+        final Toolbar toolbar = UI.find(this, R.id.toolbar);
+        setSupportActionBar(toolbar);
     }
 
     @Override

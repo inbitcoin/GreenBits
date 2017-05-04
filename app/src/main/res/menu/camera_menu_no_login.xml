@@ -1,0 +1,10 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_qr_no_login"
+        android:icon="@drawable/ic_action_camera"
+        android:orderInCategory="90"
+        android:title="@string/scanQrcode"
+        app:showAsAction="always" />
+</menu>

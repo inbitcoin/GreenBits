@@ -7,29 +7,31 @@
     android:orientation="vertical">
 
     <LinearLayout
+        android:background="?android:attr/selectableItemBackground"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content">
 
-        <RelativeLayout
-            android:layout_width="64dp"
-            android:layout_height="wrap_content">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:gravity="center_vertical"
+            android:paddingLeft="7dp"
+            android:paddingRight="4dp"
+            android:layout_height="fill_parent">
 
             <com.greenaddress.greenbits.ui.FontAwesomeTextView
                 android:id="@+id/listInOutIcon"
-                android:layout_width="64dp"
+                android:layout_width="23dp"
                 android:layout_height="fill_parent"
                 android:gravity="center"
-                android:padding="14dp"
                 android:text="@string/fa_arrow_down"
                 android:textColor="@color/secondaryTextColor"
-                android:textSize="34sp" />
+                android:textSize="22sp" />
 
-            <RelativeLayout
+            <LinearLayout
+                android:gravity="bottom"
+                android:paddingBottom="4dp"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentBottom="true"
-                android:layout_alignParentRight="true"
-                android:padding="6dp">
+                android:layout_height="fill_parent">
 
                 <TextView
                     android:id="@+id/listNumberConfirmation"
@@ -40,28 +42,33 @@
                     android:paddingLeft="2dp"
                     android:paddingRight="2dp"
 
+                    android:textSize="12sp"
                     android:text="1"
                     android:textColor="@color/white"
-
                     />
-            </RelativeLayout>
-        </RelativeLayout>
+            </LinearLayout>
+        </LinearLayout>
 
         <LinearLayout
+            android:orientation="horizontal"
             android:layout_width="fill_parent"
+            android:layout_height="wrap_content">
+        <LinearLayout
+            android:layout_weight="1"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="vertical">
 
             <TextView
                 android:id="@+id/listWhoText"
+                android:textColor="@color/textColor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginRight="16dp"
                 android:ellipsize="end"
-                android:maxLines="1"
+                android:maxLines="2"
                 android:padding="2dp"
-                android:textSize="20sp" />
+                android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/listReplaceableText"
@@ -69,6 +76,7 @@
                 android:layout_height="wrap_content"
                 android:padding="2dp"
                 android:text="@string/replaceable"
+                android:textSize="12sp"
                 android:textColor="#FF8000" />
 
 
@@ -77,20 +85,33 @@
                 android:layout_height="fill_parent"
                 android:orientation="horizontal">
 
+                <LinearLayout
+                    android:gravity="bottom|start"
+                    android:layout_width="wrap_content"
+                    android:layout_height="fill_parent">
                 <TextView
                     android:id="@+id/listWhenText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:padding="2dp"
                     android:textColor="@color/tertiaryTextColor" />
+                </LinearLayout>
 
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="wrap_content"
+                android:gravity="center|end"
+                android:layout_weight="0"
+                android:layout_height="fill_parent">
                 <LinearLayout
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="end"
                     android:gravity="center_vertical|end"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"
+                    android:paddingLeft="7dp"
+                    android:paddingRight="7dp"
 
                     android:textColor="@color/textColor">
 
@@ -100,7 +121,7 @@
                         android:layout_height="wrap_content"
                         android:text="m"
                         android:textColor="@color/secondaryTextColor"
-                        android:textSize="20sp" />
+                        android:textSize="18sp" />
 
                     <com.greenaddress.greenbits.ui.FontAwesomeTextView
                         android:id="@+id/listBitcoinIcon"
@@ -109,16 +130,17 @@
                         android:text="@string/fa_btc_space"
 
                         android:textColor="@color/secondaryTextColor"
-                        android:textSize="20sp" />
+                        android:textSize="16sp" />
 
                     <TextView
                         android:id="@+id/listValueText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="123"
+                        android:lines="1"
 
                         android:textColor="@color/secondaryTextColor"
-                        android:textSize="20sp" />
+                        android:textSize="16sp" />
 
                     <TextView
                         android:id="@+id/listValueQuestionMark"
@@ -126,9 +148,43 @@
                         android:layout_height="wrap_content"
                         android:text="\?"
                         android:textColor="@color/accent"
-                        android:textSize="17sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
-            </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/fiatView"
+                    android:paddingLeft="7dp"
+                    android:paddingRight="7dp"
+                    android:layout_gravity="end"
+                    android:gravity="end"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/doubleTilde"
+                        android:paddingStart="0dp"
+                        android:paddingEnd="4dp"
+                        android:textColor="@color/secondaryTextColor"
+                        android:textSize="14sp" />
+
+                    <com.greenaddress.greenbits.ui.FontAwesomeTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/secondaryTextColor"
+                        android:textSize="14sp"
+                        android:id="@+id/fiatIcon" />
+
+                    <TextView
+                        android:id="@+id/fiatValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="@color/secondaryTextColor"
+                        android:textSize="14sp" />
+                </LinearLayout>
+        </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

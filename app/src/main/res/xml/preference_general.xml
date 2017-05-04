@@ -1,8 +1,14 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <CheckBoxPreference android:key="advanced_options"
+        android:title="@string/advanced_options" />
+
     <Preference android:key="mnemonic_passphrase"
                 android:title="@string/mnemonic_passphrase"
                 android:summary="@string/mnemonic_passphrase_not_available"/>
+    <Preference android:key="mnemonic_write_nfc"
+        android:title="@string/mnemonicWriteToNfc" />
+
     <Preference android:key="reset_pin"
         android:title="@string/setPin">
     </Preference>
@@ -30,10 +36,6 @@
     <Preference android:key="watch_only_login"
         android:title="@string/watchOnlyLogin">
     </Preference>
-
-    <CheckBoxPreference android:key="showAmountInReceive"
-        android:title="@string/showAmountInReceive"
-        android:summary="@string/showAmountInReceiveDetail"/>
 
     <Preference android:key="toggle_segwit"
         android:title="@string/segwit_disable"

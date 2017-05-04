@@ -671,6 +671,20 @@ public class WalletClient {
         return simpleCall("vault.fund", Map.class, subAccount, true, addrType);
     }
 
+    public String getPaymentRequest(final String txHash) {
+        String paymentRequest = "";
+        try {
+            paymentRequest = syncCall("txs.get_payment_request", String.class, txHash);
+        } catch (Exception e) {
+            //e.printStackTrace();
+        }
+        return paymentRequest;
+    }
+
+    public ListenableFuture<Map> getNewAddress(final int subAccount) {
+        return simpleCall("vault.fund", Map.class, subAccount, true);
+    }
+
     public PinData setPin(final String mnemonic, final String pin, final String deviceName) throws Exception {
         mMnemonics = mnemonic;
 

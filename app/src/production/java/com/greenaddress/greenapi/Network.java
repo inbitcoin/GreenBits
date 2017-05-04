@@ -11,8 +11,8 @@ public abstract class Network {
         // Let’s Encrypt Authority X4: (backup)
         "A7:4B:0C:32:B6:5B:95:FE:2C:4F:8F:09:89:47:A6:8B:69:50:33:BE:D0:B5:1D:D8:B9:84:EC:AE:89:57:1B:B6"
     };
-    public final static String BLOCKEXPLORER_ADDRESS = "https://www.smartbit.com.au/address/";
-    public final static String BLOCKEXPLORER_TX = "https://www.smartbit.com.au/tx/";
+    public final static String BLOCKEXPLORER_ADDRESS = "https://www.blocktrail.com/BTC/address/";
+    public final static String BLOCKEXPLORER_TX = "https://www.blocktrail.com/BTC/tx/";
     public final static String depositPubkey = "0322c5f5c9c4b9d1c3e22ca995e200d724c2d7d8b6953f7b38fddf9296053c961f";
     public final static String depositChainCode = "e9a563d68686999af372a33157209c6860fe79197a4dafd9ec1dbaa49523351d";
     public final static String GAIT_ONION = "s7a4rvc6425y72d2.onion";

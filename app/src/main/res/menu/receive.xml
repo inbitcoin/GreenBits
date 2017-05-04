@@ -7,5 +7,6 @@
         android:icon="@drawable/ic_action_share"
         android:orderInCategory="90"
         android:title="Share"
+        android:visible="false"
         app:showAsAction="always" />
 </menu>

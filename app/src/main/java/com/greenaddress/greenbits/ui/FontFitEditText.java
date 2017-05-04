@@ -3,6 +3,7 @@ package com.greenaddress.greenbits.ui;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Paint;
+import android.text.Layout;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.widget.EditText;
@@ -81,10 +82,14 @@ public class FontFitEditText extends EditText {
     @Override
     protected void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        final int parentWidth = MeasureSpec.getSize(widthMeasureSpec);
-        final int height = getMeasuredHeight();
-        refitText(UI.getText(this), parentWidth);
-        this.setMeasuredDimension(parentWidth, height);
+
+        final Layout layout = getLayout();
+        if (layout != null) {
+            final int parentWidth = MeasureSpec.getSize(widthMeasureSpec);
+            final int height = getMeasuredHeight();
+            refitText(UI.getText(this), parentWidth);
+            this.setMeasuredDimension(parentWidth, height);
+        }
     }
 
     @Override

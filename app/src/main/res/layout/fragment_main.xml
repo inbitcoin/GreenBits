@@ -2,14 +2,30 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="@dimen/activity_vertical_margin"
+    android:padding="@dimen/activity_vertical_margin"
     tools:context="com.greenaddress.greenbits.ui.MainFragment">
+
+    <LinearLayout
+        android:id="@+id/mainEmptyTransText"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:gravity="center"
+        android:background="@color/white">
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="50dp"
+            android:text="@string/mainEmptyTransInbitcoinText"
+            android:textSize="20sp"/>
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/mainBalanceLayout"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:background="@color/white">
 
         <LinearLayout
             android:layout_width="fill_parent"
@@ -80,22 +96,25 @@
 
     </LinearLayout>
 
-    <LinearLayout
+    <android.support.v4.widget.SwipeRefreshLayout
+        android:id="@+id/mainTransactionListSwipe"
+        android:visibility="gone"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="fill_parent"
         android:orientation="vertical"
-        android:layout_below="@id/mainBalanceLayout">
+        android:layout_below="@id/mainBalanceLayout"
+        android:background="@color/white">
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/mainTransactionList"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:visibility="gone"
+            android:paddingBottom="60dp"
+            android:clipToPadding="false"
             android:scrollbars="vertical"/>
 
         <LinearLayout
             android:gravity="center"
-            android:id="@+id/mainEmptyTransText"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
@@ -129,5 +148,5 @@
                 android:textSize="20sp" />
 
         </LinearLayout>
-    </LinearLayout>
+    </android.support.v4.widget.SwipeRefreshLayout>
 </RelativeLayout>

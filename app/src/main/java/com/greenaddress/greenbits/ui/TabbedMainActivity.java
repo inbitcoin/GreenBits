@@ -1,6 +1,8 @@
 package com.greenaddress.greenbits.ui;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -8,9 +10,11 @@ import android.net.Uri;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
@@ -27,26 +31,44 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.blockstream.libwally.Wally;
 import com.google.common.util.concurrent.FutureCallback;
+import com.greenaddress.bitid.BitID;
+import com.greenaddress.bitid.BitidSignIn;
+import com.greenaddress.bitid.SignInResponse;
+import com.greenaddress.greenapi.ISigningWallet;
 import com.greenaddress.greenapi.Network;
+import com.greenaddress.greenbits.ApplicationService;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.ui.monitor.NetworkMonitorActivity;
 import com.greenaddress.greenbits.ui.preferences.SettingsActivity;
 
 import org.bitcoinj.core.AddressFormatException;
+import org.bitcoinj.core.Base58;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.DumpedPrivateKey;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.crypto.TransactionSignature;
 import org.bitcoinj.utils.MonetaryFormat;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -62,17 +84,28 @@ public class TabbedMainActivity extends GaActivity implements Observer {
 
     private static final String TAG = TabbedMainActivity.class.getSimpleName();
 
-    private static final int
+    public static final int
             REQUEST_SEND_QR_SCAN = 0,
             REQUEST_SWEEP_PRIVKEY = 1,
             REQUEST_BITCOIN_URL_LOGIN = 2,
             REQUEST_SETTINGS = 3,
-            REQUEST_TX_DETAILS = 4;
+            REQUEST_TX_DETAILS = 4,
+            REQUEST_SEND_QR_SCAN_NO_LOGIN = 5,
+            REQUEST_SEND_QR_SCAN_VENDOR = 6,
+            REQUEST_CLEAR_ACTIVITY = 7,
+            REQUEST_VISIU = 8,
+            REQUEST_BITID_URL_LOGIN = 9;
+    public static final String REQUEST_RELOAD = "request_reload";
     private ViewPager mViewPager;
     private Menu mMenu;
     private Boolean mInternalQr = false;
+    private Snackbar snackbar;
+    private Activity mActivity;
     private MaterialDialog mSegwitDialog = null;
     private final Runnable mSegwitCB = new Runnable() { public void run() { mSegwitDialog = null; } };
+
+    // workaround to manage only the create/onresume when is not connected
+    private Boolean firstRun = true;
 
     private final Observer mTwoFactorObserver = new Observer() {
         @Override
@@ -87,25 +120,60 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         return uri != null && uri.getScheme() != null && uri.getScheme().equals("bitcoin");
     }
 
+    private boolean isBitidcheme(final Intent intent) {
+        final Uri uri = intent.getData();
+        return uri != null && uri.getScheme() != null && uri.getScheme().equals("bitid");
+    }
+
     @Override
     protected void onCreateWithService(final Bundle savedInstanceState) {
         final Intent intent = getIntent();
-        mInternalQr = intent.getBooleanExtra("internal_qr", false);
-        final boolean isBitcoinUri = isBitcoinScheme(intent) ||
-                                     intent.hasCategory(Intent.CATEGORY_BROWSABLE) ||
-                                     NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction());
+        mActivity = this;
 
-        if (isBitcoinUri && !mService.isLoggedOrLoggingIn()) {
-            // Not logged in, force the user to login
-            final Intent login = new Intent(this, RequestLoginActivity.class);
-            startActivityForResult(login, REQUEST_BITCOIN_URL_LOGIN);
-            return;
+        mInternalQr = intent.getBooleanExtra("internal_qr", false);
+
+        final int flags = getIntent().getFlags();
+        if ((flags & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) {
+            Log.d(TAG, "onCreate arrives from history, clear data and category");
+            // The activity was launched from history
+            // remove extras here
+            intent.setData(null);
+            intent.removeCategory(Intent.CATEGORY_BROWSABLE);
         }
 
-        launch(isBitcoinUri);
+        final boolean isBitidUri = isBitidcheme(intent);
+        final boolean isBitcoinUri = (isBitcoinScheme(intent) ||
+                intent.hasCategory(Intent.CATEGORY_BROWSABLE) ||
+                NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) && !isBitidUri;
+
+        if (!mService.isLoggedOrLoggingIn()) {
+            // Not logged in, force the user to login
+            mService.disconnect(false);
+            final Intent login = new Intent(this, RequestLoginActivity.class);
+            if (isBitcoinUri)
+                startActivityForResult(login, REQUEST_BITCOIN_URL_LOGIN);
+            else if (isBitidUri)
+                startActivityForResult(login, REQUEST_BITID_URL_LOGIN);
+            else
+                startActivityForResult(login, REQUEST_CLEAR_ACTIVITY);
+            return;
+        }
+        firstRun = false;
+
+        launch(isBitcoinUri, isBitidUri);
+
+        startService(new Intent(this, ApplicationService.class));
     }
 
     private void onTwoFactorConfigChange() {
+
+        // if total amount is less then 0 BTC hide snackbar
+        if (mService.getTotalBalance() == 0) {
+            if (snackbar != null) {
+                snackbar.dismiss();
+            }
+            return;
+        }
 
         final Map<?, ?> twoFacConfig = mService.getTwoFactorConfig();
         if (twoFacConfig == null)
@@ -113,8 +181,8 @@ public class TabbedMainActivity extends GaActivity implements Observer {
 
         if (!((Boolean) twoFacConfig.get("any")) &&
             !mService.cfg().getBoolean("hideTwoFacWarning", false)) {
-            final Snackbar snackbar = Snackbar
-                    .make(findViewById(R.id.main_content), getString(R.string.noTwoFactorWarning), Snackbar.LENGTH_INDEFINITE)
+            snackbar = Snackbar
+                    .make(findViewById(R.id.main_content), getString(R.string.noTwoFactorWarning), Snackbar.LENGTH_LONG)
                     .setActionTextColor(Color.RED)
                     .setAction(getString(R.string.set2FA), new View.OnClickListener() {
                         @Override
@@ -217,10 +285,11 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         final Intent data = new Intent("fragmentupdater");
         data.putExtra("sub", subAccount);
         sendBroadcast(data);
+        mTwoFactorObserver.update(null, null);
     }
 
     @SuppressLint("NewApi") // NdefRecord#toUri disabled for API < 16
-    private void launch(final boolean isBitcoinUri) {
+    private void launch(final boolean isBitcoinUri, final boolean isBitidUri) {
 
         setContentView(R.layout.activity_tabbed_main);
         final Toolbar toolbar = UI.find(this, R.id.toolbar);
@@ -287,6 +356,12 @@ public class TabbedMainActivity extends GaActivity implements Observer {
 
         mViewPager.setCurrentItem(goToTab);
 
+        final Boolean isVendorMode = mService.cfg("is_vendor_mode").getBoolean("enabled", false);
+        if (isVendorMode) {
+            Intent intent = new Intent(this, VendorActivity.class);
+            startActivity(intent);
+            overridePendingTransition(R.anim.slide_from_right, R.anim.fade_out);
+        }
         final boolean segwit = mService.getLoginData().get("segwit_server");
         if (segwit && mService.isSegwitUnconfirmed()) {
             // The user has not yet enabled segwit. Opt them in and display
@@ -306,6 +381,12 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                 }
             });
         }
+
+        if (isBitidUri) {
+            final Intent intent = getIntent();
+            final Uri uri = intent.getData();
+            bitidAuth(uri.toString());
+        }
     }
 
     @Override
@@ -320,7 +401,13 @@ public class TabbedMainActivity extends GaActivity implements Observer {
             return;
         }
 
-        setMenuItemVisible(mMenu, R.id.action_share, !mService.isLoggedIn());
+        if (!firstRun && !mService.isLoggedOrLoggingIn()) {
+            // Not logged in, force the user to login
+            mService.disconnect(false);
+            final Intent login = new Intent(this, RequestLoginActivity.class);
+            startActivity(login);
+            return;
+        }
      }
 
     @Override
@@ -341,24 +428,24 @@ public class TabbedMainActivity extends GaActivity implements Observer {
 
         switch (requestCode) {
             case REQUEST_TX_DETAILS:
+                if (data != null && data.getBooleanExtra(REQUEST_RELOAD, false)) {
+                    mService.updateBalance(mService.getCurrentSubAccount());
+                    startActivity(new Intent(this, TabbedMainActivity.class));
+                    finish();
+                }
+                break;
             case REQUEST_SETTINGS:
                 mService.updateBalance(mService.getCurrentSubAccount());
                 startActivity(new Intent(this, TabbedMainActivity.class));
                 finish();
                 break;
-            case REQUEST_SEND_QR_SCAN:
-                if (data != null && data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT) != null) {
-                    String scanned = data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT);
-                    if (!(scanned.length() >= 8 && scanned.substring(0, 8).equalsIgnoreCase("bitcoin:")))
-                        scanned = String.format("bitcoin:%s", scanned);
-                    final Intent browsable = new Intent(this, TabbedMainActivity.class);
-                    browsable.setData(Uri.parse(scanned));
-                    browsable.addCategory(Intent.CATEGORY_BROWSABLE);
-                    browsable.putExtra("internal_qr", true);
-                    // start new activity and finish old one
-                    startActivity(browsable);
-                    this.finish();
+            case REQUEST_BITID_URL_LOGIN:
+                if (resultCode != RESULT_OK) {
+                    // The user failed to login after clicking on a bitcoin Uri
+                    finish();
+                    return;
                 }
+                launch(false, true);
                 break;
             case REQUEST_BITCOIN_URL_LOGIN:
                 if (resultCode != RESULT_OK) {
@@ -367,7 +454,10 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                     return;
                 }
                 final boolean isBitcoinUri = true;
-                launch(isBitcoinUri);
+                launch(isBitcoinUri, false);
+                break;
+            case REQUEST_CLEAR_ACTIVITY:
+                recreate();
                 break;
             case REQUEST_SWEEP_PRIVKEY:
                 if (data == null)
@@ -381,14 +471,33 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                     try {
                         Wally.bip38_to_private_key(qrText, null, Wally.BIP38_KEY_COMPRESSED | Wally.BIP38_KEY_QUICK_CHECK);
                     } catch (final IllegalArgumentException e2) {
-                        toast(R.string.invalid_key);
+
+                        String qrTextPaperwallet = data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT);
+                        if (qrTextPaperwallet.startsWith("bitcoin:")) {
+                            qrTextPaperwallet = qrTextPaperwallet.replaceFirst("^bitcoin:", "").replace("?.*$", "");
+                        }
+                        if (!isPublicKey(qrTextPaperwallet)) {
+                            toast(R.string.invalid_paperwallet);
+                            return;
+                        }
+                        // open webview to verify the wallet content
+                        Intent intent = new Intent(caller, VisiuWebview.class);
+                        intent.putExtra("public_address", qrTextPaperwallet);
+                        startActivityForResult(intent, REQUEST_VISIU);
+                        overridePendingTransition(R.anim.slide_from_right, R.anim.fade_out);
                         return;
                     }
                 }
+
+                final MaterialDialog dialogLoading = UI.popupWait(TabbedMainActivity.this, R.string.sweep_wait_message);
+                dialogLoading.hide();
+                dialogLoading.setCancelable(false);
+
                 final ECKey keyNonBip38 = keyNonFinal;
                 final FutureCallback<Map<?, ?>> callback = new CB.Toast<Map<?, ?>>(caller) {
                     @Override
                     public void onSuccess(final Map<?, ?> sweepResult) {
+                        dialogLoading.dismiss();
                         final View v = getLayoutInflater().inflate(R.layout.dialog_sweep_address, null, false);
                         final TextView passwordPrompt = UI.find(v, R.id.sweepAddressPasswordPromptText);
                         final TextView mainText = UI.find(v, R.id.sweepAddressMainText);
@@ -479,13 +588,137 @@ public class TabbedMainActivity extends GaActivity implements Observer {
 
                         runOnUiThread(new Runnable() { public void run() { builder.build().show(); } });
                     }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        super.onFailure(t);
+                        dialogLoading.dismiss();
+                    }
                 };
-                if (keyNonBip38 != null)
-                    CB.after(mService.prepareSweepSocial(keyNonBip38.getPubKey(), true), callback);
-                else
-                    callback.onSuccess(null);
+
+
+                // FIXME workaround to get info about paperwallet before call WAMP GA server because is too slow the GA server to reply
+                @Deprecated
+                class GetPublicKeyBalance extends AsyncTask<String, Void, String> {
+
+                    private String pubKey;
+
+                    @Override
+                    protected String doInBackground(String... strings) {
+                        String balance = "";
+                        try {
+                            pubKey = strings[0];
+                            final String apikey = "9e3043e0226a7f5e94f881c4bc37340efb265f1e";
+                            final String apiurl = "http://api.blocktrail.com/v1/" +
+                                    (Network.NETWORK.getId().equals(NetworkParameters.ID_MAINNET)? "BTC" : "tBTC") +
+                                    "/address/";
+                            URL url = new URL(apiurl + pubKey + "?api_key=" + apikey);
+                            HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+
+                            InputStream stream = new BufferedInputStream(urlConnection.getInputStream());
+                            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(stream));
+                            StringBuilder builder = new StringBuilder();
+
+                            String inputString;
+                            while ((inputString = bufferedReader.readLine()) != null) {
+                                builder.append(inputString);
+                            }
+
+                            JSONObject topLevel = new JSONObject(builder.toString());
+                            balance = topLevel.getString("balance");
+                            urlConnection.disconnect();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        return balance;
+                    }
+
+                    @Override
+                    protected void onPostExecute(String result) {
+                        if (result.isEmpty()) {
+                            toast(R.string.invalid_paperwallet);
+                            return;
+                        }
+                        final Float balanceBtc = Float.valueOf(result)/100000000;
+                        if (balanceBtc == 0) {
+                            // open webview to verify the wallet content
+                            Intent intent = new Intent(caller, VisiuWebview.class);
+                            intent.putExtra("public_address", pubKey);
+                            startActivity(intent);
+                            overridePendingTransition(R.anim.slide_from_right, R.anim.fade_out);
+                            return;
+                        }
+                        final String warningSweepPrivKey = String.format(mActivity.getResources().getString(R.string.warningSweepPrivKey), balanceBtc.toString());
+                        final Dialog confirmDialog = UI.popup(mActivity, R.string.warning)
+                                .content(warningSweepPrivKey)
+                                .onPositive(new MaterialDialog.SingleButtonCallback() {
+                                    @Override
+                                    public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                                        dialogLoading.show();
+                                        if (keyNonBip38 != null)
+                                            CB.after(mService.prepareSweepSocial(keyNonBip38.getPubKey(), true), callback);
+                                        else
+                                            callback.onSuccess(null);
+                                    }
+                                })
+                                .onNegative(new MaterialDialog.SingleButtonCallback() {
+                                    @Override
+                                    public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                                        dialog.cancel();
+                                    }
+                                }).build();
+
+                        confirmDialog.show();
+                    }
+                }
+                final String pubKey = getPublicKeyStringFromHash(keyNonBip38.getPubKeyHash());
+                new GetPublicKeyBalance().execute(pubKey);
+
+                break;
+            case REQUEST_VISIU:
+                if (data != null && isBitcoinScheme(data)) {
+                    final Intent browsable = new Intent(this, TabbedMainActivity.class);
+                    browsable.setData(data.getData());
+                    browsable.addCategory(Intent.CATEGORY_BROWSABLE);
+                    browsable.putExtra("internal_qr", true);
+                    // start new activity and finish old one
+                    startActivity(browsable);
+                    this.finish();
+                }
                 break;
         }
+    }
+
+    /**
+     * get public key from the byte array hash
+     * @param pubKeyBytes the byte array hash of the public key
+     * @return String of public key
+     */
+    @Deprecated
+    private String getPublicKeyStringFromHash(byte [] pubKeyBytes) {
+        byte [] pubKeyBytes2 = new byte [pubKeyBytes.length + 1];
+        byte [] pubKeyBytes3 = new byte [pubKeyBytes2.length + 4];
+
+        if (Network.NETWORK != null) {
+            if (Network.NETWORK.getId().equals(NetworkParameters.ID_MAINNET)) {
+                pubKeyBytes2[0] = 0;
+            } else {
+                pubKeyBytes2[0] = 0x6F;
+            }
+        } else {
+            return "";
+        }
+        System.arraycopy(pubKeyBytes, 0, pubKeyBytes2, 1, pubKeyBytes.length);
+
+        byte[] sha256 = Sha256Hash.hash(Sha256Hash.hash(pubKeyBytes2));
+
+        // get checksum and put 4 bytes in the end
+        System.arraycopy(pubKeyBytes2, 0, pubKeyBytes3, 0, pubKeyBytes2.length);
+        System.arraycopy(sha256, 0, pubKeyBytes3, pubKeyBytes3.length - 4, 4);
+
+        return Base58.encode(pubKeyBytes3);
     }
 
     private Transaction getSweepTx(final Map<?, ?> sweepResult) {
@@ -496,8 +729,16 @@ public class TabbedMainActivity extends GaActivity implements Observer {
     public boolean onCreateOptionsMenu(final Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         final int id = mService.isWatchOnly() ? R.menu.watchonly : R.menu.main;
+        getMenuInflater().inflate(R.menu.camera_menu, menu);
         getMenuInflater().inflate(id, menu);
         mMenu = menu;
+
+        // get advanced_options flag and show/hide menu items
+        Boolean advancedOptionsValue = mService.cfg("advanced_options").getBoolean("enabled", false);
+        MenuItem actionNetwork = menu.findItem(R.id.action_network);
+        if (!mService.isWatchOnly() && !advancedOptionsValue) {
+            actionNetwork.setVisible(false);
+        }
         return true;
     }
 
@@ -515,10 +756,14 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                 //New Marshmallow permissions paradigm
                 final String[] perms = {"android.permission.CAMERA"};
                 if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1 &&
-                        checkSelfPermission(perms[0]) != PackageManager.PERMISSION_GRANTED)
-                    requestPermissions(perms, /*permsRequestCode*/ 200);
-                else
+                        checkSelfPermission(perms[0]) != PackageManager.PERMISSION_GRANTED) {
+                    if (item.getItemId() == R.id.action_sweep)
+                        requestPermissions(perms, /*permsRequestCode*/ 200);
+                    else
+                        requestPermissions(perms, /*permsRequestCode*/ 300);
+                } else {
                     startActivityForResult(scanner, REQUEST_SWEEP_PRIVKEY);
+                }
                 return true;
             case R.id.network_unavailable:
                 return true;
@@ -531,6 +776,11 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                 return true;
             case R.id.action_about:
                 startActivity(new Intent(caller, AboutActivity.class));
+                return true;
+            case R.id.action_vendor:
+                Intent intent = new Intent(caller, VendorActivity.class);
+                startActivity(intent);
+                overridePendingTransition(R.anim.slide_from_right, R.anim.fade_out);
                 return true;
 
         }
@@ -570,6 +820,101 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         else if (requestCode == 100)
                 handlePermissionResult(granted, REQUEST_SEND_QR_SCAN,
                                        R.string.err_qrscan_requires_camera_permissions);
+    }
+
+    /**
+     * Try to manage BitID url and login/authenticate
+     * @param bitidUrl String
+     */
+    private void bitidAuth(final String bitidUrl) {
+        final BitID bitId;
+        try {
+            bitId = BitID.parse(bitidUrl);
+        } catch (URISyntaxException e) {
+            toast(getResources().getString(R.string.err_unsupported_bitid));
+            return;
+        }
+
+        final String bitIdHost = bitId.getUri().getHost();
+
+        final ISigningWallet signingWallet;
+        try {
+            signingWallet = mService.getBitidWallet(bitidUrl, 0);
+        } catch (UnsupportedOperationException | IOException e) {
+            toast(getResources().getString(R.string.err_unsupported_wallet));
+            return;
+        } catch (URISyntaxException e) {
+            new QrcodeScanDialog(this, bitidUrl).show();
+            return;
+        }
+
+        // wait login popup
+        final MaterialDialog waitLoginPopup = UI.popupWaitCustom(mActivity,R.string.bitid_dialog_title)
+                .content(getResources().getString(R.string.bitid_login_to, bitId.getUri().getHost())).build();
+
+        // callback to manage thw sign in response
+        final BitidSignIn.OnPostSignInListener callback = new BitidSignIn.OnPostSignInListener() {
+            @Override
+            public void postExecuteSignIn(SignInResponse response) {
+                waitLoginPopup.cancel();
+                if (response == null) {
+                    UI.popup(mActivity, R.string.bitid_dialog_title, android.R.string.ok)
+                            .content(getResources().getString(R.string.err_unsupported_bitid))
+                            .build().show();
+                } else if (response.getResultCode() == 0) {
+                    UI.toast(mActivity, getResources().getString(R.string.bitid_login_successful, bitIdHost), Toast.LENGTH_LONG);
+                    Log.d(TAG, "bitid succsssful login." + " message: " + (!response.getMessage().isEmpty() ? response.getMessage() : "no message received"));
+                    if (!mInternalQr) {
+                        // when arrives from external call, close activity and back to the caller
+                        finish();
+                    }
+                } else {
+                    final String errMessage = getResources().getString(R.string.err_bitid_login_error, response.getResultCode());
+
+                    final View bitidErrorDialogView = getLayoutInflater().inflate(R.layout.dialog_bitid_error, null, false);
+
+                    final TextView bitIdErrorMessage = UI.find(bitidErrorDialogView, R.id.bitIdErrorMessage);
+
+                    String serverMessageError = null;
+                    String jsonData = response.getMessage();
+                    try {
+                        final JSONObject json = new JSONObject(jsonData);
+                        serverMessageError = (String) json.get("message");
+                    } catch (JSONException e) {
+                        Log.d(TAG, "bitid login error. Not valid error: " + response.getMessage());
+                        UI.hide(bitIdErrorMessage);
+                    } finally {
+                        bitIdErrorMessage.setText(serverMessageError);
+                    }
+                    ((TextView) UI.find(bitidErrorDialogView, R.id.bitIdError)).setText(errMessage);
+
+                    UI.popup(mActivity, R.string.bitid_dialog_title, android.R.string.ok)
+                            .customView(bitidErrorDialogView, true)
+                            .build().show();
+                    Log.d(TAG, "bitid login error. code: " + response.getResultCode() + " message:" + response.getMessage());
+                }
+            }
+        };
+
+        final View bitidDialogView = getLayoutInflater().inflate(R.layout.dialog_bitid_request, null, false);
+
+        final TextView bitidHostView = UI.find(bitidDialogView, R.id.bitidHost);
+        bitidHostView.setText(bitIdHost);
+
+        // warning message if callback is http (insecure)
+        final TextView bitidInsecureText = UI.find(bitidDialogView, R.id.bitidInsecureText);
+        if (!bitId.isSecured())
+            UI.show(bitidInsecureText);
+
+        UI.popup(this, R.string.bitid_dialog_title, R.string.confirm, R.string.cancel)
+                .customView(bitidDialogView, true)
+                .onPositive(new MaterialDialog.SingleButtonCallback() {
+                    @Override
+                    public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                        new BitidSignIn().execute(mActivity, bitId, signingWallet, callback, mService);
+                        waitLoginPopup.show();
+                    }
+                }).build().show();
     }
 
     /**

@@ -11,7 +11,7 @@
   <string name="title_activity_sign_up">سجل نفسك</string>
   <string name="signupContinueButtonText">تابع</string>
   <string name="signupCheckBoxText">قمت بتأمين عبارة المرور ولقد قرأت شروط الخدمة</string>
-  <string name="termsofservice"><a href="https://greenaddress.it/en/tos/">>شروط الخدمة</a></string>
+  <string name="termsofservice"><a href="http://altanawallet.it/tos/">>شروط الخدمة</a></string>
   <string name="firstSignUpText">سجل نفسك</string>
   <string name="firstLogInText">تسجيل الدخول</string>
   <string name="receive_title">إستلام</string>
@@ -57,8 +57,8 @@
   <string name="greenaddress_headline">أسهل، أكثر أمانا وأسرع محفظة بيتكوين</string>
   <string name="pinSkipText">مرور</string>
   <string name="sendOptionalMemo">مذكرة اختيارية</string>
-  <string name="madeBy">من قبل GreenAddress</string>
-  <string name="welcomeGreenBits">مرحبا بكم في GreenBits</string>
+  <string name="madeBy">من قبل inbitcoin</string>
+  <string name="welcomeGreenBits">مرحبا بكم في Altana</string>
   <string name="attemptsFinished">رقم PIN غير صالح، ليس لديك أي محاولة متبقية. يرجى تسجيل الدخول باستخدام عبارة المرور الخاصة بك.</string>
   <string name="attemptsLeftLong">رقم PIN غير صالح، لديك %s محاولات متبقية</string>
   <string name="warnOnPaste">كن على علم، يمكن لتطبيقات الأخرى قراءة ذاكرة النصوص</string>
@@ -70,7 +70,7 @@
   <string name="txTypeIn">الإيداع</string>
   <string name="txTypeOut">سحب</string>
   <string name="txTypeRedeposit">إعادة الإيداع</string>
-  <string name="mnemonicHint">اكتب عبارة المرور GreenAddress الخاص بك أو إمسح رمز الاستجابة السريعة (QR CODE)</string>
+  <string name="mnemonicHint">اكتب عبارة المرور محفظة الخاص بك أو إمسح رمز الاستجابة السريعة (QR CODE)</string>
   <string name="title_activity_settings">الإعدادات</string>
   <string name="txSubTitle">تفاصيل المعاملات</string>
   <string name="txHashText">مزيج</string>

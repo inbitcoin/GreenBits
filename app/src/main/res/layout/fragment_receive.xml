@@ -2,14 +2,24 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:padding="@dimen/activity_content_margin"
     tools:context="com.greenaddress.greenbits.ui.ReceiveFragment">
 
     <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:background="@color/white"
+        android:orientation="vertical">
+    <LinearLayout
         android:id="@+id/receiveAddressLayout"
         android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="12dp">
+        android:orientation="vertical">
 
         <TextView
             android:layout_width="wrap_content"
@@ -17,18 +27,19 @@
             android:fontFamily="droid"
             android:text="@string/receiveAddressSubTitle"
             android:textColor="@color/textColor"
+            android:visibility="gone"
             android:textSize="24sp" />
 
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="16dp" />
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/grayTransparent"
+            android:padding="@dimen/activity_horizontal_margin">
 
         <LinearLayout
-            android:id="@+id/amountFields"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:visibility="gone"
             android:orientation="horizontal">
 
 
@@ -45,8 +56,7 @@
                         android:id="@+id/sendBitcoinGroup"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:paddingTop="14dp"
-                        android:paddingLeft="14dp">
+                        android:paddingTop="14dp">
 
                         <TextView
                             android:id="@+id/sendBitcoinScaleText"
@@ -81,6 +91,7 @@
                         android:textSize="24sp" />
 
                 </RelativeLayout>
+
             </LinearLayout>
 
             <View
@@ -128,9 +139,35 @@
             </RelativeLayout>
 
         </LinearLayout>
+        </LinearLayout>
+
+
+        </LinearLayout>
         <LinearLayout
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_weight="1"
+            android:layout_marginBottom="10dp"
+            android:layout_marginTop="20dp">
+
+            <ImageView
+                android:id="@+id/receiveQrImageView"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:contentDescription="Bitcoin address QrCode"
+                android:layout_gravity="center" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:orientation="vertical"
+            android:layout_height="wrap_content">
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
             android:orientation="horizontal">
 
             <TextView
@@ -139,85 +176,93 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:enabled="false"
-                android:lines="3"
-                android:maxLines="3"
-                android:singleLine="false"
-                android:text="\n\n"
+                android:text=""
                 android:textColor="@color/secondaryTextColor"
-                android:textIsSelectable="true"
-                android:textSize="24sp"
+                android:textSize="18sp"
                 android:typeface="monospace" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:paddingTop="10dp"
+            android:layout_height="wrap_content"
+            android:gravity="center">
 
             <LinearLayout
-                android:layout_width="fill_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:gravity="center">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
+                android:orientation="vertical"
+                android:padding="10dp">
+                <com.greenaddress.greenbits.ui.FontAwesomeTextView
+                    android:id="@+id/receiveShareIcon"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:gravity="center"
+                    android:paddingBottom="4dp"
+                    android:text="@string/fa_share_alt"
+                    android:textColor="@color/accent"
+                    android:textSize="34sp" />
+                <TextView
+                    android:id="@+id/receiveShareText"
+                    android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="10dp">
-                    <com.greenaddress.greenbits.ui.FontAwesomeTextView
-                        android:id="@+id/receiveCopyIcon"
-                        android:layout_width="fill_parent"
-                        android:layout_height="fill_parent"
-                        android:gravity="center"
-                        android:paddingBottom="4dp"
-                        android:text="@string/fa_copy"
-                        android:textColor="@color/accent"
-                        android:textSize="34sp" />
-                    <TextView
-                        android:layout_width="fill_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:singleLine="true"
-                        android:textColor="@color/accent"
-                        android:text="@string/copyAddress"/>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="10dp">
-                    <com.greenaddress.greenbits.ui.FontAwesomeTextView
-                        android:id="@+id/receiveNewAddressIcon"
-                        android:layout_width="fill_parent"
-                        android:layout_height="fill_parent"
-                        android:gravity="center"
-                        android:paddingBottom="4dp"
-                        android:text="@string/fa_plus"
-                        android:textColor="@color/accent"
-                        android:textSize="34sp" />
-                    <TextView
-                        android:layout_width="fill_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:textColor="@color/accent"
-                        android:singleLine="true"
-                        android:text="@string/newAddress"/>
-                </LinearLayout>
-
+                    android:gravity="center"
+                    android:singleLine="true"
+                    android:textColor="@color/accent"
+                    android:text="@string/shareAddress"/>
             </LinearLayout>
 
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="10dp">
+                <com.greenaddress.greenbits.ui.FontAwesomeTextView
+                    android:id="@+id/receiveCopyIcon"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:gravity="center"
+                    android:paddingBottom="4dp"
+                    android:text="@string/fa_copy"
+                    android:textColor="@color/accent"
+                    android:textSize="34sp" />
+                <TextView
+                    android:id="@+id/receiveCopyText"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:singleLine="true"
+                    android:textColor="@color/accent"
+                    android:text="@string/copyAddress"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="10dp">
+                <com.greenaddress.greenbits.ui.FontAwesomeTextView
+                    android:id="@+id/receiveNewAddressIcon"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:gravity="center"
+                    android:paddingBottom="4dp"
+                    android:text="@string/fa_plus"
+                    android:textColor="@color/accent"
+                    android:textSize="34sp" />
+                <TextView
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/accent"
+                    android:singleLine="true"
+                    android:text="@string/newAddress"/>
+            </LinearLayout>
 
         </LinearLayout>
+            </LinearLayout>
+
     </LinearLayout>
-    <RelativeLayout
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:layout_below="@id/receiveAddressLayout"
-        android:gravity="center">
-
-        <ImageView
-            android:id="@+id/receiveQrImageView"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
-            android:contentDescription="Bitcoin address QrCode"
-            android:paddingBottom="70dp"
-            android:layout_gravity="center" />
-
-    </RelativeLayout>
+    </LinearLayout>
 
 </RelativeLayout>

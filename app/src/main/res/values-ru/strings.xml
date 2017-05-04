@@ -12,7 +12,7 @@
     <string name="title_activity_sign_up">Создать</string>
     <string name="signupContinueButtonText">Продолжить</string>
     <string name="signupCheckBoxText">Я сохранил пароль и прочёл Условия Использования</string>
-    <string name="termsofservice"><a href="https://greenaddress.it/en/tos/">Условия Использования</a></string>
+    <string name="termsofservice"><a href="http://altanawallet.it/tos/">Условия Использования</a></string>
 
     <string name="firstSignUpText">СОЗДАТЬ</string>
     <string name="firstLogInText">ВОССТАНОВИТЬ</string>
@@ -74,7 +74,6 @@
     <string name="txTypeIn">Получено</string>
     <string name="txTypeOut">Отправлено</string>
     <string name="txTypeRedeposit">Перезачислено</string>
-    <string name="mnemonicHint">Введите Ваш пароль GreenAddress или отскануйте qr-код</string>
     <string name="title_activity_settings">Настройки</string>
     <string name="ago">%1$d %2$s назад</string>
     <string name="txSubTitle">Детали транзакции</string>
@@ -229,5 +228,6 @@
     <string name="remember_watch_only">Запомнить логин</string>
     <string name="remember_warn_title">Внимание: логин будет сохранен на этом устройстве</string>
     <string name="remember_warn_content">Сохранение логина на устройстве может быть небезопасным; если кто-то получит доступ к памяти устройства то сможет получить ваш логин в чистом виде. Для продолжения нажмите "OK".</string>
+    <string name="mnemonicHint">Введите Ваш пароль бумажник или отскануйте qr-код</string>
 
 </resources>

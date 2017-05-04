@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.greenaddress.bitid.BitID;
 import com.greenaddress.greenapi.CryptoHelper;
 import com.greenaddress.greenapi.HDKey;
 import com.greenaddress.greenapi.INotificationHandler;
@@ -46,6 +47,7 @@ import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Monetary;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.NetworkParameters;
@@ -520,6 +522,11 @@ public class GaService extends Service implements INotificationHandler {
         return signup(signingWallet, null, pubkey, chaincode, pathPubkey, pathChaincode);
     }
 
+    public ISigningWallet getBitidWallet(final String bitid, final Integer index) throws URISyntaxException, IOException {
+        final String callbackURI = BitID.parse(bitid).toCallbackURI().toString();
+        return mClient.getSigningWallet().getBitIdWallet(callbackURI, index);
+    }
+
     public String getMnemonics() {
         return mClient.getMnemonics();
     }
@@ -630,6 +637,10 @@ public class GaService extends Service implements INotificationHandler {
         final PinData pinData = PinData.fromEncrypted(pinIdentifier, salt, encryptedData, password);
         final DeterministicKey master = HDKey.createMasterKeyFromSeed(pinData.mSeed);
         return login(new SWWallet(master), pinData.mMnemonic);
+    }
+
+    public String getPaymentRequest(final String txHash) throws Exception {
+        return mClient.getPaymentRequest(txHash);
     }
 
     private void preparePrivData(final Map<String, Object> privateData) {
@@ -749,7 +760,7 @@ public class GaService extends Service implements INotificationHandler {
                         if (!isValid)
                             throw new IllegalArgumentException("Address validation failed");
                         final String address = Address.fromP2SHHash(Network.NETWORK, scriptHash).toString();
-                        return new QrBitmap(address, 0 /* transparent background */);
+                        return new QrBitmap(address, Color.WHITE, getBaseContext());
                     }
                 });
             }
@@ -796,7 +807,7 @@ public class GaService extends Service implements INotificationHandler {
 
     public Bitmap getSignUpQRCode() {
         if (mSignUpQRCode == null)
-            mSignUpQRCode = new QrBitmap(getSignUpMnemonic(), Color.WHITE).getQRCode();
+            mSignUpQRCode = new QrBitmap(getSignUpMnemonic(), Color.WHITE, this).getQRCode();
        return mSignUpQRCode;
     }
 
@@ -1105,5 +1116,56 @@ public class GaService extends Service implements INotificationHandler {
 
     public static Transaction buildTransaction(final String hex) {
         return new Transaction(Network.NETWORK, Wally.hex_to_bytes(hex));
+    }
+
+    public Integer getTotalBalance() {
+        // get all sub accounts
+        final ArrayList subaccounts = getSubaccounts();
+        if (subaccounts == null)
+            return -1;
+        final int subaccount_len = subaccounts.size() + 1;
+        final ArrayList<Integer> pointers = new ArrayList<>(subaccount_len);
+        // add main address pointer
+        pointers.add(0);
+        for (final Object s : subaccounts) {
+            final Map<String, ?> m = (Map) s;
+            pointers.add((Integer) m.get("pointer"));
+        }
+        int total = 0;
+        for (Integer pointer:pointers) {
+            final Monetary monetary = getCoinBalance(pointer);
+            if (monetary != null) {
+                total += monetary.getValue();
+            }
+        }
+        return total;
+    }
+
+    public void saveMerchantInvoiceData(final String txhash, final String merchant, final String invoice, final String paymentProcessor) {
+        if (merchant != null)
+            cfgEdit("txhash_" + txhash).putString("merchant", merchant).apply();
+        cfgEdit("txhash_" + txhash).putString("invoice", invoice).apply();
+        cfgEdit("txhash_" + txhash).putString("payment_processor", paymentProcessor).apply();
+        setTxChecked(txhash);
+    }
+
+    public void setTxChecked(final String txhash) {
+        cfgEdit("txhash_" + txhash).putBoolean("merchant_checked", true).apply();
+    }
+
+    public boolean memoTxAlreadyChecked(final String txhash) {
+        return cfg("txhash_" + txhash).getBoolean("merchant_checked", false);
+    }
+
+    public String getTxMerchant(final String txhash) {
+        return cfg("txhash_" + txhash).getString("merchant", "");
+    }
+
+    public String getTxInvoice(final String txhash) {
+        return cfg("txhash_" + txhash).getString("invoice", "");
+    }
+
+    public String getTxPaymentProcessor(final String txhash) {
+        return cfg("txhash_" + txhash).getString("payment_processor", "");
     }
 }

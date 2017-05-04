@@ -12,7 +12,7 @@
             android:layout_height="wrap_content"
             android:id="@+id/newTxAmountLabel"
             android:text="@string/newTxAmount"
-            android:textColor="@color/whiteSecondary"
+            android:textColor="@color/secondaryTextColor"
             android:textSize="20sp"
             />
         <LinearLayout
@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:id="@+id/newTxAmountScaleText"
             android:text="m"
-            android:textColor="@color/white"
+            android:textColor="@color/textColor"
             android:textSize="20sp"
             />
         <com.greenaddress.greenbits.ui.FontAwesomeTextView
@@ -32,13 +32,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/fa_btc_space"
-            android:textColor="@color/white"
+            android:textColor="@color/textColor"
             android:textSize="20sp" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/newTxAmountText"
-            android:textColor="@color/white"
+            android:textColor="@color/textColor"
             android:textSize="20sp"
             />
         </LinearLayout>
@@ -52,7 +52,7 @@
             android:layout_height="wrap_content"
             android:id="@+id/newTxFeeLabel"
             android:text="@string/newTxFee"
-            android:textColor="@color/whiteSecondary"
+            android:textColor="@color/secondaryTextColor"
             android:textSize="20sp"
             />
         <LinearLayout
@@ -64,7 +64,7 @@
             android:layout_height="wrap_content"
             android:id="@+id/newTxFeeScale"
             android:text="m"
-            android:textColor="@color/white"
+            android:textColor="@color/textColor"
             android:textSize="20sp"
             />
         <com.greenaddress.greenbits.ui.FontAwesomeTextView
@@ -72,13 +72,13 @@
             android:layout_height="wrap_content"
             android:id="@+id/newTxFeeUnit"
             android:text="@string/fa_btc_space"
-            android:textColor="@color/white"
+            android:textColor="@color/textColor"
             android:textSize="20sp" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/newTxFeeText"
-            android:textColor="@color/white"
+            android:textColor="@color/textColor"
             android:textSize="20sp"
             />
         </LinearLayout>
@@ -90,7 +90,7 @@
         android:layout_height="wrap_content"
         android:id="@+id/newTxRecipientLabel"
         android:text="@string/newTxRecipient"
-        android:textColor="@color/whiteSecondary"
+        android:textColor="@color/secondaryTextColor"
         android:textSize="20sp" />
     <TextView
         android:id="@+id/newTxRecipientText"
@@ -100,7 +100,7 @@
         android:lines="3"
         android:maxLines="3"
         android:singleLine="false"
-        android:textColor="@color/white"
+        android:textColor="@color/textColor"
         android:textSize="20sp"
         android:typeface="monospace" />
 
@@ -109,14 +109,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
-        android:textColor="@color/whiteSecondary" />
+        android:textColor="@color/secondaryTextColor" />
 
     <EditText
         android:id="@+id/newTx2FACodeText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="@color/whiteSecondary"
+        android:textColor="@color/secondaryTextColor"
         android:inputType="numberPassword"/>
 
 

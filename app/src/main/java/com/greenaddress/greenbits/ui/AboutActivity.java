@@ -29,19 +29,19 @@ public class AboutActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         final AboutPage aboutPage = new AboutPage(this)
-                .setDescription(getString(R.string.greenaddress_headline))
+                .setDescription("powered by GreenAddress")
                 .setImage(R.drawable.logo_big)
-                .addEmail("info@greenaddress.it")
-                .addFacebook("GreenAddressIT")
-                .addTwitter("GreenAddress")
-                .addYoutube("UCcTlQ46wcp-pmwAg_Rj1DHQ")
-                .addWebsite("https://greenaddress.it");
+                .addEmail("info@inbitcoin.it")
+                .addFacebook("inbitcoin")
+                .addTwitter("inbitcoin")
+                //.addYoutube("UCcTlQ46wcp-pmwAg_Rj1DHQ")
+                .addWebsite("https://inbitcoin.it");
         final String pkgName = getPackageName();
         final String installer = getPackageManager().getInstallerPackageName(pkgName);
         if ("com.android.vending".equals(installer)) {
             aboutPage.addPlayStore(pkgName);
         }
-        setContentView(aboutPage.addItem(getGitHubElement()).create());
+        setContentView(aboutPage.create());
         setTitle(String.format("%s %s",
                 getString(R.string.app_name),
                 getString(R.string.app_version,

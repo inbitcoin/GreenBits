@@ -1,0 +1,9 @@
+<resources>
+
+    <style name="myButtonVendor" parent="myButtonVendor.base">
+        <item name="android:background">@drawable/material_button_light_images</item>
+        <item name="android:minHeight">68dp</item>
+        <item name="android:textSize">20sp</item>
+    </style>
+
+</resources>

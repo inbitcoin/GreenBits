@@ -44,13 +44,13 @@ android {
     buildToolsVersion '25.0.2'
 
     defaultConfig {
-        applicationId 'com.greenaddress.greenbits_android_wallet'
+        applicationId 'it.inbitcoin.altana'
         minSdkVersion 14
         targetSdkVersion 25
-        versionCode 196
+        versionCode 39
         // Don't use defaultConfig.getProperty("versionCode") in versionName
         // because it breaks F-Droid!
-        versionName "1.96"
+        versionName '17.04.26'
     }
     buildTypes {
         release {
@@ -85,39 +85,39 @@ android {
             minSdkVersion 21
         }
         btctestnet {
-            applicationId "com.greenaddress.greenbits_android_wallet.testnet"
+            applicationId 'it.inbitcoin.altana.test.testnet'
             versionName String.format("%s_testnet", defaultConfig.getProperty("versionName"))
         }
         btctestnet_21 {
             minSdkVersion 21
-            applicationId "com.greenaddress.greenbits_android_wallet.testnet"
+            applicationId 'it.inbitcoin.altana.test.testnet'
             versionName String.format("%s_testnet", defaultConfig.getProperty("versionName"))
         }
         publicregtest {
-            applicationId "com.greenaddress.greenbits_android_wallet.publicregtest"
+            applicationId "it.inbitcoin.altana.publicregtest"
             versionName String.format("%s_publicregtest", defaultConfig.getProperty("versionName"))
         }
         publicregtest_21 {
             minSdkVersion 21
-            applicationId "com.greenaddress.greenbits_android_wallet.publicregtest"
+            applicationId "it.inbitcoin.altana.publicregtest"
             versionName String.format("%s_publicregtest", defaultConfig.getProperty("versionName"))
         }
         regtest {
-            applicationId "com.greenaddress.greenbits_android_wallet.regtest"
+            applicationId 'it.inbitcoin.altana.regtest'
             versionName String.format("%s_regtest", defaultConfig.getProperty("versionName"))
         }
         regtest_21 {
             minSdkVersion 21
-            applicationId "com.greenaddress.greenbits_android_wallet.regtest"
+            applicationId 'it.inbitcoin.altana.regtest'
             versionName String.format("%s_regtest", defaultConfig.getProperty("versionName"))
         }
         alpha {
-            applicationId "com.greenaddress.greenbits_android_wallet.alpha"
+            applicationId 'it.inbitcoin.altana.alpha'
             versionName String.format("%s_alpha", defaultConfig.getProperty("versionName"))
         }
         alpha_21 {
             minSdkVersion 21
-            applicationId "com.greenaddress.greenbits_android_wallet.alpha"
+            applicationId 'it.inbitcoin.altana.alpha'
             versionName String.format("%s_alpha", defaultConfig.getProperty("versionName"))
         }
     }
@@ -159,6 +159,7 @@ android {
     }
     lintOptions {
         disable 'MissingTranslation'
+        abortOnError false
     }
 }
 
@@ -183,10 +184,34 @@ dependencies {
     compile 'com.github.medyo:android-about-page:1.2'
     compile 'com.afollestad.material-dialogs:core:0.9.3.0'
     compile 'com.maksim88:PasswordEditText:v0.9'
+    compile 'com.androidadvance:topsnackbar:1.1.1'
     // used to redirect bitcoinj logging to android in debug builds
     debugCompile 'com.noveogroup.android:android-logger:1.3.5'
+    compile 'com.android.support:gridlayout-v7:25.2.0'
 }
 
 repositories {
     jcenter()
+}
+
+apply plugin: 'findbugs'
+
+task findbugs(type: FindBugs) {
+    ignoreFailures = true
+    effort = "default"
+    reportLevel = "low"
+    excludeFilter = new File("${project.rootDir}/findbugs/findbugs-filter.xml")
+    classes = files("${project.rootDir}/app/build/intermediates/classes/production/release/com/greenaddress/")
+    source = fileTree('src/main/java/com/greenaddress/')
+    classpath = files()
+    reports {
+        xml.enabled = true
+        html.enabled = false
+        xml {
+            destination "$project.buildDir/findbugs/findbugs-output.xml"
+        }
+        html {
+            destination "$project.buildDir/findbugs/findbugs-output.html"
+        }
+    }
 }

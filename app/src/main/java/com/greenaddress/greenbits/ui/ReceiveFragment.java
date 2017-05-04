@@ -1,12 +1,17 @@
 package com.greenaddress.greenbits.ui;
 
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.nfc.Tag;
 import android.os.AsyncTask;
@@ -19,10 +24,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -49,6 +56,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
     private TextView mAddressText = null;
     private ImageView mAddressImage = null;
     private TextView mCopyIcon = null;
+    private TextView mShareIcon = null;
     private LinearLayout mReceiveAddressLayout = null;
     private final Runnable mDialogCB = new Runnable() { public void run() { mQrCodeDialog = null; } };
 
@@ -119,6 +127,18 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
             }
         });
 
+        mShareIcon = UI.find(mView, R.id.receiveShareIcon);
+        UI.disable(mShareIcon);
+        mShareIcon.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(final View v) {
+                if (mQrCodeBitmap != null && !mQrCodeBitmap.getData().isEmpty()) {
+                    // SHARE intent
+                    UI.shareQrcodeAddress(getGaActivity(), mQrCodeBitmap.getQRCode(), getAddressUri());
+                }
+            }
+        });
+
         mNewAddressCallback = new FutureCallback<QrBitmap>() {
             @Override
             public void onSuccess(final QrBitmap result) {
@@ -138,6 +158,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
                         public void run() {
                             hideWaitDialog();
                             UI.enable(mCopyIcon);
+                            UI.enable(mShareIcon);
                         }
                     });
             }
@@ -152,8 +173,6 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         });
         mAmountEdit = UI.find(mView, R.id.sendAmountEditText);
         mAmountFiatEdit = UI.find(mView, R.id.sendAmountFiatEditText);
-        View amountFields = UI.find(mView, R.id.amountFields);
-        UI.showIf(getGAService().cfg().getBoolean("showAmountInReceive", false), amountFields);
 
         registerReceiver();
         return mView;
@@ -193,6 +212,8 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         protected void onPostExecute(final Bitmap bitmap) {
             if (bitmap == null)
                 return;
+            if (getActivity() == null)
+                return;
             final BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
             bitmapDrawable.setFilterBitmap(false);
             mAddressImage.setImageDrawable(bitmapDrawable);
@@ -205,8 +226,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         }
 
         private Bitmap resetBitmap(final String address) {
-            final int TRANSPARENT = 0; // Transparent background
-            mQrCodeBitmap = new QrBitmap(address, TRANSPARENT);
+            mQrCodeBitmap = new QrBitmap(address, Color.WHITE, getContext());
             return mQrCodeBitmap.getQRCode();
         }
     }
@@ -220,6 +240,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         mCurrentAddress = "";
         popupWaitDialog(R.string.generating_address);
         UI.disable(mCopyIcon);
+        UI.disable(mShareIcon);
         destroyCurrentAddress();
         Futures.addCallback(getGAService().getNewAddressBitmap(mSubaccount),
                             mNewAddressCallback, getGAService().getExecutor());
@@ -234,7 +255,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         mCurrentAddress = "";
         mAddressText.setText("");
         mAddressImage.setImageBitmap(null);
-        mView.setVisibility(View.GONE);
+        mReceiveAddressLayout.setVisibility(View.GONE);
     }
 
     private void onCopyClicked() {
@@ -264,8 +285,43 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         UI.setDialogCloseHandler(dialog, mDialogCB);
 
         qrCode.setImageDrawable(bd);
+
+        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                Activity activity = getGaActivity();
+                if (activity != null)
+                    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+            }
+        });
+        dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialogInterface) {
+                Activity activity = getGaActivity();
+                if (activity != null)
+                    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+
+            }
+        });
         mQrCodeDialog = dialog;
         mQrCodeDialog.show();
+
+        int currentScreenOrientation = UI.getCurrentScreenOrientation(getActivity());
+        //noinspection WrongConstant
+        getActivity().setRequestedOrientation(currentScreenOrientation);
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+
+    // Checks the orientation of the screen
+    if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        Toast.makeText(getContext(), "landscape", Toast.LENGTH_SHORT).show();
+    } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT){
+        Toast.makeText(getContext(), "portrait", Toast.LENGTH_SHORT).show();
+    }
+
     }
 
     private void onNewAddressGenerated(final QrBitmap result) {
@@ -283,8 +339,8 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         mAddressImage.setImageDrawable(bd);
 
         final String qrData = result.getData();
-        mAddressText.setText(String.format("%s\n%s\n%s", qrData.substring(0, 12),
-                             qrData.substring(12, 24), qrData.substring(24)));
+        mAddressText.setText(String.format("%s\n%s", qrData.substring(0, 18),
+                             qrData.substring(18)));
         mCurrentAddress = result.getData();
 
         mAddressImage.setOnClickListener(new View.OnClickListener() {
@@ -296,7 +352,8 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
 
         hideWaitDialog();
         UI.enable(mCopyIcon);
-        mView.setVisibility(View.VISIBLE);
+        UI.enable(mShareIcon);
+        mReceiveAddressLayout.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -337,11 +394,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         if (item.getItemId() == R.id.action_share) {
             if (mQrCodeBitmap != null && !mQrCodeBitmap.getData().isEmpty()) {
                 // SHARE intent
-                final Intent intent = new Intent();
-                intent.setAction(Intent.ACTION_SEND);
-                intent.putExtra(Intent.EXTRA_TEXT, getAddressUri());
-                intent.setType("text/plain");
-                startActivity(intent);
+                UI.shareQrcodeAddress(getGaActivity(), mQrCodeBitmap.getQRCode(), getAddressUri());
             }
             return true;
         }
@@ -362,6 +415,16 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
     public void onViewStateRestored(final Bundle savedInstanceState) {
         Log.d(TAG, "onViewStateRestored -> " + TAG);
         super.onViewStateRestored(savedInstanceState);
+        if (savedInstanceState != null) {
+            // restore page selected and se page selected or not
+            final Boolean pageSelected = savedInstanceState.getBoolean("pageSelected", false);
+            super.setPageSelected(pageSelected);
+
+            // restore address and reset qr code bitmap
+            mCurrentAddress = savedInstanceState.getString("currentAddress");
+            mQrCodeBitmap = new QrBitmap(mCurrentAddress, Color.WHITE, getContext());
+            conversionFinish();
+        }
         if (mAmountFields != null)
             mAmountFields.setIsPausing(false);
     }
@@ -369,6 +432,9 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
     @Override
     public void onSaveInstanceState(final Bundle outState) {
         super.onSaveInstanceState(outState);
+        // save page selected state and current address useful after rotate
+        outState.putBoolean("pageSelected", IsPageSelected());
+        outState.putString("currentAddress", mCurrentAddress);
         if (mAmountFields != null)
             outState.putBoolean("pausing", mAmountFields.isPausing());
     }

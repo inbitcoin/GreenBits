@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="myButtonVendor" parent="myButtonVendor.base">
+        <item name="android:backgroundTint">@drawable/material_button_light</item>
+        <item name="android:alpha">0.85</item>
+        <item name="android:minHeight">68dp</item>
+        <item name="android:textSize">20sp</item>
+    </style>
+</resources>

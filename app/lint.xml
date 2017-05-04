@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+	<issue id="all">
+		<ignore path="src/main/java/com/ledger" />
+		<ignore path="src/main/java/com/btchip" />
+		<ignore path="src/main/java/com/satoshilabs" />
+		<ignore path="src/main/java/de" />
+		<ignore path="src/main/java/im" />
+		<ignore path="src/main/java/nordpol" />
+	</issue>
+</lint>

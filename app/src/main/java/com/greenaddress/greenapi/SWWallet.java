@@ -1,6 +1,10 @@
 package com.greenaddress.greenapi;
 
 import com.blockstream.libwally.Wally;
+import com.btchip.BTChipDongle;
+import com.btchip.BTChipException;
+import com.greenaddress.bitid.BitID;
+import com.greenaddress.greenbits.ui.BuildConfig;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
@@ -8,13 +12,19 @@ import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.Utils;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.script.Script;
 
+import java.io.IOException;
 import java.math.BigInteger;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import org.bitcoinj.wallet.Protos;
+import org.spongycastle.util.encoders.Base64;
 
 public class SWWallet extends ISigningWallet {
 
@@ -32,7 +42,7 @@ public class SWWallet extends ISigningWallet {
     @Override
     public boolean requiresPrevoutRawTxs() { return false; }
 
-    private SWWallet derive(final Integer childNumber) {
+    protected SWWallet derive(final Integer childNumber) {
         return new SWWallet(HDKey.deriveChildKey(mRootKey, childNumber));
     }
 
@@ -104,6 +114,11 @@ public class SWWallet extends ISigningWallet {
         return new String[]{ sig.r.toString(), sig.s.toString() };
     }
 
+    @Override
+    public ISigningWallet getBitIdWallet(final String uri, final Integer index) throws IOException {
+        return HDKey.deriveBitidKey(this, uri, index);
+    }
+
     public DeterministicKey getMasterKey() {
         return mRootKey;
     }
@@ -117,4 +132,15 @@ public class SWWallet extends ISigningWallet {
     }
 
     private int u8(int i) { return i < 0 ? 256 + i : i; }
+
+    @Override
+    public ECKey.ECDSASignature signMessage(final String message) {
+        final ECKey eckey = ECKey.fromPrivate(mRootKey.getPrivKey());  // is mRootKey derived?
+        String base64Signature = eckey.signMessage(message);
+        return base64ToECDSASignature(base64Signature);
+    }
+
+    public DeterministicKey getPubKey() {
+        return mRootKey.dropPrivateBytes();
+    }
 }

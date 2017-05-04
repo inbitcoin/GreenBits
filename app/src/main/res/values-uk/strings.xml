@@ -12,7 +12,7 @@
     <string name="title_activity_sign_up">Створити</string>
     <string name="signupContinueButtonText">Продовжити</string>
     <string name="signupCheckBoxText">Я зберіг пароль і прочитав Умови Використання</string>
-    <string name="termsofservice"><a href="https://greenaddress.it/en/tos/">Умови Використання</a></string>
+    <string name="termsofservice"><a href="http://altanawallet.it/tos/">Умови Використання</a></string>
 
     <string name="firstSignUpText">СТВОРИТИ</string>
     <string name="firstLogInText">ВІДНОВИТИ</string>
@@ -74,7 +74,7 @@
     <string name="txTypeIn">Отримано</string>
     <string name="txTypeOut">Відправлено</string>
     <string name="txTypeRedeposit">Перезараховано</string>
-    <string name="mnemonicHint">Уведіть Ваш пароль GreenAddress або відскануйте qr-код</string>
+    <string name="mnemonicHint">Уведіть Ваш пароль гаманець або відскануйте qr-код</string>
     <string name="title_activity_settings">Налаштування</string>
     <string name="ago">%1$d %2$s тому</string>
     <string name="txSubTitle">Деталі транзакції</string>

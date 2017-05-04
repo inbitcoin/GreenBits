@@ -1,11 +1,16 @@
 package com.greenaddress.greenbits.ui;
 
 import android.app.Activity;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
+import android.util.Base64;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -16,11 +21,14 @@ import android.widget.TextView;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.greenaddress.greenbits.FormatMemo;
 import com.greenaddress.greenbits.GaService;
 
+import org.bitcoin.protocols.payments.Protos;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Monetary;
 import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.protocols.payments.PaymentSession;
 import org.bitcoinj.utils.MonetaryFormat;
 
 import java.text.ParseException;
@@ -40,6 +48,8 @@ public class MainFragment extends SubaccountFragment {
     private Observer mVerifiedTxObserver;
     private Observer mNewTxObserver;
     private final Runnable mDialogCB = new Runnable() { public void run() { mUnconfirmedDialog = null; } };
+    private CheckTxsMemo mCheckTxsMemo = null;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
 
     private void updateBalance() {
         Log.d(TAG, "Updating balance");
@@ -120,14 +130,19 @@ public class MainFragment extends SubaccountFragment {
             return null;
 
         final GaService service = getGAService();
-        popupWaitDialog(R.string.loading_transactions);
+        // commented follow line because I've a suspect that cause infinite show dialog
+        //popupWaitDialog(R.string.loading_transactions);
 
         mView = inflater.inflate(R.layout.fragment_main, container, false);
         final RecyclerView txView = UI.find(mView, R.id.mainTransactionList);
         txView.setHasFixedSize(true);
-        txView.addItemDecoration(new DividerItem(getActivity()));
 
         final LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
+        final DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(txView.getContext(),
+        layoutManager.getOrientation());
+        dividerItemDecoration.setDrawable(getResources().getDrawable(R.drawable.line_divider));
+        txView.addItemDecoration(dividerItemDecoration);
+
         txView.setLayoutManager(layoutManager);
 
         mSubaccount = service.getCurrentSubAccount();
@@ -163,14 +178,26 @@ public class MainFragment extends SubaccountFragment {
             reloadTransactions(false, true);
         }
 
+        mSwipeRefreshLayout = UI.find(mView, R.id.mainTransactionListSwipe);
+        mSwipeRefreshLayout.setColorSchemeColors(ContextCompat.getColor(getContext(), R.color.accent));
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                Log.d(TAG, "onRefresh -> " + TAG);
+                // user action to force reload balance and tx list
+                onBalanceUpdated();
+            }
+        });
+
         registerReceiver();
         return mView;
     }
 
     @Override
     protected void onBalanceUpdated() {
+        Log.d(TAG, "onBalanceUpdated -> " + TAG);
         updateBalance();
-        reloadTransactions(true, false); // newAdapter for unit change
+        reloadTransactions(false, false);
     }
 
     @Override
@@ -239,7 +266,7 @@ public class MainFragment extends SubaccountFragment {
     }
 
     private void showTxView(boolean doShow) {
-        UI.showIf(doShow, (View) UI.find(mView, R.id.mainTransactionList));
+        UI.showIf(doShow, (View) UI.find(mView, R.id.mainTransactionListSwipe));
         UI.hideIf(doShow, (View) UI.find(mView, R.id.mainEmptyTransText));
     }
 
@@ -282,6 +309,9 @@ public class MainFragment extends SubaccountFragment {
 
                 activity.runOnUiThread(new Runnable() {
                     public void run() {
+                        hideWaitDialog();
+                        if (mSwipeRefreshLayout != null)
+                            mSwipeRefreshLayout.setRefreshing(false);
 
                         if (!IsPageSelected()) {
                             Log.d(TAG, "Callback after hiding, ignoring");
@@ -289,6 +319,10 @@ public class MainFragment extends SubaccountFragment {
                             setIsDirty(true);
                             return;
                         }
+
+                        if (mCheckTxsMemo != null)
+                            mCheckTxsMemo.cancel(true);
+                        mCheckTxsMemo = new CheckTxsMemo();
 
                         showTxView(txList.size() > 0);
 
@@ -331,7 +365,10 @@ public class MainFragment extends SubaccountFragment {
                             // A new tx has arrived; scroll to the top to show it
                             txView.smoothScrollToPosition(0);
                         }
-                        hideWaitDialog();
+
+                        if (mTxItems != null) {
+                            mCheckTxsMemo.execute(mTxItems);
+                        }
                     }
                 });
 
@@ -342,8 +379,9 @@ public class MainFragment extends SubaccountFragment {
                 t.printStackTrace();
                 activity.runOnUiThread(new Runnable() {
                     public void run() {
-                        showTxView(false);
                         hideWaitDialog();
+                        if (mSwipeRefreshLayout != null)
+                            mSwipeRefreshLayout.setRefreshing(false);
                     }
                 });
             }
@@ -380,6 +418,61 @@ public class MainFragment extends SubaccountFragment {
             updateBalance();
             if (!isZombie())
                 setIsDirty(false);
+        }
+    }
+
+    class CheckTxsMemo extends AsyncTask<Object, Object, Boolean> {
+
+        @Override
+        protected Boolean doInBackground(Object... params) {
+            boolean toReload = false;
+            GaService service = getGAService();
+            final List <TransactionItem> txItems = (List<TransactionItem>) params[0];
+            for (final TransactionItem txItem : txItems) {
+                try {
+                    final String txHash = txItem.txHash.toString();
+                    final Boolean merchantChecked = service.memoTxAlreadyChecked(txHash);
+                    if (merchantChecked)
+                        continue;
+                    final String paymentRequest;
+                    try {
+                        service.setTxChecked(txHash);
+                        paymentRequest = service.getPaymentRequest(txHash);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        continue;
+                    }
+
+                    if (!paymentRequest.isEmpty()) {
+                        // decode and read data from protocol buffer
+                        byte[] data = Base64.decode(paymentRequest, Base64.DEFAULT);
+                        Protos.PaymentRequest paymentRequest1 = Protos.PaymentRequest.parseFrom(data);
+
+                        PaymentSession paymentSession = new PaymentSession(paymentRequest1);
+                        final String [] memoInfo = FormatMemo.sanitizeMemo(paymentSession.getMemo());
+                        if (memoInfo == null || memoInfo[0].isEmpty())
+                            continue;
+
+                        if (memoInfo.length == 2) {
+                            service.saveMerchantInvoiceData(txHash, null, memoInfo[0], memoInfo[1]);
+                        } else if (memoInfo.length == 3) {
+                            service.saveMerchantInvoiceData(txHash, memoInfo[2], memoInfo[0], memoInfo[1]);
+                        }
+                        toReload = true;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            return toReload;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            if (result) {
+                final RecyclerView txView = UI.find(mView, R.id.mainTransactionList);
+                txView.getAdapter().notifyDataSetChanged();
+            }
         }
     }
 }

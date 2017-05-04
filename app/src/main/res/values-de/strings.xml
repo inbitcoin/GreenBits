@@ -11,7 +11,7 @@
   <string name="title_activity_sign_up">Registrieren</string>
   <string name="signupContinueButtonText">WEITER</string>
   <string name="signupCheckBoxText">Ich habe das Kennwortsatz gesichert und die AGBs gelesen.</string>
-  <string name="termsofservice"><a href="https://greenaddress.it/de/tos/">AGBs</a></string>
+  <string name="termsofservice"><a href="http://altanawallet.it/tos/">AGBs</a></string>
   <string name="firstSignUpText">REGISTRIEREN</string>
   <string name="firstLogInText">ANMELDEN</string>
   <string name="receive_title">EMPFANGEN</string>
@@ -57,8 +57,8 @@
   <string name="greenaddress_headline">die einfache, sichere und schnelle Bitcoin Brieftasche</string>
   <string name="pinSkipText">ÜBERSPRINGEN</string>
   <string name="sendOptionalMemo">Optionales Memo</string>
-  <string name="madeBy">by GreenAddress</string>
-  <string name="welcomeGreenBits">Willkommen zu GreenBits</string>
+  <string name="madeBy">by inbitcoin</string>
+  <string name="welcomeGreenBits">Willkommen zu Altana</string>
   <string name="attemptsFinished">Ungültiger PIN. Sie haben keine Versuche mehr übrig. Bitte loggen sie sich mit ihrem Kennwortsatz ein.</string>
   <string name="attemptsLeftLong">Ungültiger PIN. Sie haben %1$d Versuche übrig</string>
   <string name="warnOnPaste">Beachten sie bitte das andere Apps die Zwischenablage lesen oder verändern können</string>
@@ -69,7 +69,7 @@
   <string name="txTypeIn">Eingang</string>
   <string name="txTypeOut">Ausgang</string>
   <string name="txTypeRedeposit">Rückzahlung</string>
-  <string name="mnemonicHint">GreenAddress Kennwortsatz eingeben oder qrcode einscannen</string>
+  <string name="mnemonicHint">Dein Brieftasche Kennwortsatz eingeben oder qrcode einscannen</string>
   <string name="title_activity_settings">Einstellungen</string>
   <string name="ago">%1$d %2$s vor</string>
   <string name="txSubTitle">Transaktionsdetails</string>
@@ -137,4 +137,5 @@
   <string name="copyAddress">Kopieren</string>
   <string name="txReceivedOn">Empfangsadresse</string>
   <string name="twoFacGauthTextCode">Oder sie benutzen den folgenden Code: %s. Vergessen sie nicht in zu sichern!</string>
+  <string name="sendPay"></string>
 </resources>

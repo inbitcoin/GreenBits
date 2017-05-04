@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:layout_gravity="center"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/amountView"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@color/whiteSecondary"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center">
+
+                <Button
+                    android:id="@+id/btnFiatSwitch"
+                    style="@style/myButtonVendor"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:text="FIAT" />
+
+                <Button
+                    android:id="@+id/btnBtcSwitch"
+                    style="@style/myButtonVendor"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="BTC" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <RelativeLayout
+                        android:id="@+id/btcView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:id="@+id/sendBitcoinGroup"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingTop="14dp">
+
+                            <TextView
+                                android:id="@+id/sendBitcoinScaleText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/accent" />
+
+                            <com.greenaddress.greenbits.ui.FontAwesomeTextView
+                                android:id="@+id/sendBitcoinUnitText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="@string/fa_btc"
+                                android:textColor="@color/accent"
+                                android:textSize="24sp" />
+
+                        </LinearLayout>
+
+                        <com.greenaddress.greenbits.ui.FontFitEditText
+
+                            android:id="@+id/sendAmountEditText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_horizontal|center_vertical"
+                            android:layout_toEndOf="@id/sendBitcoinGroup"
+                            android:layout_toRightOf="@id/sendBitcoinGroup"
+                            android:enabled="false"
+                            android:gravity="end|center_vertical"
+                            android:hint="0.00"
+                            android:inputType="numberDecimal"
+                            android:paddingLeft="14dp"
+                            android:textColor="@color/textColor"
+                            android:textSize="24sp" />
+
+                    </RelativeLayout>
+
+
+                    <RelativeLayout
+                        android:id="@+id/fiatView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content">
+
+                        <LinearLayout
+                            android:id="@+id/sendFiatGroup"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingTop="14dp">
+
+                            <com.greenaddress.greenbits.ui.FontAwesomeTextView
+
+                                android:id="@+id/sendFiatIcon"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="@string/fa_usd"
+                                android:textAppearance="?android:attr/textAppearanceLarge"
+                                android:textColor="@color/accent"
+                                android:textSize="24sp" />
+
+                        </LinearLayout>
+
+                        <com.greenaddress.greenbits.ui.FontFitEditText
+                            android:id="@+id/sendAmountFiatEditText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_horizontal|center_vertical"
+                            android:layout_toEndOf="@id/sendFiatGroup"
+                            android:enabled="false"
+                            android:gravity="end"
+                            android:hint="0.00"
+                            android:inputType="numberDecimal"
+                            android:paddingLeft="14dp"
+                            android:textColor="@color/textColor"
+                            android:textSize="24sp" />
+                    </RelativeLayout>
+                </LinearLayout>
+
+                <com.greenaddress.greenbits.ui.FontAwesomeTextView
+                    android:id="@+id/payButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:padding="12dp"
+                    android:text="@string/fa_camera"
+                    android:textColor="@color/accent"
+                    android:textSize="24sp" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="fill_parent"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <android.support.v7.widget.GridLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:columnCount="3"
+                android:paddingRight="10dp">
+
+                <Button
+                    android:id="@+id/btn1"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="1" />
+
+                <Button
+                    android:id="@+id/btn2"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="2" />
+
+                <Button
+                    android:id="@+id/btn3"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="3" />
+
+                <Button
+                    android:id="@+id/btn4"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="4" />
+
+                <Button
+                    android:id="@+id/btn5"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="5" />
+
+                <Button
+                    android:id="@+id/btn6"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="6" />
+
+                <Button
+                    android:id="@+id/btn7"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="7" />
+
+                <Button
+                    android:id="@+id/btn8"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="8" />
+
+                <Button
+                    android:id="@+id/btn9"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="9" />
+
+                <Button
+                    android:id="@+id/button5"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:enabled="false"
+                    android:text="10%" />
+
+                <Button
+                    android:id="@+id/btn0"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="0" />
+
+                <Button
+                    android:id="@+id/btnCancel"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="C" />
+
+            </android.support.v7.widget.GridLayout>
+
+            <android.support.v7.widget.GridLayout
+                android:id="@+id/fiatPrefilledButtons"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:columnCount="3"
+                android:paddingLeft="10dp">
+
+                <Button
+                    android:id="@+id/fiat10"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="10" />
+
+                <Button
+                    android:id="@+id/fiat20"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="20" />
+
+                <Button
+                    android:id="@+id/fiat50"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="50" />
+
+                <Button
+                    android:id="@+id/fiat100"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="100" />
+
+                <Button
+                    android:id="@+id/fiat150"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="150" />
+
+                <Button
+                    android:id="@+id/fiat200"
+                    style="@style/myButtonVendor"
+                    app:layout_columnWeight="1"
+                    app:layout_gravity="fill_horizontal"
+                    android:text="200" />
+            </android.support.v7.widget.GridLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

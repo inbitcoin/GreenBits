@@ -2,6 +2,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:padding="@dimen/activity_content_margin"
     tools:context="com.greenaddress.greenbits.ui.ReceiveFragment">
 
     <RelativeLayout
@@ -9,6 +10,7 @@
         android:layout_height="wrap_content"
         android:layout_toLeftOf="@id/receiveAddressLayout"
         android:layout_alignParentLeft="true"
+        android:background="@color/white"
         android:gravity="center">
 
         <ImageView
@@ -24,9 +26,10 @@
 
     </RelativeLayout>
     <LinearLayout
+        android:background="@color/white"
         android:id="@+id/receiveAddressLayout"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="fill_parent"
         android:orientation="vertical"
         android:padding="12dp"
         android:layout_toEndOf="@id/receiveAddressLayout"
@@ -43,111 +46,121 @@
             android:textColor="@color/textColor"
             android:textSize="24sp" />
 
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="16dp" />
-
         <LinearLayout
-            android:id="@+id/amountFields"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:visibility="gone"
-            android:orientation="horizontal"
-            >
+            android:orientation="vertical"
+            android:background="@color/grayTransparent"
+            android:padding="@dimen/activity_horizontal_margin">
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_weight="1">
-                <RelativeLayout
+                android:orientation="horizontal">
+
+
+                <LinearLayout
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content">
-
-                    <LinearLayout
-                        android:id="@+id/sendBitcoinGroup"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_weight="1">
+                    <RelativeLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:padding="16dp">
+                        android:layout_height="wrap_content">
 
-                        <TextView
-                            android:id="@+id/sendBitcoinScaleText"
+                        <LinearLayout
+                            android:id="@+id/sendBitcoinGroup"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/accent" />
+                            android:paddingTop="14dp">
+
+                            <TextView
+                                android:id="@+id/sendBitcoinScaleText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/accent" />
+
+                            <com.greenaddress.greenbits.ui.FontAwesomeTextView
+                                android:id="@+id/sendBitcoinUnitText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="@string/fa_btc"
+                                android:textColor="@color/accent"
+                                android:textSize="24sp" />
+
+                        </LinearLayout>
+
+                        <com.greenaddress.greenbits.ui.FontFitEditText
+
+                            android:id="@+id/sendAmountEditText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_horizontal|center_vertical"
+                            android:layout_toRightOf="@id/sendBitcoinGroup"
+                            android:layout_toEndOf="@id/sendBitcoinGroup"
+                            android:textColor="@color/textColor"
+                            android:gravity="end|center_vertical"
+                            android:paddingLeft="14dp"
+                            android:hint="0.00"
+                            android:inputType="numberDecimal"
+                            android:textSize="24sp" />
+
+                    </RelativeLayout>
+
+                </LinearLayout>
+
+                <View
+                    android:layout_width="16dp"
+                    android:layout_height="fill_parent" />
+
+                <RelativeLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1">
+
+                    <LinearLayout
+                        android:id="@+id/sendFiatGroup"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="14dp"
+                        android:paddingLeft="14dp">
 
                         <com.greenaddress.greenbits.ui.FontAwesomeTextView
-                            android:id="@+id/sendBitcoinUnitText"
+
+                            android:id="@+id/sendFiatIcon"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:gravity="center"
-                            android:text="@string/fa_btc_space"
+                            android:text="@string/fa_usd"
+                            android:textAppearance="?android:attr/textAppearanceLarge"
                             android:textColor="@color/accent"
                             android:textSize="24sp" />
 
                     </LinearLayout>
 
                     <com.greenaddress.greenbits.ui.FontFitEditText
-
-                        android:id="@+id/sendAmountEditText"
-                        android:layout_width="wrap_content"
+                        android:id="@+id/sendAmountFiatEditText"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:paddingLeft="14dp"
                         android:layout_gravity="center_horizontal|center_vertical"
-                        android:layout_toEndOf="@id/sendBitcoinGroup"
-                        android:layout_toRightOf="@id/sendBitcoinGroup"
+                        android:layout_toRightOf="@id/sendFiatGroup"
+                        android:layout_toEndOf="@id/sendFiatGroup"
+                        android:gravity="end"
                         android:textColor="@color/textColor"
-                        android:gravity="end|center_vertical"
                         android:hint="0.00"
                         android:inputType="numberDecimal"
                         android:textSize="24sp" />
-
                 </RelativeLayout>
+
             </LinearLayout>
-
-            <View
-                android:layout_width="16dp"
-                android:layout_height="fill_parent" />
-
-            <RelativeLayout
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="1">
-
-                <LinearLayout
-                    android:id="@+id/sendFiatGroup"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:padding="12dp">
-
-                    <com.greenaddress.greenbits.ui.FontAwesomeTextView
-
-                        android:id="@+id/sendFiatIcon"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:text="@string/fa_usd"
-                        android:textAppearance="?android:attr/textAppearanceLarge"
-                        android:textColor="@color/accent"
-                        android:textSize="24sp" />
-
-                </LinearLayout>
-
-                <com.greenaddress.greenbits.ui.FontFitEditText
-                    android:id="@+id/sendAmountFiatEditText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal|center_vertical"
-                    android:layout_toRightOf="@id/sendFiatGroup"
-                    android:layout_toEndOf="@id/sendFiatGroup"
-                    android:gravity="end"
-                    android:textColor="@color/textColor"
-                    android:hint="0.00"
-                    android:inputType="numberDecimal"
-                    android:textSize="24sp" />
-            </RelativeLayout>
-
         </LinearLayout>
+
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="16dp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -160,8 +173,8 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:enabled="false"
-                android:lines="3"
-                android:maxLines="3"
+                android:lines="2"
+                android:maxLines="2"
                 android:singleLine="false"
                 android:text="            \n\n"
                 android:textColor="@color/secondaryTextColor"
@@ -169,6 +182,30 @@
                 android:textSize="24sp"
                 android:typeface="monospace" />
 
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+                    <com.greenaddress.greenbits.ui.FontAwesomeTextView
+                        android:id="@+id/receiveShareIcon"
+                        android:layout_width="fill_parent"
+                        android:layout_height="fill_parent"
+                        android:gravity="center"
+                        android:paddingBottom="4dp"
+                        android:text="@string/fa_share_alt"
+                        android:textColor="@color/accent"
+                        android:textSize="34sp" />
+                    <TextView
+                        android:id="@+id/receiveShareText"
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:singleLine="true"
+                        android:textColor="@color/accent"
+                        android:text="@string/shareAddress"/>
+                </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="70dp"

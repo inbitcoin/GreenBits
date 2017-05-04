@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name" translatable="false">GreenBits</string>
+    <string name="app_name" translatable="false">Altana</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_mnemonic">Restore</string>
     <string name="sendToText">To</string>
@@ -13,7 +13,7 @@
     <string name="title_activity_sign_up">Create</string>
     <string name="signupContinueButtonText">CONTINUE</string>
     <string name="signupCheckBoxText">I secured the passphrase and I have read the ToS</string>
-    <string name="termsofservice"><a href="https://greenaddress.it/en/tos/">Terms of Service</a></string>
+    <string name="termsofservice"><a href="http://altanawallet.it/tos/">Terms of Service</a></string>
 
     <string name="firstSignUpText">CREATE</string>
     <string name="firstLogInText">RESTORE</string>
@@ -63,25 +63,27 @@
     <string name="sweep_bip38_passphrase_prompt">Please provide the BIP38 password:</string>
     <string name="invalid_passphrase">Invalid password</string>
     <string name="invalid_key">Invalid key</string>
+    <string name="invalid_paperwallet">Invalid paperwallet address</string>
     <string name="warning">Warning!</string>
     <string name="save_password_now">You MUST save this passphrase NOW</string>
     <string name="greenaddress_headline">the easier, safer and faster bitcoin wallet</string>
     <string name="pinSkipText">SKIP</string>
     <string name="sendOptionalMemo">Optional memo</string>
-    <string name="madeBy">by GreenAddress</string>
-    <string name="welcomeGreenBits">Welcome to GreenBits</string>
+    <string name="madeBy">by inbitcoin</string>
+    <string name="welcomeGreenBits">Welcome to Altana</string>
     <string name="attemptsFinished">Invalid PIN, you don\'t have any attempts left. Please login using your passphrase.</string>
     <string name="attemptsLeftLong">Invalid PIN, you have %1$d attempts left</string>
     <string name="warnOnPaste">Be aware, other apps can read or change the clipboard</string>
     <string name="toastOnCopyAddress">Address copied to clipboard.</string>
     <string name="receiveAddressSubTitle">Address</string>
     <string name="sendPayTo">Pay to</string>
-    <string name="action_sweep">Sweep</string>
+    <string name="action_sweep">Sweep paperwallet</string>
+    <string name="verify_paperwallet">Verify paperwallet</string>
     <string name="action_logout">Log out</string>
     <string name="txTypeIn">Received</string>
     <string name="txTypeOut">Sent</string>
     <string name="txTypeRedeposit">Redeposited</string>
-    <string name="mnemonicHint">Type your GreenAddress passphrase or scan its qrcode</string>
+    <string name="mnemonicHint">Type your wallet passphrase or scan its qrcode</string>
     <string name="title_activity_settings">Settings</string>
     <string name="ago">%1$d %2$s ago</string>
     <string name="txSubTitle">Transaction details</string>
@@ -205,6 +207,7 @@
     <string name="err_request_login_no_pin">No PIN provided, exiting.</string>
     <string name="err_tabbed_sweep_failed">Verification failed: Invalid output address</string>
     <string name="err_tabbed_sweep_requires_camera_permissions">Please enable camera permissions to use sweep functionality.</string>
+    <string name="err_tabbed_verify_paperwallet_requires_camera_permissions">Please enable camera permissions to use verify paperwallet functionality.</string>
     <string name="err_qrscan_requires_camera_permissions">Please enable camera permissions to use scan functionality.</string>
     <string name="err_mnemonic_activity_logout_required">You must first logout before signing in.</string>
     <string name="err_mnemonic_activity_invalid_mnemonic">Invalid passphrase (has to be 24 or 27 words)</string>
@@ -239,6 +242,7 @@
     <string name="remember_watch_only">Remember username</string>
     <string name="remember_warn_title">Warning: The username will be saved on device</string>
     <string name="remember_warn_content">Saving the username on the device can be dangerous; if someone can access your memory they will have access to your username in clear text. If you choose to continue, please press "OK".</string>
+    <string name="advanced_options">Show advanced options</string>
     <string name="generating_address">Generating address...</string>
     <string name="loading_transactions">Loading transactions...</string>
 
@@ -255,7 +259,15 @@
     <string name="fa_remove" translatable="false">&#xf00d;</string>
     <string name="fa_sign_in" translatable="false">&#xf090;</string>
     <string name="fa_sign_out" translatable="false">&#xf08b;</string>
+    <string name="fa_chevron_left" translatable="false">&#xf053;</string>
+    <string name="fa_chevron_right" translatable="false">&#xf054;</string>
+    <string name="fa_chevron_up" translatable="false">&#xf077;</string>
+    <string name="fa_chevron_down" translatable="false">&#xf078;</string>
+    <string name="fa_chevron_circle_down" translatable="false">&#xf13a;</string>
+    <string name="fa_chevron_circle_right" translatable="false">&#xf138;</string>
+    <string name="fa_share_alt" translatable="false">&#xf1e0;</string>
     <string name="fa_usd" translatable="false">&#xf155;</string>
+    <string name="fa_trash" translatable="false">&#xf1f8;</string>
     <string name="transactionCompleted">Transaction successfully completed</string>
     <string name="unable_to_connect_to_service">GreenBits is unable to connect, please verify your internet connection</string>
     <string name="nfcDialogMessage">Hold your NFC tag close to the device</string>
@@ -264,10 +276,45 @@
     <string name="notConnected">You are not connected, please wait</string>
     <string name="pinErrorLength">PIN has to be between 4 and 15 long</string>
     <string name="problemWithKey">Problem with key %s</string>
+    <string name="sendPay">Pay</string>
+    <string name="confirm">Confirm</string>
+    <string name="mainEmptyTransInbitcoinText">Your transactions will appear here as soon as you start using Altana</string>
+    <string name="scanQrcode">Scan QR code</string>
+    <string name="warningMaxAmount">Are you sure to send all your bitcoin?</string>
+    <string name="mnemonicWriteToNfc">Write mnemonic passphrase to NFC tag</string>
+    <string name="warningExchange">at the exchange rate set</string>
     <string name="showAmountInReceive">Amount fields in receive tab</string>
     <string name="showAmountInReceiveDetail">Show amount fields in receive tab</string>
+    <string name="recipientAddress">Recipient address</string>
+    <string name="commissionOnTheSale">Commission on the sale</string>
+    <string name="total">Total</string>
+    <string name="sellBitcoin">Sell bitcoin</string>
     <string name="segwit_dialog_title">Account updated</string>
     <string name="segwit_dialog_content">Your account has been automatically updated to enable segregated witness. You can disable this upgrade in settings only until you generate the next address to receive funds.</string>
     <string name="segwit_disable">Disable Segwit</string>
     <string name="segwit_enable">Enable Segwit</string>
- </resources>
+    <string name="sweep_wait_message">This operation may take several seconds…</string>
+    <string name="doubleTilde" translatable="false">≈</string>
+    <string name="sharedVia">Shared via</string>
+    <string name="shareAddress">Share</string>
+    <string name="warningSweepPrivKey">This paperwallet contains %s BTC. Are you sure to continue to sweep the wallet?</string>
+    <string name="ok" translatable="false">OK</string>
+    <string name="descriptionAltana" translatable="false">ALTANA bitcoin wallet</string>
+    <string name="qrcodeContentDialogTitle">QR code content</string>
+    <string name="vendorMessage">You can sell your bitcoins via the sale page in the dropdown menu</string>
+    <string name="merchant">Merchant</string>
+    <string name="invoice">Invoice</string>
+    <string name="paymentProcessor">Payment processor</string>
+    <string name="tryAgainInSeconds">Try again in %1$d seconds</string>
+    <string name="waitBeforeRetry">Wait before retry</string>
+    <string name="oneAttemptLeft">Warning, the wallet on the device will be reset on error and will be necessary your mnemonic passphrase to restore it.</string>
+    <string name="serviceUnavailable">Service temporarily unavailable</string>
+    <string name="err_unsupported_wallet">Unsupported wallet</string>
+    <string name="err_unsupported_bitid">Unsupported BitID</string>
+    <string name="err_bitid_login_error">Login error (%d)</string>
+    <string name="bitid_request_login_from">wants to authenticate via BitID protocol. Do you want to sign the request?</string>
+    <string name="bitid_request_login_from_http">Warning: the communication will be via unsecured http connection. For sensitive data, https should be used.</string>
+    <string name="bitid_login_to">Login to %s</string>
+    <string name="bitid_login_successful">Login successful to %s</string>
+    <string name="bitid_dialog_title">BitID authentication</string>
+</resources>

@@ -8,14 +8,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/providePassphrase"
-        android:textColor="@color/whiteSecondary"
+        android:textColor="@color/secondaryTextColor"
         android:textSize="20sp" />
 
     <com.maksim88.passwordedittext.PasswordEditText
         android:id="@+id/passphraseValue"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/white"
+        android:textColor="@color/textColor"
         android:inputType="textPassword" />
 
 </LinearLayout>

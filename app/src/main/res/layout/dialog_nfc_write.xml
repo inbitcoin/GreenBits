@@ -11,7 +11,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="NFC TAGs Written:"
-            android:textColor="@color/whiteSecondary"
+            android:textColor="@color/secondaryTextColor"
             android:textSize="20sp"
             />
         <LinearLayout
@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:id="@+id/nfcTagsWrittenText"
             android:text="0"
-            android:textColor="@color/white"
+            android:textColor="@color/textColor"
             android:textSize="20sp"
             />
         </LinearLayout>
@@ -37,14 +37,14 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
         android:text="Optional password"
-        android:textColor="@color/whiteSecondary" />
+        android:textColor="@color/secondaryTextColor" />
 
     <EditText
         android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="@color/whiteSecondary"
+        android:textColor="@color/secondaryTextColor"
         android:inputType="textPassword"
         />
 

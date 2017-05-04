@@ -29,11 +29,12 @@ task buildMainnetCheckpoints(type: JavaExec) {
    classpath = files('./build/libs/bitcoinj-tools-0.14.3.jar')
    classpath += sourceSets.main.runtimeClasspath
    main = 'org.bitcoinj.tools.BuildCheckpoints'
+   args = ['-peer', 'inbithome.inbitcoin.it']
 }
 
 task buildTestnetCheckpoints(type: JavaExec) {
    classpath = files('./build/libs/bitcoinj-tools-0.14.3.jar')
    classpath += sourceSets.main.runtimeClasspath
    main = 'org.bitcoinj.tools.BuildCheckpoints'
-   args = ['-net', 'TEST']
+   args = ['-net', 'TEST', '-peer', 'inbithome.inbitcoin.it']
 }

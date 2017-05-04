@@ -4,79 +4,112 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="com.greenaddress.greenbits.ui.PinActivity">
+    tools:context="com.greenaddress.greenbits.ui.PinActivity"
+    android:background="@drawable/background_activity">
 
-    <TextView
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="@string/pinTitleText"
-        android:textSize="34sp" />
+    <android.support.design.widget.CoordinatorLayout
+        android:id="@+id/main_content"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true">
 
-    <View
-        android:layout_width="fill_parent"
-        android:layout_height="20dp" />
-
-    <com.maksim88.passwordedittext.PasswordEditText
-        android:id="@+id/pinSaveText"
+    <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        app:pet_nonMonospaceFont="true"
-        android:ems="10"
-        android:gravity="center"
-        android:hint=""
-        android:inputType="numberPassword"
-        android:maxLength="15"
-        android:textColor="@color/secondaryTextColor"
-        android:textSize="34sp" />
+        android:paddingTop="@dimen/appbar_padding_top"
+        app:elevation="0dp"
+        android:theme="@style/AppTheme.AppBarOverlay"
+        android:background="@color/primaryDark">
 
-    <CheckBox
-        android:id="@+id/useNativeAuthentication"
-        android:layout_width="wrap_content"
-        android:textColor="@color/textColor"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:visibility="gone"
-        android:text="@string/useNativeAuthentication" />
+        <android.support.v7.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:popupTheme="@style/AppTheme.PopupOverlay">
 
+        </android.support.v7.widget.Toolbar>
 
-
-    <View
-        android:layout_width="fill_parent"
-        android:layout_height="20dp" />
+    </android.support.design.widget.AppBarLayout>
 
     <LinearLayout
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal">
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:layout_margin="@dimen/activity_content_margin"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="@dimen/activity_horizontal_margin"
+        android:background="@color/white">
 
-        <Button
-            android:id="@+id/pinSkipButton"
-            style="@style/myButton"
-            android:layout_width="wrap_content"
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/pinTitleText"
+            android:textSize="34sp" />
+
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="@dimen/activity_content_margin" />
+
+        <com.maksim88.passwordedittext.PasswordEditText
+            android:id="@+id/pinSaveText"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:text="@string/pinSkipText"
-            android:textColor="@color/accent"
-            android:background="@color/hide"
-            />
+            app:pet_nonMonospaceFont="true"
+            android:ems="10"
+            android:gravity="center"
+            android:hint=""
+            android:inputType="numberPassword"
+            android:maxLength="15"
+            android:textColor="@color/secondaryTextColor"
+            android:textSize="34sp" />
 
-        <com.dd.CircularProgressButton
-            android:id="@+id/pinSaveButton"
+        <CheckBox
+            android:id="@+id/useNativeAuthentication"
             android:layout_width="wrap_content"
+            android:textColor="@color/textColor"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            style="@style/myButton"
-            app:cpb_colorIndicator="@color/accent"
-            app:cpb_selectorIdle="@drawable/buttonprogressselector"
-            android:textColor="@color/white"
-            app:cpb_textIdle="@string/pinSaveText" />
+            android:visibility="gone"
+            android:text="@string/useNativeAuthentication" />
 
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="@dimen/activity_content_margin" />
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/pinSkipButton"
+                style="@style/myButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/pinSkipText"
+                android:textColor="@color/accent"
+                android:background="@color/hide"
+                />
+
+            <com.dd.CircularProgressButton
+                android:id="@+id/pinSaveButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                style="@style/myButtonCircle"
+                app:cpb_colorIndicator="@color/accent"
+                app:cpb_selectorIdle="@drawable/buttonprogressselector"
+                android:textColor="@color/white"
+                app:cpb_textIdle="@string/pinSaveText" />
+
+        </LinearLayout>
     </LinearLayout>
+    </android.support.design.widget.CoordinatorLayout>
+
 </LinearLayout>

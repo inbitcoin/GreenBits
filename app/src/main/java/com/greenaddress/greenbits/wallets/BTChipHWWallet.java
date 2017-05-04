@@ -268,7 +268,7 @@ public class BTChipHWWallet extends HWWallet {
     }
 
     @Override
-    protected ECKey.ECDSASignature signMessage(final String message) {
+    public ECKey.ECDSASignature signMessage(final String message) {
         try {
             mDongle.signMessagePrepare(getPath(), message.getBytes());
             final BTChipDongle.BTChipSignature sig = mDongle.signMessageSign(new byte[]{0});
