@@ -1,0 +1,3 @@
+[submodule "android-keystores"]
+	path = android-keystores
+	url = git@dev.pagoinbit.it:android-keystores
