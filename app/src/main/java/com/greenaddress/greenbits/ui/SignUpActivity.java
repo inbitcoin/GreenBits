@@ -80,7 +80,7 @@ public class SignUpActivity extends LoginActivity {
         final ImageView qrCodeMnemonic = UI.find(qrView, R.id.qrInDialogImageView);
         final TextView qrCodeIcon = UI.find(this, R.id.signupQrCodeIcon);
 
-        mNfcWriteMnemonic = new NfcWriteMnemonic(mService.getSignUpMnemonic(), this);
+        mNfcWriteMnemonic = new NfcWriteMnemonic(mService.getSignUpMnemonic(), this, false);
 
         qrCodeIcon.setOnClickListener(new View.OnClickListener() {
             public void onClick(final View v) {

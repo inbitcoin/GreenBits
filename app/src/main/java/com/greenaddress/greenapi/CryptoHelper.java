@@ -58,6 +58,11 @@ public class CryptoHelper {
         return CryptoHelper.mnemonic_from_bytes(MnemonicHelper.decryptMnemonic(data, pass));
     }
 
+    public static String mnemonic_to_encrypted_mnemonic(final String mnemonic, final String pass) {
+        return mnemonic_from_bytes(
+                MnemonicHelper.encryptMnemonic(mnemonic_to_bytes(mnemonic), Normalizer.normalize(pass, Normalizer.Form.NFC)));
+    }
+
     public static String mnemonic_from_bytes(final byte[] data) {
         return Wally.bip39_mnemonic_from_bytes(WL, data);
     }

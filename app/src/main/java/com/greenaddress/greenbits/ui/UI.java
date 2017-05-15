@@ -206,7 +206,7 @@ public abstract class UI {
 
     // Dummy TextWatcher for simple overrides
     public static class TextWatcher implements android.text.TextWatcher {
-        TextWatcher() { super(); }
+        public TextWatcher() { super(); }
         @Override
         public void beforeTextChanged(final CharSequence s, final int start, final int count, final int after) { }
         @Override

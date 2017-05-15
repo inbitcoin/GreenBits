@@ -55,6 +55,27 @@ public class MnemonicHelper {
         return decrypted;
     }
 
+    public static byte[] encryptMnemonic(final byte[] mnemonics, final String normalizedPassphrase) {
+        final byte[] salt = Arrays.copyOfRange(Wally.sha256d(mnemonics), 0, 4);
+        final byte[] key = new byte[64];
+        Wally.scrypt(normalizedPassphrase.getBytes(Charsets.UTF_8), salt, 16384, 8, 8, key);
+        final byte[] derivedHalf1 = Arrays.copyOfRange(key, 0, 32);
+        final byte[] derivedHalf2 = Arrays.copyOfRange(key, 32, 64);
+
+        byte[] message = new byte[32];
+
+        for (int i = 0; i < 32; i++)
+            message[i] = (byte) (mnemonics[i] ^ derivedHalf1[i]);
+
+        byte[] encrypted = new byte[32];
+        Wally.aes(derivedHalf2, message, Wally.AES_FLAG_ENCRYPT, encrypted);
+
+        byte[] encryptedWithSalt = new byte[encrypted.length + salt.length];
+        System.arraycopy(encrypted, 0, encryptedWithSalt, 0, encrypted.length);
+        System.arraycopy(salt, 0, encryptedWithSalt, encrypted.length, salt.length);
+        return encryptedWithSalt;
+    }
+
     static String getClosestWord(final ArrayList<String> words, final String word) {
 
         final List<Integer> scores = new ArrayList<>(words.size());

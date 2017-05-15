@@ -43,8 +43,9 @@ public class SettingsActivity extends GaPreferenceActivity {
         } else if (INTENT_SHOW_NFC_DIALOG_REQUEST.equals(intent.getAction())) {
             if (mNfcWriteMnemonic == null) {
                 byte [] mnemonic = intent.getByteArrayExtra("mnemonic");
+                boolean isEncrypted = intent.getBooleanExtra("is_encrypted", false);
                 String mnemonicText = CryptoHelper.mnemonic_from_bytes(mnemonic);
-                mNfcWriteMnemonic = new NfcWriteMnemonic(mnemonicText, this);
+                mNfcWriteMnemonic = new NfcWriteMnemonic(mnemonicText, this, isEncrypted);
             }
             mNfcWriteMnemonic.showDialog();
         }

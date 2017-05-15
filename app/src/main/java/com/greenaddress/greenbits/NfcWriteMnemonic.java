@@ -34,10 +34,12 @@ public class NfcWriteMnemonic {
     private TextView nfcTagsWritten;
     private boolean mWriteMode = false;
     private final Runnable mDialogCB = new Runnable() { public void run() { mWriteMode = false; } };
+    private boolean mIsEncrypted;
 
-    public NfcWriteMnemonic(String mnemonic, Activity activity) {
+    public NfcWriteMnemonic(String mnemonic, Activity activity, Boolean isEncrypted) {
         mnemonicText = mnemonic;
         mActivity = activity;
+        mIsEncrypted = isEncrypted;
 
         final View nfcView = activity.getLayoutInflater().inflate(R.layout.dialog_nfc_write, null, false);
         nfcTagsWritten = UI.find(nfcView, R.id.nfcTagsWrittenText);
@@ -72,8 +74,13 @@ public class NfcWriteMnemonic {
         final Tag detectedTag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
         final NdefRecord[] record = new NdefRecord[1];
 
-        record[0] = NdefRecord.createMime("x-gait/mnc",
-                CryptoHelper.mnemonic_to_bytes(mnemonicText));
+        if (mIsEncrypted) {
+            record[0] = NdefRecord.createMime("x-ga/en",
+                    CryptoHelper.mnemonic_to_bytes(mnemonicText));
+        } else {
+            record[0] = NdefRecord.createMime("x-gait/mnc",
+                    CryptoHelper.mnemonic_to_bytes(mnemonicText));
+        }
 
         final NdefMessage message = new NdefMessage(record);
         final int size = message.toByteArray().length;

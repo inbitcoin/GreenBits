@@ -243,4 +243,12 @@
   <string name="bitid_login_to">Login su %s</string>
   <string name="bitid_login_successful">Login effettuato con successo su %s</string>
   <string name="bitid_dialog_title">Autenticazione BitID</string>
+  <string name="backup_in_progress">Creazione backup con password in corso…</string>
+  <string name="backup_mnemonic_passphrase">Backup passphrase mnemonica</string>
+  <string name="backup_mnemonic_passphrase_desc">Fai il backup della passphrase mnemonica con password ed esportala via QR Code o su una tag NFC</string>
+  <string name="err_password">Password non valida</string>
+  <string name="err_password_doesnt_match">Le password non coincidono</string>
+  <string name="err_password_length">La password deve essere lunga almeno %d caratteri</string>
+  <string name="repeat_password">Ripeti password</string>
+  <string name="mnemonic_passphrase_with_password">Passphrase mnemonica con password</string>
 </resources>
