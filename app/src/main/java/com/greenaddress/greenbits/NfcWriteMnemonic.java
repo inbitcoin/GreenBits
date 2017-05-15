@@ -45,9 +45,9 @@ public class NfcWriteMnemonic {
         nfcDialog = new MaterialDialog.Builder(activity)
                 .title("Hold your NFC tag close to the device")
                 .customView(nfcView, true)
-                .titleColorRes(R.color.white)
+                .titleColorRes(R.color.textColor)
                 .contentColorRes(android.R.color.white)
-                .theme(Theme.DARK).build();
+                .theme(Theme.LIGHT).build();
 
         UI.setDialogCloseHandler(nfcDialog, mDialogCB, true /* cancelOnly */);
     }
