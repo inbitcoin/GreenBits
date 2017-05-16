@@ -47,7 +47,8 @@ public abstract class GaActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate -> " + this.getClass().getSimpleName());
         super.onCreate(savedInstanceState);
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB)
+        final boolean isDev = getSharedPreferences("dev_mode", MODE_PRIVATE).getBoolean("enabled", false);
+        if (!isDev && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB)
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
                     WindowManager.LayoutParams.FLAG_SECURE);
 
