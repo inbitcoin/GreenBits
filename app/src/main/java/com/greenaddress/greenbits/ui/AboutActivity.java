@@ -106,9 +106,8 @@ public class AboutActivity extends AppCompatActivity {
     }
 
     private void setTitle() {
-        setTitle(String.format("%s%s %s",
+        setTitle(String.format("%s %s",
                 isDev() ? "[DEV]" : "",
-                getString(R.string.app_name),
                 getString(R.string.app_version,
                         BuildConfig.VERSION_NAME,
                         BuildConfig.BUILD_TYPE)));
