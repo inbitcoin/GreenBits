@@ -2,6 +2,7 @@ package com.greenaddress.greenbits.ui.preferences;
 
 import android.os.Bundle;
 import android.preference.Preference;
+import android.preference.PreferenceScreen;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -10,11 +11,11 @@ import com.blockstream.libwally.Wally;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.greenaddress.greenapi.SWWallet;
+import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.UI;
 
 import java.util.ArrayList;
-import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -26,6 +27,7 @@ import javax.annotation.Nullable;
 public class SubaccountsPreferenceFragment extends GAPreferenceFragment {
 
     private static final String TAG = GeneralPreferenceFragment.class.getSimpleName();
+    private Preference hide2to2;
 
     @Override
     public void onCreate(final Bundle savedInstanceState) {
@@ -57,27 +59,62 @@ public class SubaccountsPreferenceFragment extends GAPreferenceFragment {
                 return false;
             }
         });
+
+        hide2to2 = find("showHide2to2");
+        if (mService.getSubaccountObjs().size() == 0) {
+            final PreferenceScreen screen = getPreferenceScreen();
+            screen.removePreference(hide2to2);
+        }
+        hide2to2.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+            @Override
+            public boolean onPreferenceClick(final Preference preference) {
+                final ArrayList<GaService.Subaccount> subaccounts = mService.getSubaccountObjs();
+                final ArrayList<String> names = new ArrayList<>(subaccounts.size());
+                final ArrayList<Integer> selected = new ArrayList<>();
+
+                for (int i = 0; i < subaccounts.size(); i++) {
+                    names.add(subaccounts.get(i).mName);
+                    if (subaccounts.get(i).mEnabled)
+                           selected.add(i);
+                }
+
+                final Integer[] selectedItems = new Integer[selected.size()];
+                for (int i = 0; i < selected.size(); i++)
+                    selectedItems[i] = selected.get(i);
+
+                new MaterialDialog.Builder(getActivity())
+                        .title(R.string.showHide2to2)
+                        .items(names)
+                        .itemsCallbackMultiChoice(selectedItems, new MaterialDialog.ListCallbackMultiChoice() {
+                            @Override
+                            public boolean onSelection(MaterialDialog dialog, Integer[] which, CharSequence[] text) {
+                                mService.setCurrentSubAccount(0); // set current subaccount to main
+                                // TODO write better code
+                                for(GaService.Subaccount subaccount:subaccounts) {
+                                    mService.setSubaccountStatus(subaccount.mPointer, false);
+                                }
+                                for (Integer aWhich : which) {
+                                    mService.setSubaccountStatus(subaccounts.get(aWhich).mPointer, true);
+                                }
+                                return true;
+                            }
+                        })
+                        .positiveText(android.R.string.ok)
+                        .show();
+
+
+                return false;
+            }
+        });
     }
 
     private void create2to2subaccount(final String label) {
-        final ArrayList subaccounts = mService.getSubaccounts();
-        final int subaccount_len = subaccounts.size() + 1;
-        final ArrayList<Integer> pointers = new ArrayList<>(subaccount_len);
-
-        // main
-        pointers.add(0);
-
-        // add all subaccount
-        for (final Object s : subaccounts) {
-            final Map<String, ?> m = (Map) s;
-            pointers.add((Integer) m.get("pointer"));
-        }
 
         // TODO support all wallet type?
         final SWWallet sw = (SWWallet) mService.getSigningWallet();
         final String user_public = Wally.hex_from_bytes(sw.getPubKey().getPubKey());
         final String user_chaincode = Wally.hex_from_bytes(sw.getMasterKey().getChainCode());
-        Futures.addCallback(mService.create2to2subaccount(pointers.size(), label, user_public,
+        Futures.addCallback(mService.create2to2subaccount(mService.getSubaccountObjs().size() + 1, label, user_public,
                 user_chaincode, "simple"), new FutureCallback<String>()
         {
             @Override
@@ -86,10 +123,13 @@ public class SubaccountsPreferenceFragment extends GAPreferenceFragment {
                     @Override
                     public void run() {
                         if (result == null || result.isEmpty() || !result.startsWith("GA")) {
-                            UI.popup(getActivity(), R.string.warning, android.R.string.ok)
+                            UI.popup(getActivity(), R.string.warning, R.string.confirm)
                                     .content(R.string.create2to2error).build().show();
                         } else {
                             UI.toast(getActivity(), R.string.create2to2OK, Toast.LENGTH_LONG);
+                            hide2to2.setEnabled(true);
+                            final PreferenceScreen screen = getPreferenceScreen();
+                            screen.addPreference(hide2to2);
                         }
                     }
                 });

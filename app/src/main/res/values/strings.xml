@@ -321,6 +321,7 @@
     <string name="create2to2Desc">Create accounts that allow you to separate your funds. Each account will have its own receiving addresses.</string>
     <string name="create2to2OK">Simple account added</string>
     <string name="create2to2error">Error adding simple account</string>
+    <string name="showHide2to2">Show/Hide simple account</string>
     <string name="subaccountLabel">Account label</string>
     <string name="manageSubaccounts">Manage simple accounts</string>
     <string name="backup_mnemonic_passphrase">Backup mnemonic passphrase</string>

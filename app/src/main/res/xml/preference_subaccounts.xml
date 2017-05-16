@@ -6,4 +6,8 @@
         android:summary="@string/create2to2Desc" >
     </Preference>
 
+    <Preference android:key="showHide2to2"
+        android:title="@string/showHide2to2" >
+    </Preference>
+
 </PreferenceScreen>

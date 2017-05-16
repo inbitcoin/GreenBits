@@ -875,6 +875,41 @@ public class GaService extends Service implements INotificationHandler {
         return mSubAccounts;
     }
 
+    public class Subaccount {
+        final public String mName;
+        final public int mPointer;
+        final public boolean mEnabled;
+
+        Subaccount(final String name, final int pointer, final boolean enabled) {
+            mName = name;
+            mPointer = pointer;
+            mEnabled = enabled;
+        }
+    }
+
+    public boolean getSubaccountStatus(final int subaccount) {
+        return cfgIn("subaccount_pointer_" + subaccount).getBoolean("enabled", true);
+    }
+
+    public void setSubaccountStatus(final int subaccount, final boolean status) {
+        cfgInEdit("subaccount_pointer_" + subaccount).putBoolean("enabled", status).apply();
+    }
+
+    public ArrayList<Subaccount> getSubaccountObjs() {
+        final ArrayList subaccounts = getSubaccounts();
+        final int subaccount_len = subaccounts.size();
+        final ArrayList<Subaccount> list = new ArrayList<>(subaccount_len);
+
+        // add all subaccount
+        for (final Object s : subaccounts) {
+            final Map<String, ?> m = (Map) s;
+            final boolean enabled = getSubaccountStatus((Integer) m.get("pointer"));
+            list.add(new Subaccount((String) m.get("name"), (Integer) m.get("pointer"), enabled));
+        }
+
+        return list;
+    }
+
     public boolean haveSubaccounts() {
         return mSubAccounts != null && !mSubAccounts.isEmpty();
     }

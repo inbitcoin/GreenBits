@@ -256,4 +256,6 @@
   <string name="create2to2error">Errore durante l\'aggiunta dell\'account</string>
   <string name="manageSubaccounts">Gestisci account semplici</string>
   <string name="subaccountLabel">Etichetta account</string>
+  <string name="create2to2Desc">Crea account che ti permettono di separare i tuoi fondi. Ogni account avrà il suo indirizzo per ricevere fondi.</string>
+  <string name="showHide2to2">Mostra/Nascondi account</string>
 </resources>

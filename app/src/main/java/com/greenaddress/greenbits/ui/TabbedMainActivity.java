@@ -236,6 +236,16 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         if (!mService.haveSubaccounts())
             return;
 
+        final ArrayList<GaService.Subaccount> subaccounts = mService.getSubaccountObjs();
+        boolean subaccountEnabledFound = false;
+        for(final GaService.Subaccount subaccount : subaccounts) {
+            subaccountEnabledFound = subaccount.mEnabled;
+            if (subaccount.mEnabled)
+                break;
+        }
+        if (!subaccountEnabledFound)
+            return;
+
         final FloatingActionButton fab = UI.find(this, R.id.fab);
         UI.show(fab);
 
@@ -243,7 +253,7 @@ public class TabbedMainActivity extends GaActivity implements Observer {
             @Override
             public void onClick(final View v) {
                 setBlockWaitDialog(true);
-                final ArrayList subaccounts = mService.getSubaccounts();
+                final ArrayList<GaService.Subaccount> subaccounts = mService.getSubaccountObjs();
                 final int subaccount_len = subaccounts.size() + 1;
                 final ArrayList<String> names = new ArrayList<>(subaccount_len);
                 final ArrayList<Integer> pointers = new ArrayList<>(subaccount_len);
@@ -251,10 +261,11 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                 names.add(getResources().getString(R.string.main_account));
                 pointers.add(0);
 
-                for (final Object s : subaccounts) {
-                    final Map<String, ?> m = (Map) s;
-                    names.add((String) m.get("name"));
-                    pointers.add((Integer) m.get("pointer"));
+                for(final GaService.Subaccount subaccount : subaccounts) {
+                    if (subaccount.mEnabled) {
+                        names.add(subaccount.mName);
+                        pointers.add(subaccount.mPointer);
+                    }
                 }
 
                 final AccountItemAdapter adapter = new AccountItemAdapter(names, pointers, mService);
