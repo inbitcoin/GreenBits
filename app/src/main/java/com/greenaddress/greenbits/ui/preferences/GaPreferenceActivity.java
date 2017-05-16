@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.preference.PreferenceFragment;
 import android.support.v7.app.ActionBar;
 import android.view.MenuItem;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.greenaddress.greenbits.GaService;
@@ -24,6 +25,10 @@ public abstract class GaPreferenceActivity extends AppCompatPreferenceActivity {
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setupActionBar();
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB)
+            getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
+                    WindowManager.LayoutParams.FLAG_SECURE);
     }
 
     private void setupActionBar() {

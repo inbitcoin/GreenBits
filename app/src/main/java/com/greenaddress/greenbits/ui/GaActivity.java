@@ -10,6 +10,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.google.common.util.concurrent.Futures;
@@ -45,6 +46,11 @@ public abstract class GaActivity extends AppCompatActivity {
     protected final void onCreate(final Bundle savedInstanceState) {
         Log.d(TAG, "onCreate -> " + this.getClass().getSimpleName());
         super.onCreate(savedInstanceState);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB)
+            getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
+                    WindowManager.LayoutParams.FLAG_SECURE);
+
         final int viewId = getMainViewId();
         if (viewId != UI.INVALID_RESOURCE_ID)
             setContentView(viewId);
