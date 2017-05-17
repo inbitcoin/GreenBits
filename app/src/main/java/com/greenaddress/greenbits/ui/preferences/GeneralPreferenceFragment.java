@@ -48,6 +48,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
     private static final String mMicroSymbol = Html.fromHtml("&micro;").toString();
     private Preference mToggleSW;
     private static final int PASSWORD_LENGTH = 12;
+    private boolean mPassphraseVisible = false;
 
     @Override
     public void onCreate(final Bundle savedInstanceState) {
@@ -95,7 +96,24 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
             passphrase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
                 @Override
                 public boolean onPreferenceClick(final Preference preference) {
-                    passphrase.setSummary(mnemonic);
+                    if (mPassphraseVisible) {
+                        passphrase.setSummary(getString(R.string.touch_to_display));
+                        mPassphraseVisible = false;
+                    } else {
+                        new MaterialDialog.Builder(getActivity())
+                                .title(R.string.warning)
+                                .content(R.string.show_mnemonic_passphrase_alert)
+                                .positiveText(R.string.ok)
+                                .negativeText(R.string.cancel)
+                                .onPositive(new MaterialDialog.SingleButtonCallback() {
+                                    @Override
+                                    public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                                        passphrase.setSummary(mnemonic);
+                                        mPassphraseVisible = true;
+                                    }
+                                })
+                                .show();
+                    }
                     return false;
                 }
             });
