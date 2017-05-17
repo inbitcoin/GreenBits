@@ -6,8 +6,6 @@
     <Preference android:key="mnemonic_passphrase"
                 android:title="@string/mnemonic_passphrase"
                 android:summary="@string/mnemonic_passphrase_not_available"/>
-    <Preference android:key="mnemonic_write_nfc"
-        android:title="@string/mnemonicWriteToNfc" />
 
     <Preference android:key="backup_mnemonic_passphrase"
         android:title="@string/backup_mnemonic_passphrase"

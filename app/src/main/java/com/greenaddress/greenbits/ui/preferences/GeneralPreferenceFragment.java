@@ -90,30 +90,12 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
         final String mnemonic = mService.getMnemonics();
         if (mnemonic != null) {
-            final PreferenceScreen screen = getPreferenceScreen();
-            final Preference write_nfc = find("mnemonic_write_nfc");
-            screen.removePreference(write_nfc);
-            write_nfc.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-                @Override
-                public boolean onPreferenceClick(Preference preference) {
-                    Intent intent = new Intent(getActivity(), SettingsActivity.class);
-                    intent.setAction(SettingsActivity.INTENT_SHOW_NFC_DIALOG_REQUEST);
-                    // Prevent activity to be re-instantiated if it is already running.
-                    // Instead, the onNewEvent() is triggered
-                    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    intent.putExtra("mnemonic", CryptoHelper.mnemonic_to_bytes(mnemonic));
-                    getActivity().startActivity(intent);
-                    return false;
-                }
-            });
-
             final Preference passphrase = find("mnemonic_passphrase");
             passphrase.setSummary(getString(R.string.touch_to_display));
             passphrase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
                 @Override
                 public boolean onPreferenceClick(final Preference preference) {
                     passphrase.setSummary(mnemonic);
-                    screen.addPreference(write_nfc);
                     return false;
                 }
             });

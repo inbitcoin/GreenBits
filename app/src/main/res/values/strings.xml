@@ -281,7 +281,6 @@
     <string name="mainEmptyTransInbitcoinText">Your transactions will appear here as soon as you start using Altana</string>
     <string name="scanQrcode">Scan QR code</string>
     <string name="warningMaxAmount">Are you sure to send all your bitcoin?</string>
-    <string name="mnemonicWriteToNfc">Write mnemonic passphrase to NFC tag</string>
     <string name="warningExchange">at the exchange rate set</string>
     <string name="showAmountInReceive">Amount fields in receive tab</string>
     <string name="showAmountInReceiveDetail">Show amount fields in receive tab</string>
