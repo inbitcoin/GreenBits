@@ -10,7 +10,7 @@ import com.afollestad.materialdialogs.MaterialDialog;
 import com.blockstream.libwally.Wally;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.greenaddress.greenapi.SWWallet;
+import com.greenaddress.greenapi.ISigningWallet;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.UI;
@@ -53,7 +53,13 @@ public class SubaccountsPreferenceFragment extends GAPreferenceFragment {
                         .input(null, null, new MaterialDialog.InputCallback() {
                             @Override
                             public void onInput(MaterialDialog dialog, CharSequence input) {
-                                create2to2subaccount(input.toString());
+                                try {
+                                    create2to2subaccount(input.toString());
+                                } catch (UnsupportedOperationException e) {
+                                    UI.popup(getActivity(), R.string.warning, R.string.confirm)
+                                            .content(R.string.err_unsupported_wallet).build().show();
+                                }
+
                             }
                         }).show();
                 return false;
@@ -109,12 +115,11 @@ public class SubaccountsPreferenceFragment extends GAPreferenceFragment {
     }
 
     private void create2to2subaccount(final String label) {
-
-        // TODO support all wallet type?
-        final SWWallet sw = (SWWallet) mService.getSigningWallet();
-        final String user_public = Wally.hex_from_bytes(sw.getPubKey().getPubKey());
-        final String user_chaincode = Wally.hex_from_bytes(sw.getMasterKey().getChainCode());
-        Futures.addCallback(mService.create2to2subaccount(mService.getSubaccountObjs().size() + 1, label, user_public,
+        final int pointer = mService.getSubaccountObjs().size() + 1;
+        final ISigningWallet iSigningWallet = mService.getSigningWallet();
+        final String user_public = Wally.hex_from_bytes(iSigningWallet.getMyPublicKey(pointer).getPubKey());
+        final String user_chaincode = Wally.hex_from_bytes(iSigningWallet.getMyPublicKey(pointer).getChainCode());
+        Futures.addCallback(mService.create2to2subaccount(pointer, label, user_public,
                 user_chaincode, "simple"), new FutureCallback<String>()
         {
             @Override

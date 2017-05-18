@@ -17,7 +17,7 @@ public abstract class HWWallet extends ISigningWallet {
 
     @Override
     public DeterministicKey getMyPublicKey(final int subAccount, final Integer pointer) {
-        DeterministicKey k = getMyKey(subAccount).getPubKey();
+        DeterministicKey k = getMyPublicKey(subAccount);
         // Currently only regular transactions are supported
         k = HDKey.deriveChildKey(k, HDKey.BRANCH_REGULAR);
         return HDKey.deriveChildKey(k, pointer);
@@ -50,7 +50,8 @@ public abstract class HWWallet extends ISigningWallet {
         return new String[]{signature.r.toString(), signature.s.toString(), String.valueOf(recId)};
     }
 
-    private HWWallet getMyKey(final int subAccount) {
+    @Override
+    protected HWWallet getMyKey(final int subAccount) {
         ISigningWallet parent = this;
         if (subAccount != 0)
             parent = parent.derive(ISigningWallet.HARDENED | 3)

@@ -22,6 +22,10 @@ public abstract class ISigningWallet {
 
     public abstract boolean requiresPrevoutRawTxs(); // FIXME: Get rid of this
 
+    public DeterministicKey getMyPublicKey(final int subAccount) {
+        return getMyKey(subAccount).getPubKey();
+    }
+    protected abstract ISigningWallet getMyKey(final int subAccount);
     public abstract DeterministicKey getMyPublicKey(final int subAccount, final Integer pointer);
     public abstract List<byte[]> signTransaction(PreparedTransaction ptx);
     // FIXME: This is only needed until the challenge RPC is unified
