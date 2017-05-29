@@ -148,7 +148,22 @@ android {
             assets { srcDir 'src/alpha/assets' }
             res { srcDirs = [ 'src/alpha/res', 'altana-android-res/alpha/res' ]}
         }
-     }
+        production {
+            res { srcDir 'altana-android-res/production/res' }
+        }
+        btctestnet {
+            res { srcDirs = [ 'src/btctestnet/res', 'altana-android-res/btctestnet/res' ]}
+        }
+        publicregtest {
+            res { srcDir 'src/publicregtest/res' }
+        }
+        regtest {
+            res { srcDir 'src/regtest/res' }
+        }
+        alpha {
+            res { srcDirs = [ 'src/alpha/res', 'altana-android-res/alpha/res' ]}
+        }
+    }
 
     dexOptions {
         maxProcessCount 2
