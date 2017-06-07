@@ -53,7 +53,7 @@ public class VisiuWebview extends GaActivity {
 
         final WebView visiuWebview = UI.find(this, R.id.visiu_webview);
         // FIXME now we use dev link, in the future we will use production
-        final String url = "https://dev.inbitcoin.it/demo/visiu/#" + publicAddress;
+        final String url = "https://inbitcoin.it/static/visiu/index.html#" + publicAddress;
         visiuWebview.getSettings().setJavaScriptEnabled(true);
         visiuWebview.setWebViewClient(new CustomWebViewClient());
         visiuWebview.loadUrl(url);
