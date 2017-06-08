@@ -54,6 +54,8 @@ public class SignUpActivity extends LoginActivity {
     @Override
     protected void onCreateWithService(final Bundle savedInstanceState) {
 
+        mService.setFlagSecure(this, true);
+
         mActivity = this;
 
         mNfcAdapter = NfcAdapter.getDefaultAdapter(this);

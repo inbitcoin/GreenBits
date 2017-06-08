@@ -1,5 +1,6 @@
 package com.greenaddress.greenbits;
 
+import android.app.Activity;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -17,6 +18,7 @@ import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
 import android.util.SparseArray;
+import android.view.WindowManager;
 
 import com.blockstream.libwally.Wally;
 import com.google.common.base.Function;
@@ -1227,5 +1229,21 @@ public class GaService extends Service implements INotificationHandler {
 
     public String getTxPaymentProcessor(final String txhash) {
         return cfg("txhash_" + txhash).getString("payment_processor", "");
+    }
+
+    /**
+     * Enable or disable FLAG_SECURE to prevent screenshot, screen recording and Android history
+     * screenshot
+     * @param activity the activity to set the flag
+     * @param status true to enable, false to disable
+     */
+    public void setFlagSecure(final Activity activity, final Boolean status) {
+        final boolean isDev = activity.getSharedPreferences("dev_mode", Activity.MODE_PRIVATE).getBoolean("enabled", false);
+        if (!isDev && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB) {
+            if (status)
+                activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+            else
+                activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
     }
 }

@@ -10,7 +10,6 @@ import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
-import android.preference.PreferenceScreen;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TextInputEditText;
 import android.text.Editable;
@@ -89,6 +88,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
         // -- handle mnemonics
 
+
         final String mnemonic = mService.getMnemonics();
         if (mnemonic != null) {
             final Preference passphrase = find("mnemonic_passphrase");
@@ -97,6 +97,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                 @Override
                 public boolean onPreferenceClick(final Preference preference) {
                     if (mPassphraseVisible) {
+                        mService.setFlagSecure(getActivity(), false);
                         passphrase.setSummary(getString(R.string.touch_to_display));
                         mPassphraseVisible = false;
                     } else {
@@ -108,6 +109,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                                 .onPositive(new MaterialDialog.SingleButtonCallback() {
                                     @Override
                                     public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                                        mService.setFlagSecure(getActivity(), true);
                                         passphrase.setSummary(mnemonic);
                                         mPassphraseVisible = true;
                                     }
