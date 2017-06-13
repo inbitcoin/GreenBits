@@ -1,6 +1,6 @@
-# GreenBits - A native GreenAddress wallet for Android
+# Altana is a Bitcoin Wallet for Android provided inbitcoin and powered by GreenAddress
 
-Build status: [![Build Status](https://travis-ci.org/greenaddress/GreenBits.png?branch=master)](https://travis-ci.org/greenaddress/GreenBits)
+Build status: [![Build Status](https://api.travis-ci.org/inbitcoin/altana-android.png?branch=master)](https://travis-ci.org/inbitcoin/altana-android)
 
 ## Build requirements
 
@@ -14,7 +14,7 @@ You need to have the following Android developer tools installed:
 
 The above tools can be installed from the Android SDK manager.
 
-GreenBits uses [libwally](https://github.com/jgriffiths/libwally-core) which
+altana-android uses [libwally](https://github.com/jgriffiths/libwally-core) which
 requires the following to be installed for building:
 
 - [SWIG](http://www.swig.org/). Most Linux distributions have this packaged,
@@ -22,9 +22,9 @@ requires the following to be installed for building:
 
 ## Clone the repo
 
-`git clone https://github.com/greenaddress/GreenBits.git`
+`git clone https://github.com/inbitcoin/altana-android.git`
 
-`cd GreenBits`
+`cd altana-android`
 
 ## How to build
 
@@ -33,7 +33,7 @@ requires the following to be installed for building:
 This step requires the environment variables `ANDROID_NDK` and `JAVA_HOME` to
 be set correctly.
 
-`cd app && ./prepare_fdroid.sh && cd ..`
+`cd app && ./prepare_libwally_clang.sh && cd ..`
 
 #### Build the Android app
 
@@ -66,6 +66,8 @@ Or to build both at once, run:
 `./buildCheckpoints.sh`
 
 ### Acknowledgements
+
+Thanks to [GreenAddress team](https://github.com/greenaddress/GreenBits)
 
 Thanks to [Bitcoin Wallet for Android](https://github.com/schildbach/bitcoin-wallet) for their QR scanning activity source code!
 
