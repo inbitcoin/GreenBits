@@ -31,3 +31,6 @@ addons:
     apt:
         packages:
            - swig
+
+git:
+    submodules: false
