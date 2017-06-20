@@ -176,8 +176,15 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         }
 
         final Map<?, ?> twoFacConfig = mService.getTwoFactorConfig();
-        if (twoFacConfig == null)
+        if (twoFacConfig == null) {
+            Log.d(TAG, "twoFacConfig is null");
             return;
+        }
+
+        if (mActivity == null) {
+            Log.d(TAG, "mActivity is null");
+            return;
+        }
 
         if (!((Boolean) twoFacConfig.get("any")) &&
             !mService.cfg().getBoolean("hideTwoFacWarning", true)) {
