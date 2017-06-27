@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
 import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 
 import java.util.Observable;
 import java.util.Observer;
@@ -18,14 +17,14 @@ public abstract class SubaccountFragment extends GAFragment {
 
     private static final String TAG = SubaccountFragment.class.getSimpleName();
 
-    private BroadcastReceiver mBroadcastReceiver = null;
-    private MaterialDialog mWaitDialog = null;
-    private Observer mBalanceObserver = null;
-    private int mBalanceObserverSubaccount = 0;
-    private boolean mIsSelected = false;
-    private boolean mBlockWaitDialog = false;
-    private boolean mIsDirty = false;
-    protected View mView = null;
+    private BroadcastReceiver mBroadcastReceiver;
+    private MaterialDialog mWaitDialog;
+    private Observer mBalanceObserver;
+    private int mBalanceObserverSubaccount;
+    private boolean mIsSelected;
+    private boolean mBlockWaitDialog;
+    private boolean mIsDirty;
+    protected View mView;
     private final Runnable mDialogCB = new Runnable() { public void run() { mWaitDialog = null; } };
 
     protected boolean IsPageSelected() {
@@ -40,12 +39,14 @@ public abstract class SubaccountFragment extends GAFragment {
 
     // Returns true if we are being restored without an activity or service
     protected boolean isZombieNoView() {
-        return getZombieStatus(getActivity() == null || getGAService() == null);
+        return getZombieStatus(getActivity() == null || getGAService() == null ||
+                               !getGAService().isLoggedIn());
     }
 
     // Returns true if we are being restored without an activity, service or view
     protected boolean isZombie() {
-        return getZombieStatus(getActivity() == null || getGAService() == null || mView == null);
+        return getZombieStatus(getActivity() == null || getGAService() == null ||
+                               !getGAService().isLoggedIn() || mView == null);
     }
 
     // Must be called by subclasses at the end of onCreateView()
@@ -79,16 +80,9 @@ public abstract class SubaccountFragment extends GAFragment {
     }
 
     protected void hideKeyboard() {
-        if (getActivity() == null)
-            return;
-
-        final View v = getActivity().getCurrentFocus();
-        if (v == null)
-            return;
-
-        final InputMethodManager imm;
-        imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+        final GaActivity activity = getGaActivity();
+        if (activity != null)
+            activity.hideKeyboardFrom(null); // Current focus
     }
 
     public void attachObservers() {}
@@ -115,7 +109,7 @@ public abstract class SubaccountFragment extends GAFragment {
         getGAService().addBalanceObserver(mBalanceObserverSubaccount, mBalanceObserver);
     }
 
-    protected void deleteBalanceObserver() {
+    private void deleteBalanceObserver() {
         if (mBalanceObserver == null)
             return;
         getGAService().deleteBalanceObserver(mBalanceObserverSubaccount, mBalanceObserver);
@@ -124,6 +118,8 @@ public abstract class SubaccountFragment extends GAFragment {
     }
 
     protected void onBalanceUpdated() { }
+
+    public void onShareClicked() { }
 
     public void setPageSelected(final boolean isSelected) {
         Log.d(TAG, "setPageSelected " + isSelected + " -> " + getClass().getSimpleName());

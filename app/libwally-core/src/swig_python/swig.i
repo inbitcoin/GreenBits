@@ -8,6 +8,7 @@
 #include "../include/wally_bip38.h"
 #include "../include/wally_bip39.h"
 #include "../include/wally_crypto.h"
+#include "../include/wally_elements.h"
 #include "../internal.h"
 
 #undef malloc
@@ -31,6 +32,26 @@ static int check_result(int result)
          break;
     }
     return result;
+}
+
+static bool ulonglong_cast(PyObject *item, unsigned long long *val)
+{
+#if PY_MAJOR_VERSION < 3
+    if (PyInt_Check(item)) {
+        *val = PyInt_AsUnsignedLongMask(item);
+        if (!PyErr_Occurred())
+          return true;
+        PyErr_Clear();
+        return false;
+    }
+#endif
+    if (PyLong_Check(item)) {
+        *val = PyLong_AsUnsignedLongLong(item);
+        if (!PyErr_Occurred())
+          return true;
+        PyErr_Clear();
+    }
+    return false;
 }
 
 #define capsule_cast(obj, name) \
@@ -80,29 +101,50 @@ static void destroy_ext_key(PyObject *obj) {
 %enddef
 
 /* Input buffers with lengths are passed as python buffers */
+%pybuffer_binary(const unsigned char *abf, size_t abf_len);
+%pybuffer_binary(const unsigned char *asset, size_t asset_len);
 %pybuffer_nullable_binary(const unsigned char *bytes_in, size_t len_in);
 %pybuffer_binary(const unsigned char *chain_code, size_t chain_code_len);
+%pybuffer_binary(const unsigned char *commitment, size_t commitment_len);
+%pybuffer_binary(const unsigned char *generator, size_t generator_len);
 %pybuffer_nullable_binary(const unsigned char *hash160, size_t hash160_len);
 %pybuffer_binary(const unsigned char *iv, size_t iv_len);
 %pybuffer_binary(const unsigned char *key, size_t key_len);
+%pybuffer_binary(const unsigned char *output_abf, size_t output_abf_len);
+%pybuffer_binary(const unsigned char *output_asset, size_t output_asset_len);
+%pybuffer_binary(const unsigned char *output_generator, size_t output_generator_len);
 %pybuffer_binary(const unsigned char *pass, size_t pass_len);
 %pybuffer_nullable_binary(const unsigned char *parent160, size_t parent160_len);
 %pybuffer_nullable_binary(const unsigned char *priv_key, size_t priv_key_len);
+%pybuffer_binary(const unsigned char *proof, size_t proof_len);
 %pybuffer_nullable_binary(const unsigned char *pub_key, size_t pub_key_len);
 %pybuffer_binary(const unsigned char *salt, size_t salt_len);
 %pybuffer_binary(const unsigned char *sig_in, size_t sig_in_len);
+%pybuffer_binary(const unsigned char *vbf, size_t vbf_len);
+
+/* Output buffers */
+%pybuffer_mutable_binary(unsigned char *asset_out, size_t asset_out_len);
+%pybuffer_mutable_binary(unsigned char *abf_out, size_t abf_out_len);
 %pybuffer_mutable_binary(unsigned char *bytes_out, size_t len);
 %pybuffer_mutable_binary(unsigned char *bytes_in_out, size_t len);
 %pybuffer_mutable_binary(unsigned char *salt_in_out, size_t salt_len);
+%pybuffer_mutable_binary(unsigned char *vbf_out, size_t vbf_out_len); /* FIXME: Needed? */
 
-/* Output parameters indicating how many bytes were written are converted
- * into return values. */
+/* Output integer values are converted into return values. */
 %typemap(in, numinputs=0) size_t *written (size_t sz) {
    sz = 0; $1 = ($1_ltype)&sz;
 }
-%typemap(argout) size_t* {
+%typemap(argout) size_t* written {
    Py_DecRef($result);
    $result = PyInt_FromSize_t(*$1);
+}
+
+%typemap(in, numinputs=0) uint64_t *value_out (uint64_t val) {
+   val = 0; $1 = ($1_ltype)&val;
+}
+%typemap(argout) uint64_t* value_out{
+   Py_DecRef($result);
+   $result = PyLong_FromUnsignedLongLong(*$1);
 }
 
 /* Output strings are converted to native python strings and returned */
@@ -134,8 +176,9 @@ static void destroy_ext_key(PyObject *obj) {
 }
 %enddef
 
-/* uint32_t arrays FIXME: Generalise to other data types if needed */
-%typemap(in) (uint32_t *STRING, size_t LENGTH) (uint32_t tmp_buf[MAX_LOCAL_STACK/sizeof(uint32_t)]) {
+/* Integer arrays */
+%define %py_int_array(INTTYPE, INTMAX, PNAME, LNAME)
+%typemap(in) (const INTTYPE *PNAME, size_t LNAME) (INTTYPE tmp_buf[MAX_LOCAL_STACK/sizeof(INTTYPE)]) {
    size_t i;
    if (!PyList_Check($input)) {
        check_result(WALLY_EINVAL);
@@ -143,34 +186,35 @@ static void destroy_ext_key(PyObject *obj) {
    }
    $2 = PyList_Size($input);
    $1 = tmp_buf;
-   if ($2 * sizeof(uint32_t) > sizeof(tmp_buf))
-       if (!($1 = (uint32_t *) wally_malloc(($2) * sizeof(uint32_t)))) {
+   if ($2 * sizeof(INTTYPE) > sizeof(tmp_buf))
+       if (!($1 = (INTTYPE *) wally_malloc(($2) * sizeof(INTTYPE)))) {
            check_result(WALLY_ENOMEM);
            SWIG_fail;
        }
    for (i = 0; i < $2; ++i) {
        PyObject *item = PyList_GET_ITEM($input, i);
-       Py_ssize_t value = PyNumber_AsSsize_t(item, NULL);
-       if (value >= 0 && value <= 0xffffffff) {
-           $1[i] = (uint32_t)value;
-           continue;
+       unsigned long long v;
+       if (!ulonglong_cast(item, &v) || v > INTMAX) {
+           PyErr_SetString(PyExc_OverflowError, "Invalid unsigned integer");
+           SWIG_fail;
        }
-       PyErr_SetString(PyExc_OverflowError, "List item cannot be represented as uint32_t");
-       SWIG_fail;
+       $1[i] = (INTTYPE)v;
    }
 }
-%typemap(freearg) (uint32_t *STRING, size_t LENGTH) {
+%typemap(freearg) (const INTTYPE *PNAME, size_t LNAME) {
     if ($1 && $1 != tmp_buf$argnum)
         wally_free($1);
 }
-
-%apply(uint32_t *STRING, size_t LENGTH) { (const uint32_t *child_num_in, size_t child_num_len) }
+%enddef
+%py_int_array(uint32_t, 0xffffffffull, child_num_in, child_num_len)
+%py_int_array(uint64_t, 0xffffffffffffffffull, values, values_len)
 
 %py_opaque_struct(words);
 %py_opaque_struct(ext_key);
 
-/* Tell SWIG what uint32_t means */
+/* Tell SWIG what uint32_t/uint64_t mean */
 typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
 
 %rename("bip32_key_from_parent") bip32_key_from_parent_alloc;
 %rename("bip32_key_from_parent_path") bip32_key_from_parent_path_alloc;
@@ -185,3 +229,4 @@ typedef unsigned int uint32_t;
 %include "../include/wally_bip38.h"
 %include "../include/wally_bip39.h"
 %include "../include/wally_crypto.h"
+%include "../include/wally_elements.h"

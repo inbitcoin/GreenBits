@@ -51,7 +51,8 @@ public abstract class GaPreferenceActivity extends AppCompatPreferenceActivity {
                SubaccountsPreferenceFragment.class.getName().equals(fragmentName) ||
                SPVPreferenceFragment.class.getName().equals(fragmentName) ||
                NetworkPreferenceFragment.class.getName().equals(fragmentName) ||
-               TwoFactorPreferenceFragment.class.getName().equals(fragmentName);
+               TwoFactorPreferenceFragment.class.getName().equals(fragmentName) ||
+               ExchangerPreferenceFragment.class.getName().equals(fragmentName);
     }
 
     @Override
@@ -62,7 +63,7 @@ public abstract class GaPreferenceActivity extends AppCompatPreferenceActivity {
         return true;
     }
 
-    protected GreenAddressApplication getGAApp() {
+    private GreenAddressApplication getGAApp() {
         return (GreenAddressApplication) getApplication();
     }
 
@@ -86,9 +87,6 @@ public abstract class GaPreferenceActivity extends AppCompatPreferenceActivity {
         }
     }
 
-    public void toast(final String s) {
-        UI.toast(this, s, Toast.LENGTH_LONG);
-    }
     public void toast(final int id) {
         UI.toast(this, id, Toast.LENGTH_LONG);
     }

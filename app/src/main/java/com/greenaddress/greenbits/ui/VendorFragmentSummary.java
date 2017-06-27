@@ -74,7 +74,7 @@ public class VendorFragmentSummary extends SubaccountFragment {
 
 
         final String btcUnit = (String) getGAService().getUserConfig("unit");
-        mBitcoinFormat = CurrencyMapper.mapBtcUnitToFormat(btcUnit);
+        mBitcoinFormat = null;// CurrencyMapper.mapBtcUnitToFormat(btcUnit);
 
         // TODO refactor code
         sendButton = UI.find(mView, R.id.sendBtc);
@@ -124,10 +124,11 @@ public class VendorFragmentSummary extends SubaccountFragment {
                     message = getGaActivity().getString(R.string.invalidAmount);
                 }
                 if (message == null) {
-                    ptxFn = getGAService().prepareTx(amount, recipient, privateData);
+                    //ptxFn = getGAService().prepareTx(amount, recipient, privateData);
                 } else {
                     ptxFn = null;
                 }
+                ptxFn = null;
 
                 if (ptxFn != null) {
                     sendButton.setProgress(50);
@@ -191,19 +192,17 @@ public class VendorFragmentSummary extends SubaccountFragment {
         final View v = gaActivity.getLayoutInflater().inflate(R.layout.dialog_new_transaction, null, false);
 
         final TextView amountText = UI.find(v, R.id.newTxAmountText);
-        final TextView amountScale = UI.find(v, R.id.newTxAmountScaleText);
         final TextView amountUnit = UI.find(v, R.id.newTxAmountUnitText);
         final TextView feeText = UI.find(v, R.id.newTxFeeText);
-        final TextView feeScale = UI.find(v, R.id.newTxFeeScale);
         final TextView feeUnit = UI.find(v, R.id.newTxFeeUnit);
 
         final TextView recipientText = UI.find(v, R.id.newTxRecipientText);
         final TextView twoFAText = UI.find(v, R.id.newTx2FATypeText);
         final EditText newTx2FACodeText = UI.find(v, R.id.newTx2FACodeText);
-        final String prefix = CurrencyMapper.mapBtcFormatToPrefix(mBitcoinFormat);
+        final String prefix = "";//CurrencyMapper.mapBtcFormatToPrefix(mBitcoinFormat);
 
-        amountScale.setText(Html.fromHtml(prefix));
-        feeScale.setText(Html.fromHtml(prefix));
+        //amountScale.setText(Html.fromHtml(prefix));
+        //feeScale.setText(Html.fromHtml(prefix));
         if (mBitcoinFormat.code().equals("bits")) {
             amountUnit.setText("bits ");
             feeUnit.setText("bits ");

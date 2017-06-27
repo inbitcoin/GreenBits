@@ -1,4 +1,5 @@
 # Support functions for the SWIG python wrapper
+from sys import version as _wally_py_version
 
 def _wrap_bin(fn, length, resize=False):
     """ Wrap functions that take an output buffer to create/return it """
@@ -12,11 +13,17 @@ def _wrap_bin(fn, length, resize=False):
     return wrapped
 
 _unwrapped_hex_to_bytes = hex_to_bytes
-def hex_to_bytes(hex_str):
-    hex_str = hex_str.encode('ascii')
-    buf = bytearray(len(hex_str) / 2)
-    _unwrapped_hex_to_bytes(bytes(hex_str), buf)
-    return buf
+if int(_wally_py_version[0]) >= 3:
+    def hex_to_bytes(hex_str):
+        buf = bytearray(len(hex_str) // 2)
+        _unwrapped_hex_to_bytes(hex_str, buf)
+        return buf
+else:
+    def hex_to_bytes(hex_str):
+        hex_str = hex_str.encode('ascii')
+        buf = bytearray(len(hex_str) // 2)
+        _unwrapped_hex_to_bytes(bytes(hex_str), buf)
+        return buf
 
 sha256 = _wrap_bin(sha256, SHA256_LEN)
 sha256d = _wrap_bin(sha256d, SHA256_LEN)
@@ -63,3 +70,19 @@ def _format_bitcoin_message_len_fn(msg, flags):
     msg_len = len(msg)
     return 25 + msg_len + (1 if msg_len < 253 else 3)
 format_bitcoin_message = _wrap_bin(format_bitcoin_message, _format_bitcoin_message_len_fn, resize=True)
+
+asset_generator_from_bytes = _wrap_bin(asset_generator_from_bytes, ASSET_GENERATOR_LEN)
+asset_final_vbf = _wrap_bin(asset_final_vbf, ASSET_TAG_LEN)
+asset_value_commitment = _wrap_bin(asset_value_commitment, ASSET_COMMITMENT_LEN)
+asset_rangeproof = _wrap_bin(asset_rangeproof, ASSET_RANGEPROOF_MAX_LEN, resize=True)
+def _asset_surjectionproof_len_fn(aid, ag, gen, r, in_aid, in_abf, in_ags):
+    return asset_surjectionproof_size(len(in_aid) // ASSET_TAG_LEN)
+asset_surjectionproof = _wrap_bin(asset_surjectionproof, _asset_surjectionproof_len_fn, resize=True)
+
+def _asset_unblind_fn(fn):
+    def wrapped(*args):
+        buffers = [bytearray(ASSET_TAG_LEN) for _ in xrange(3)]
+        ret = fn(*list(args) + buffers)
+        return ret, buffers[0], buffers[1], buffers[2]
+    return wrapped
+asset_unblind = _asset_unblind_fn(asset_unblind)

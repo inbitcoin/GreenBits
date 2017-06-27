@@ -75,14 +75,14 @@ public class WalletClient {
     private final INotificationHandler mNotificationHandler;
     private SocketAddress mProxyAddress;
     private final OkHttpClient mHttpClient = new OkHttpClient();
-    private boolean mTorEnabled = false;
+    private boolean mTorEnabled;
     private WampClient mConnection;
     private LoginData mLoginData;
     private Map<String, Object> mFeeEstimates;
     private ISigningWallet mHDParent;
-    private String mWatchOnlyUsername = null;
-    private String mWatchOnlyPassword = null;
-    private String mMnemonics = null;
+    private String mWatchOnlyUsername;
+    private String mWatchOnlyPassword;
+    private String mMnemonics;
 
     private String h(final byte[] data) { return Wally.hex_from_bytes(data); }
 
@@ -161,7 +161,7 @@ public class WalletClient {
                              final ErrorHandler errHandler,
                              final String uri, final String err,
                              final Object... args) {
-        Log.d(TAG, procedure + "->" + uri + ":" + err);
+        Log.d(TAG, procedure + "->" + uri + ':' + err);
         if (BuildConfig.DEBUG)
             logCallDetails(procedure, err, args);
         if (errHandler != null)
@@ -372,19 +372,32 @@ public class WalletClient {
         HDKey.resetCache(mLoginData.mGaitPath);
     }
 
-    public ListenableFuture<Map<String, ?>> getSubaccountBalance(final int subAccount) {
+    public ListenableFuture<Map<String, Object>> getSubaccountBalance(final int subAccount) {
         return simpleCall("txs.get_balance", Map.class, subAccount);
     }
 
+    // FIXME: Get rid of this
     public ListenableFuture<Map<?, ?>> getTwoFactorConfig() {
         return simpleCall("twofactor.get_config", Map.class);
+    }
+
+    public Map<?, ?> getTwoFactorConfigSync() throws Exception {
+        return syncCall("twofactor.get_config", Map.class);
     }
 
     public ListenableFuture<Map<?, ?>> getAvailableCurrencies() {
         return simpleCall("login.available_currencies", Map.class);
     }
 
-    private void onAuthenticationComplete(final Map<String,?> loginData, final ISigningWallet wallet, final String username, final String password) {
+    public void changeTxLimits(final long newTotalValue, final Map<String, String> twoFacData) throws Exception {
+        final Map<String, Object> limits = new HashMap<>();
+        limits.put("total", newTotalValue);
+        limits.put("per_tx", 0);
+        limits.put("is_fiat", false);
+        syncCall("login.change_settings", Boolean.class, "tx_limits", limits, twoFacData);
+    }
+
+    private void onAuthenticationComplete(final Map<String, Object> loginData, final ISigningWallet wallet, final String username, final String password) {
         mLoginData = new LoginData(loginData);
         if (loginData.containsKey("fee_estimates"))
             mFeeEstimates = (Map) loginData.get("fee_estimates");
@@ -393,6 +406,8 @@ public class WalletClient {
         mHDParent = wallet;
         mWatchOnlyUsername = username;
         mWatchOnlyPassword = password;
+        if (mHDParent != null)
+            HDClientKey.resetCache(mLoginData.mSubAccounts, mHDParent);
 
         final boolean rbf = mLoginData.get("rbf");
         if (rbf && getUserConfig("replace_by_fee") == null) {
@@ -433,7 +448,7 @@ public class WalletClient {
     private NettyWampConnectionConfig getNettyConfig() throws SSLException {
         final int TWO_MB = 2 * 1024 * 1024; // Max message size in bytes
 
-        NettyWampConnectionConfig.Builder configBuilder;
+        final NettyWampConnectionConfig.Builder configBuilder;
         configBuilder = new NettyWampConnectionConfig.Builder()
                                                      .withMaxFramePayloadLength(TWO_MB);
 
@@ -493,8 +508,8 @@ public class WalletClient {
                     .observeOn(mScheduler)
                     .subscribe(new Action1<WampClient.State>() {
 
-                        boolean initialDisconnectedStateSeen = false;
-                        boolean connected = false;
+                        boolean initialDisconnectedStateSeen;
+                        boolean connected;
 
                         @Override
                         public void call(final WampClient.State newStatus) {
@@ -568,7 +583,7 @@ public class WalletClient {
     }
 
     private LoginData watchOnlyLoginImpl(final String username, final String password) throws Exception {
-        final Map<String, ?> loginData;
+        final Map<String, Object> loginData;
         loginData = syncCall("login.watch_only_v2",  Map.class, "custom",
                              ImmutableMap.of("username", username, "password", password),
                              USER_AGENT);
@@ -586,12 +601,10 @@ public class WalletClient {
         return !TextUtils.isEmpty(mWatchOnlyUsername) && !TextUtils.isEmpty(mWatchOnlyPassword);
     }
 
-    public boolean registerWatchOnly(final String username, final String password) throws Exception {
+    public void registerWatchOnly(final String username, final String password) throws Exception {
 
-        final boolean res = syncCall("addressbook.sync_custom", Boolean.class, username , password);
-        if (res)
-            mWatchOnlyUsername = username;
-        return res;
+        syncCall("addressbook.sync_custom", Boolean.class, username , password);
+        mWatchOnlyUsername = username;
     }
 
     public String getWatchOnlyUsername() throws Exception {
@@ -626,7 +639,7 @@ public class WalletClient {
             throw new LoginFailed();
         }
 
-        onAuthenticationComplete((Map <String,?>) ret, signingWallet, null, null);  // requires receivingId to be set
+        onAuthenticationComplete((Map <String, Object>) ret, signingWallet, null, null);  // requires receivingId to be set
         return mLoginData;
     }
 
@@ -663,12 +676,18 @@ public class WalletClient {
         return password.getBytes();
     }
 
-    public Map<?, ?> getMyTransactions(final int subAccount) throws Exception {
-        return syncCall("txs.get_list_v2", Map.class, null, null, null, null, subAccount);
+    public JSONMap getNewAddress(final int subAccount, final String addrType) {
+        try {
+            final JSONMap m = new JSONMap((Map<String, Object>) syncCall("vault.fund", Map.class, subAccount, true, addrType));
+            return m.mData == null ? null : m;
+        } catch (final Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
-    public ListenableFuture<Map> getNewAddress(final int subAccount, final String addrType) {
-        return simpleCall("vault.fund", Map.class, subAccount, true, addrType);
+    public Map<String, Object> getMyTransactions(final String searchQuery, final int subAccount) throws Exception {
+        return syncCall("txs.get_list_v2", Map.class, null, searchQuery, null, null, subAccount);
     }
 
     public String getPaymentRequest(final String txHash) {
@@ -695,31 +714,11 @@ public class WalletClient {
         return PinData.fromMnemonic(pinIdentifier, mnemonic, password);
     }
 
-    public ListenableFuture<PreparedTransaction> prepareTx(final long satoshis, final String destAddress, final String feesMode, final Map<String, Object> privateData) {
-        final SettableFuture<PreparedTransaction.PreparedData> rpc = SettableFuture.create();
-        clientCall(rpc, "vault.prepare_tx", Map.class, new CallHandler() {
-            public void onResult(final Object prepared) {
-                rpc.set(new PreparedTransaction.PreparedData((Map)prepared, privateData, mLoginData.mSubAccounts, mHttpClient));
-            }
-        }, satoshis, destAddress, feesMode, privateData);
-
-        return processPreparedTx(rpc);
-    }
-
-    private ListenableFuture<PreparedTransaction> processPreparedTx(final ListenableFuture<PreparedTransaction.PreparedData> rpc) {
-        return Futures.transform(rpc, new Function<PreparedTransaction.PreparedData, PreparedTransaction>() {
-            @Override
-            public PreparedTransaction apply(final PreparedTransaction.PreparedData ptxData) {
-                return new PreparedTransaction(ptxData);
-            }
-        }, mExecutor);
-    }
-
     public ListenableFuture<Map<?, ?>> processBip70URL(final String url) {
         return simpleCall("vault.process_bip0070_url", Map.class, url);
     }
 
-    public ListenableFuture<PreparedTransaction> preparePayreq(final Coin amount, Map<?, ?> data, final Map<String, Object> privateData) {
+    public ListenableFuture<PreparedTransaction> preparePayreq(final Coin amount, final Map<?, ?> data, final JSONMap privateData) {
 
         final SettableFuture<PreparedTransaction.PreparedData> rpc = SettableFuture.create();
 
@@ -733,11 +732,16 @@ public class WalletClient {
 
         clientCall(rpc, "vault.prepare_payreq", Map.class, new CallHandler() {
             public void onResult(final Object prepared) {
-                rpc.set(new PreparedTransaction.PreparedData((Map) prepared, privateData, mLoginData.mSubAccounts, mHttpClient));
+                rpc.set(new PreparedTransaction.PreparedData((Map) prepared, privateData.mData, mLoginData.mSubAccounts, mHttpClient));
             }
         }, amount.longValue(), dataClone, privateData);
 
-        return processPreparedTx(rpc);
+        return Futures.transform(rpc, new Function<PreparedTransaction.PreparedData, PreparedTransaction>() {
+            @Override
+            public PreparedTransaction apply(final PreparedTransaction.PreparedData ptxData) {
+                return new PreparedTransaction(ptxData);
+            }
+        }, mExecutor);
     }
 
     public ListenableFuture<Map<?, ?>> prepareSweepSocial(final byte[] pubKey, final boolean useElectrum) {
@@ -756,7 +760,7 @@ public class WalletClient {
         return simpleCall("vault.send_tx", null, args, TfaData);
     }
 
-    public ListenableFuture<Map<String, Object>> sendRawTransaction(final Transaction tx, final Map<String, Object> twoFacData, final boolean returnErrorUri) {
+    public ListenableFuture<Map<String, Object>> sendRawTransaction(final Transaction tx, final Map<String, Object> twoFacData, final JSONMap privateData, final boolean returnErrorUri) {
         final SettableFuture<Map<String, Object>> rpc = SettableFuture.create();
         final ErrorHandler errHandler = new ErrorHandler() {
             public void onError(final String uri, final String err) {
@@ -764,7 +768,8 @@ public class WalletClient {
             }
         };
         return clientCall(rpc, "vault.send_raw_tx", Map.class, simpleHandler(rpc),
-                          errHandler, h(tx.bitcoinSerialize()), twoFacData);
+                          errHandler, h(tx.bitcoinSerialize()), twoFacData,
+                          privateData == null ? null : privateData.mData);
     }
 
     public ListenableFuture<List<byte[]>> signTransaction(final ISigningWallet signingWallet, final PreparedTransaction ptx) {
@@ -790,7 +795,7 @@ public class WalletClient {
         return !isSegwitUnconfirmed() && (Boolean) getUserConfig("use_segwit");
     }
 
-    private <T> ByteArrayOutputStream serializeJSON(final T src) throws GAException {
+    private static <T> ByteArrayOutputStream serializeJSON(final T src) throws GAException {
         final ByteArrayOutputStream b = new ByteArrayOutputStream();
         try {
             new MappingJsonFactory().getCodec().writeValue(b, src);
@@ -800,9 +805,9 @@ public class WalletClient {
         return b;
     }
 
-    private void updateMap(final Map<String, Object> dest, final Map<String, Object> src,
-                           final Set<String> keys) {
-        for (String k : keys)
+    private static void updateMap(final Map<String, Object> dest, final Map<String, Object> src,
+                                  final Set<String> keys) {
+        for (final String k : keys)
             dest.put(k, src.get(k));
     }
 
@@ -818,7 +823,7 @@ public class WalletClient {
             return Futures.immediateFailedFuture(e);
         }
 
-        final Map<String, Object> oldValues = new HashMap();
+        final Map<String, Object> oldValues = new HashMap<>();
         if (updateImmediately) {
             // Save old values and update current config
             updateMap(oldValues, mLoginData.mUserConfig, values.keySet());
@@ -854,8 +859,16 @@ public class WalletClient {
         return mHDParent;
     }
 
-    public ListenableFuture<ArrayList> getAllUnspentOutputs(final int confs, final Integer subAccount) {
-        return simpleCall("txs.get_all_unspent_outputs", ArrayList.class, confs, subAccount);
+    public ListenableFuture<List<JSONMap>> getAllUnspentOutputs(final int confs, final Integer subAccount) {
+         final ListenableFuture<ArrayList> rpc;
+         rpc = simpleCall("txs.get_all_unspent_outputs", ArrayList.class,
+                          confs, subAccount, "any");
+         return Futures.transform(rpc, new Function<ArrayList, List<JSONMap>>() {
+            @Override
+            public List<JSONMap> apply(final ArrayList utxos) {
+                return JSONMap.fromList(utxos);
+            }
+        });
     }
 
     private ListenableFuture<Transaction> transactionCall(final String procedure, final Object... args) {
@@ -872,8 +885,13 @@ public class WalletClient {
         return transactionCall("txs.get_raw_unspent_output", txHash.toString());
     }
 
+    // FIXME: Share this with getRawOutputHex/ un-async it
     public ListenableFuture<Transaction> getRawOutput(final Sha256Hash txHash) {
         return transactionCall("txs.get_raw_output", txHash.toString());
+    }
+
+    public String getRawOutputHex(final Sha256Hash txHash) throws Exception {
+        return syncCall("txs.get_raw_output", String.class, txHash.toString());
     }
 
     public ListenableFuture<Boolean> changeMemo(final Sha256Hash txHash, final String memo) {
@@ -894,8 +912,8 @@ public class WalletClient {
         return simpleCall("twofactor.enable_" + type, Boolean.class, code, twoFacData);
     }
 
-    public ListenableFuture<Boolean> disableTwoFac(final String type, final Map<String, String> twoFacData) {
-        return simpleCall("twofactor.disable_" + type, Boolean.class, twoFacData);
+    public Boolean disableTwoFactor(final String type, final Map<String, String> twoFacData) throws Exception {
+        return syncCall("twofactor.disable_" + type, Boolean.class, twoFacData);
     }
 
     public ListenableFuture<String> create2to2subaccount(final int pointer, final String name,

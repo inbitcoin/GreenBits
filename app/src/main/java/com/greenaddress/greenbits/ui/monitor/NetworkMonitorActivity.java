@@ -32,7 +32,6 @@ public final class NetworkMonitorActivity extends GaActivity implements PeerConn
     private Runnable mRefreshCallback;
 
     private ListView mPeerList;
-    private TextView mEmptyView;
     private TextView mBloomInfoText;
 
     @Override
@@ -43,11 +42,10 @@ public final class NetworkMonitorActivity extends GaActivity implements PeerConn
         mService.enableSPVPingMonitoring();
 
         mPeerList = UI.find(this, R.id.peerlistview);
-        mEmptyView = UI.find(this, R.id.empty_list_view);
         mBloomInfoText = UI.find(this, R.id.bloominfo);
         mPeerListAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, mPeers);
 
-        mPeerList.setEmptyView(mEmptyView);
+        mPeerList.setEmptyView(UI.find(this, R.id.empty_list_view));
 
         mRefreshHandler = new Handler();
         mRefreshCallback = new Runnable() {
@@ -102,7 +100,7 @@ public final class NetworkMonitorActivity extends GaActivity implements PeerConn
             mPeers.add(new PrettyPeer(peer));
 
         final String bloomDetails;
-        if (mPeers.size() > 0)
+        if (!mPeers.isEmpty())
             bloomDetails = mPeers.get(0).mPeer.getBloomFilter().toString();
         else
             bloomDetails = getString(R.string.network_monitor_bloom_info);
@@ -130,10 +128,10 @@ public final class NetworkMonitorActivity extends GaActivity implements PeerConn
     }
 
     @Override
-    public synchronized void onPeerDisconnected(final Peer peer, int peerCount) {
+    public synchronized void onPeerDisconnected(final Peer peer, final int peerCount) {
         runOnUiThread(new Runnable() {
             public void run() {
-                for (Iterator<PrettyPeer> it = mPeers.iterator(); it.hasNext(); ) {
+                for (final Iterator<PrettyPeer> it = mPeers.iterator(); it.hasNext(); ) {
                     if (peer == it.next().mPeer)
                         it.remove();
                 }

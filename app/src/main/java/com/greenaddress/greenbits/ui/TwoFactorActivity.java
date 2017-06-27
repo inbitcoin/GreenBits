@@ -5,6 +5,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -100,7 +101,7 @@ public class TwoFactorActivity extends GaActivity {
 
     private Map<String, String> make2FAData(final String method, final String code) {
         if (code == null)
-            return new HashMap<String, String>();
+            return new HashMap<>();
         return ImmutableMap.of("method", method, "code", code);
     }
 
@@ -113,12 +114,19 @@ public class TwoFactorActivity extends GaActivity {
 
         mPromptText.setText(getTypeString(UI.getText(mPromptText), type));
         if (!isEmail)
-            UI.hide((View) UI.find(this, R.id.emailNotices));
+            UI.hide(UI.find(this, R.id.emailNotices));
 
         mProgressBar.setProgress(stepNum);
         mProgressBar.setMax(numSteps);
 
         final TextView detailsText = UI.find(this, R.id.details);
+
+        detailsText.setInputType(
+                isEmail ?
+                        InputType.TYPE_CLASS_TEXT :
+                        InputType.TYPE_CLASS_PHONE
+        );
+
         mContinueButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View v) {
@@ -213,7 +221,7 @@ public class TwoFactorActivity extends GaActivity {
 
         mContinueButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
+            public void onClick(final View v) {
                 final Map<String, String> twoFacData = make2FAData("proxy", proxyCode);
                 mContinueButton.setEnabled(false);
                 CB.after(mService.enableTwoFactor("gauth", UI.getText(mCodeText).trim(), twoFacData),
@@ -246,7 +254,7 @@ public class TwoFactorActivity extends GaActivity {
                 CB.after(mService.enableTwoFactor(mMethod, enteredCode, null),
                          new CB.Toast<Boolean>(TwoFactorActivity.this, mContinueButton) {
                     @Override
-                    public void onSuccess(Boolean result) {
+                    public void onSuccess(final Boolean result) {
                         setResult(RESULT_OK);
                         finishOnUiThread();
                     }

@@ -34,20 +34,12 @@
                     android:gravity="end"
                     android:orientation="horizontal"
                     android:paddingBottom="8dp">
-                    <TextView
-                        android:id="@+id/sendSubAccountBitcoinScale"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="m"
-                        android:textColor="@color/textColor"
-                        android:textSize="34sp" />
 
                     <com.greenaddress.greenbits.ui.FontAwesomeTextView
                         android:id="@+id/sendSubAccountBalanceUnit"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text="@string/fa_btc_space"
                         android:textColor="@color/textColor"
                         android:textSize="34sp" />
 
@@ -107,7 +99,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
-                    android:visibility="gone"/>
+                    android:visibility="gone" />
 
             </RelativeLayout>
 
@@ -147,12 +139,6 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:paddingTop="14dp">
-
-                                <TextView
-                                    android:id="@+id/sendBitcoinScaleText"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:textColor="@color/accent" />
 
                                 <com.greenaddress.greenbits.ui.FontAwesomeTextView
                                     android:id="@+id/sendBitcoinUnitText"

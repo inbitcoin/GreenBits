@@ -1,11 +1,11 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:app="http://schemas.android.com/apk/res-auto"
-              xmlns:tools="http://schemas.android.com/tools"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:background="@drawable/background_activity"
-              tools:context="com.greenaddress.greenbits.ui.MnemonicActivity">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/background_activity"
+    tools:context="com.greenaddress.greenbits.ui.MnemonicActivity">
 
     <android.support.design.widget.CoordinatorLayout
         android:id="@+id/main_content"
@@ -41,13 +41,15 @@
         android:padding="@dimen/activity_horizontal_margin"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
+
         <LinearLayout
             android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical">
+
             <View
                 android:layout_width="fill_parent"
-                android:layout_height="16dp"/>
+                android:layout_height="16dp" />
 
             <RelativeLayout
                 android:layout_width="fill_parent"
@@ -67,7 +69,7 @@
                     android:textAppearance="?android:attr/textAppearanceLarge"
 
                     android:textColor="@color/accent"
-                    android:textSize="34sp"/>
+                    android:textSize="34sp" />
 
                 <com.greenaddress.greenbits.ui.MnemonicEditText
                     android:id="@+id/mnemonicText"
@@ -88,7 +90,7 @@
                     android:digits="abcdefghijklmnopqrstuvwxyz "
                     android:text=""
                     android:textColor="@color/secondaryTextColor"
-                    android:textSize="24sp"/>
+                    android:textSize="24sp" />
 
             </RelativeLayout>
 
@@ -97,6 +99,7 @@
                 android:layout_height="fill_parent"
 
                 android:gravity="center">
+
                 <com.dd.CircularProgressButton
                     android:id="@+id/mnemonicOkButton"
                     style="@style/myButtonCircle"
@@ -106,7 +109,7 @@
                     android:textColor="@color/white"
                     app:cpb_colorIndicator="@color/accent"
                     app:cpb_selectorIdle="@drawable/buttonprogressselector"
-                    app:cpb_textIdle="OK"/>
+                    app:cpb_textIdle="OK" />
             </RelativeLayout>
         </LinearLayout>
     </ScrollView>

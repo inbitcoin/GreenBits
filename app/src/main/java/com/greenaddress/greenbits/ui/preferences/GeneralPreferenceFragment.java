@@ -13,7 +13,6 @@ import android.preference.Preference;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TextInputEditText;
 import android.text.Editable;
-import android.text.Html;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -26,10 +25,10 @@ import android.widget.Toast;
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.internal.MDButton;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.greenaddress.greenapi.CryptoHelper;
+import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.QrBitmap;
 import com.greenaddress.greenbits.ui.CB;
 import com.greenaddress.greenbits.ui.PinSaveActivity;
@@ -38,13 +37,13 @@ import com.greenaddress.greenbits.ui.UI;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class GeneralPreferenceFragment extends GAPreferenceFragment
     implements Preference.OnPreferenceClickListener {
     private static final String TAG = GeneralPreferenceFragment.class.getSimpleName();
 
     private static final int PINSAVE = 1337;
-    private static final String mMicroSymbol = Html.fromHtml("&micro;").toString();
     private Preference mToggleSW;
     private static final int PASSWORD_LENGTH = 12;
     private boolean mPassphraseVisible = false;
@@ -64,20 +63,20 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         addPreferencesFromResource(R.xml.preference_general);
         setHasOptionsMenu(true);
 
-        // -- handle timeout
-        int timeout = mService.getAutoLogoutMinutes();
+        // Timeout
+        final int timeout = mService.getAutoLogoutMinutes();
         getPreferenceManager().getSharedPreferences().edit()
                               .putString("altime", Integer.toString(timeout))
                               .apply();
         final Preference altime = find("altime");
-        altime.setSummary(String.format("%d %s", timeout, getResources().getString(R.string.autologout_time_default)));
+        altime.setSummary(String.format(Locale.US, "%d %s", timeout, getResources().getString(R.string.autologout_time_default)));
         altime.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(final Preference preference, final Object newValue) {
                 try {
                     final Integer altimeout = Integer.parseInt(newValue.toString());
                     mService.setUserConfig("altimeout", altimeout, true);
-                    preference.setSummary(String.format("%d %s", altimeout, getResources().getString(R.string.autologout_time_default)));
+                    preference.setSummary(String.format(Locale.US, "%d %s", altimeout, getResources().getString(R.string.autologout_time_default)));
                     return true;
                 } catch (final Exception e) {
                     // not set
@@ -86,8 +85,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
             }
         });
 
-        // -- handle mnemonics
-
+        // Mnemonics
 
         final String mnemonic = mService.getMnemonics();
         if (mnemonic != null) {
@@ -130,9 +128,11 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
             });
         }
 
-        // -- handle pin
+        // PIN
         final Preference resetPin = find("reset_pin");
-        if (mnemonic != null) {
+        if (mnemonic == null)
+            removePreference(resetPin);
+        else {
             resetPin.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
                 @Override
                 public boolean onPreferenceClick(final Preference preference) {
@@ -141,38 +141,39 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                     return false;
                 }
             });
-        } else {
-            getPreferenceScreen().removePreference(resetPin);
         }
 
-        // -- handle currency and bitcoin denomination
-        final ListPreference fiatCurrency = find("fiat_key");
+        // Currency and bitcoin denomination
         final ListPreference bitcoinDenomination = find("denomination_key");
-        final ArrayList<String> units;
-        units = Lists.newArrayList("BTC", "mBTC", mMicroSymbol + "BTC", "bits");
+        if (GaService.IS_ELEMENTS)
+            removePreference(bitcoinDenomination);
+        else {
+            bitcoinDenomination.setEntries(UI.UNITS.toArray(new String[4]));
+            bitcoinDenomination.setEntryValues(UI.UNITS.toArray(new String[4]));
+            bitcoinDenomination.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                @Override
+                public boolean onPreferenceChange(final Preference preference, final Object o) {
+                    mService.setUserConfig("unit", o.toString(), true);
+                    bitcoinDenomination.setSummary(o.toString());
+                    return true;
+                }
+            });
+            bitcoinDenomination.setSummary(mService.getBitcoinUnit());
+        }
 
-        bitcoinDenomination.setEntries(units.toArray(new String[4]));
-        bitcoinDenomination.setEntryValues(units.toArray(new String[4]));
-        bitcoinDenomination.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-            @Override
-            public boolean onPreferenceChange(final Preference preference, final Object o) {
-                mService.setUserConfig("unit", o.toString(), true);
-                bitcoinDenomination.setSummary(o.toString());
-                return true;
-            }
-        });
-        final String btcUnit = (String) mService.getUserConfig("unit");
-        bitcoinDenomination.setSummary(btcUnit == null ? "bits" : btcUnit);
-
-        fiatCurrency.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-            @Override
-            public boolean onPreferenceChange(final Preference preference, final Object o) {
-                final String[] split = o.toString().split(" ");
-                mService.setPricingSource(split[0], split[1]);
-                fiatCurrency.setSummary(o.toString());
-                return true;
-            }
-        });
+        final ListPreference fiatCurrency = find("fiat_key");
+        if (GaService.IS_ELEMENTS)
+            removePreference(fiatCurrency);
+        else
+            fiatCurrency.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                @Override
+                public boolean onPreferenceChange(final Preference preference, final Object o) {
+                    final String[] split = o.toString().split(" ");
+                    mService.setPricingSource(split[0], split[1]);
+                    fiatCurrency.setSummary(o.toString());
+                    return true;
+                }
+            });
         final Preference watchOnlyLogin = find("watch_only_login");
         try {
             final String username = mService.getWatchOnlyUsername();
@@ -207,7 +208,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                                         mService.disableWatchOnly();
                                         UI.toast(getActivity(), R.string.watchOnlyLoginDisabled, Toast.LENGTH_LONG);
                                         watchOnlyLogin.setSummary(R.string.watchOnlyLoginSetup);
-                                    } catch (Exception e) {
+                                    } catch (final Exception e) {
                                         e.printStackTrace();
                                     }
                                     return;
@@ -215,7 +216,6 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                                 try {
                                     mService.registerWatchOnly(username, password);
                                     watchOnlyLogin.setSummary(getString(R.string.watchOnlyLoginStatus, username));
-
                                 } catch (final Exception e) {
                                     UI.toast(getActivity(), R.string.error_username_not_available, Toast.LENGTH_LONG);
                                 }
@@ -235,14 +235,13 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                         public void run() {
                             final ArrayList<String> fiatPairs = new ArrayList<>(result.size());
 
-                            for (final List<String> currency_exchange : result) {
-                                final boolean current = currency_exchange.get(0).equals(mService.getFiatCurrency())
-                                        && currency_exchange.get(1).equals(mService.getFiatExchange());
-                                final String pair = String.format("%s %s", currency_exchange.get(0), currency_exchange.get(1));
-                                if (current) {
-                                    fiatCurrency.setSummary(pair);
-                                }
-                                fiatPairs.add(pair);
+                            for (final List<String> pair : result) {
+                                final boolean current = pair.get(0).equals(mService.getFiatCurrency()) &&
+                                                        pair.get(1).equals(mService.getFiatExchange());
+                                final String entry = String.format("%s %s", pair.get(0), pair.get(1));
+                                if (current)
+                                    fiatCurrency.setSummary(entry);
+                                fiatPairs.add(entry);
                             }
                             fiatCurrency.setEntries(fiatPairs.toArray(new String[result.size()]));
                             fiatCurrency.setEntryValues(fiatPairs.toArray(new String[result.size()]));
@@ -252,11 +251,10 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
             }
         });
 
-        // -- handle opt-in rbf
+        // Opt-in RBF
         final CheckBoxPreference optInRbf = find("optin_rbf");
-        final boolean rbf = mService.getLoginData().get("rbf");
-        if (!rbf)
-            getPreferenceScreen().removePreference(optInRbf);
+        if (GaService.IS_ELEMENTS || !(boolean) mService.getLoginData().get("rbf"))
+            removePreference(optInRbf);
         else {
             optInRbf.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
@@ -294,8 +292,15 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         }
 
         mToggleSW = find("toggle_segwit");
-        mToggleSW.setOnPreferenceClickListener(this);
-        setupSWToggle();
+        if (GaService.IS_ELEMENTS)
+            removePreference(mToggleSW);
+        else {
+            mToggleSW.setOnPreferenceClickListener(this);
+            setupSWToggle();
+        }
+
+        if (GaService.IS_ELEMENTS)
+            removePreference("settings_currency");
 
         final CheckBoxPreference advancedOptions = find("advanced_options");
         // set initial value
@@ -321,8 +326,10 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
         mToggleSW.setTitle(userSegwit ? R.string.segwit_disable : R.string.segwit_enable);
 
-        if (segwit &&
-            (!userSegwit || !mService.isSegwitLocked())) {
+        if (!segwit) {
+            // Server does not support segwit: Do not show the pref
+            getPreferenceScreen().removePreference(mToggleSW);
+        } else if (!userSegwit || mService.isSegwitUnlocked()) {
             // User hasn't enabled segwit, or they have but we haven't
             // generated a segwit address yet (that we know of).
             mToggleSW.setEnabled(true);

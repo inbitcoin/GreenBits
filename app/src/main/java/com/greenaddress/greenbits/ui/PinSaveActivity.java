@@ -9,7 +9,6 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -25,12 +24,11 @@ public class PinSaveActivity extends GaActivity {
     private static final int ACTIVITY_REQUEST_CODE = 1;
     private static final String NEW_PIN_MNEMONIC = "com.greenaddress.greenbits.NewPinMnemonic";
 
-    private CheckBox mNativeAuthCB;
     private EditText mPinText;
     private Button mSkipButton;
     private CircularProgressButton mSaveButton;
 
-    static public Intent createIntent(Context ctx, final String mnemonic) {
+    static public Intent createIntent(final Context ctx, final String mnemonic) {
         final Intent intent = new Intent(ctx, PinSaveActivity.class);
         intent.putExtra(NEW_PIN_MNEMONIC, mnemonic);
         return intent;
@@ -43,14 +41,14 @@ public class PinSaveActivity extends GaActivity {
             return;
         }
 
-        final InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(mPinText.getWindowToken(), 0);
-        final String mnemonic = getIntent().getStringExtra(NEW_PIN_MNEMONIC);
+        hideKeyboardFrom(mPinText);
+        mPinText.setEnabled(false);
 
         mSaveButton.setIndeterminateProgressMode(true);
         mSaveButton.setProgress(50);
-        mPinText.setEnabled(false);
         UI.hide(mSkipButton);
+
+        final String mnemonic = getIntent().getStringExtra(NEW_PIN_MNEMONIC);
         Futures.addCallback(mService.setPin(mnemonic, pin),
                 new FutureCallback<Void>() {
                     @Override
@@ -92,7 +90,7 @@ public class PinSaveActivity extends GaActivity {
     }
 
     @TargetApi(Build.VERSION_CODES.M)
-    void tryEncrypt() {
+    private void tryEncrypt() {
         try {
             setPin(KeyStoreAES.tryEncrypt(mService), true);
         } catch (final KeyStoreAES.RequiresAuthenticationScreen e) {
@@ -109,14 +107,14 @@ public class PinSaveActivity extends GaActivity {
     protected void onCreateWithService(final Bundle savedInstanceState) {
 
         mPinText = UI.find(this, R.id.pinSaveText);
-        mNativeAuthCB = UI.find(this, R.id.useNativeAuthentication);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
                 KeyStoreAES.createKey(true);
 
-                UI.show(mNativeAuthCB);
-                mNativeAuthCB.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                final CheckBox nativeAuthCB = UI.find(this, R.id.useNativeAuthentication);
+                UI.show(nativeAuthCB);
+                nativeAuthCB.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                     @Override
                     public void onCheckedChanged(final CompoundButton compoundButton, final boolean isChecked) {
                         if (isChecked)

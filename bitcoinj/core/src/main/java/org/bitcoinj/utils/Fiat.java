@@ -73,19 +73,41 @@ public final class Fiat implements Monetary, Comparable<Fiat>, Serializable {
     }
 
     /**
-     * Parses an amount expressed in the way humans are used to.
      * <p>
+     * Parses an amount expressed in the way humans are used to.
      * <p/>
+     * <p>
      * This takes string in a format understood by {@link BigDecimal#BigDecimal(String)}, for example "0", "1", "0.10",
      * "1.23E3", "1234.5E-5".
-     * 
+     * <p/>
+     *
      * @throws IllegalArgumentException
-     *             if you try to specify fractional satoshis, or a value out of range.
+     *             if you try to specify more than 4 digits after the comma, or a value out of range.
      */
     public static Fiat parseFiat(final String currencyCode, final String str) {
         try {
-            long val = new BigDecimal(str).movePointRight(SMALLEST_UNIT_EXPONENT)
-                    .toBigIntegerExact().longValue();
+            long val = new BigDecimal(str).movePointRight(SMALLEST_UNIT_EXPONENT).longValueExact();
+            return Fiat.valueOf(currencyCode, val);
+        } catch (ArithmeticException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    /**
+     * <p>
+     * Parses an amount expressed in the way humans are used to. The amount is cut to 4 digits after the comma.
+     * <p/>
+     * <p>
+     * This takes string in a format understood by {@link BigDecimal#BigDecimal(String)}, for example "0", "1", "0.10",
+     * "1.23E3", "1234.5E-5".
+     * <p/>
+     *
+     * @throws IllegalArgumentException
+     *             if you try to specify a value out of range.
+     */
+    public static Fiat parseFiatInexact(final String currencyCode, final String str) {
+        try {
+            long val = new BigDecimal(str).movePointRight(SMALLEST_UNIT_EXPONENT).longValue();
             return Fiat.valueOf(currencyCode, val);
         } catch (ArithmeticException e) {
             throw new IllegalArgumentException(e);
@@ -141,7 +163,7 @@ public final class Fiat implements Monetary, Comparable<Fiat>, Serializable {
     }
 
     /**
-     * Returns true if the monetary value represented by this instance is greater than that of the given other Coin,
+     * Returns true if the monetary value represented by this instance is greater than that of the given other Fiat,
      * otherwise false.
      */
     public boolean isGreaterThan(Fiat other) {
@@ -149,7 +171,7 @@ public final class Fiat implements Monetary, Comparable<Fiat>, Serializable {
     }
 
     /**
-     * Returns true if the monetary value represented by this instance is less than that of the given other Coin,
+     * Returns true if the monetary value represented by this instance is less than that of the given other Fiat,
      * otherwise false.
      */
     public boolean isLessThan(Fiat other) {
@@ -168,7 +190,7 @@ public final class Fiat implements Monetary, Comparable<Fiat>, Serializable {
     }
 
     /**
-     * Returns the number of satoshis of this monetary value. It's deprecated in favour of accessing {@link #value}
+     * Returns the number of "smallest units" of this monetary value. It's deprecated in favour of accessing {@link #value}
      * directly.
      */
     public long longValue() {
@@ -189,8 +211,8 @@ public final class Fiat implements Monetary, Comparable<Fiat>, Serializable {
 
     /**
      * <p>
-     * Returns the value as a plain string denominated in BTC. The result is unformatted with no trailing zeroes. For
-     * instance, a value of 150000 satoshis gives an output string of "0.0015" BTC
+     * Returns the value as a plain string. The result is unformatted with no trailing zeroes. For
+     * instance, a value of 150000 "smallest units" gives an output string of "0.0015".
      * </p>
      */
     public String toPlainString() {

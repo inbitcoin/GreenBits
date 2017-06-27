@@ -2,7 +2,6 @@ package com.greenaddress.greenbits.ui;
 
 import android.annotation.SuppressLint;
 import android.support.v7.widget.RecyclerView;
-import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,8 +10,7 @@ import android.widget.TextView;
 
 import com.greenaddress.greenbits.GaService;
 
-import org.bitcoinj.core.Monetary;
-import org.bitcoinj.utils.MonetaryFormat;
+import org.bitcoinj.core.Coin;
 
 import java.util.ArrayList;
 
@@ -45,19 +43,8 @@ class AccountItemAdapter extends RecyclerView.Adapter<AccountItemAdapter.Item> {
     }
 
     private void onDisplayBalance(final Item holder, final int position) {
-        final Monetary monetary = mService.getCoinBalance(mPointers.get(position));
-        final String btcUnit = (String) mService.getUserConfig("unit");
-        final MonetaryFormat bitcoinFormat = CurrencyMapper.mapBtcUnitToFormat(btcUnit);
-
-        if (btcUnit == null || btcUnit.equals("bits")) {
-            holder.mBalanceDenomination.setText("bits ");
-            holder.mBalanceDenominationIcon.setText("");
-        } else {
-            holder.mBalanceDenomination.setText(Html.fromHtml(CurrencyMapper.mapBtcUnitToPrefix(btcUnit)));
-            holder.mBalanceDenominationIcon.setText(R.string.fa_btc_space);
-        }
-        final String btcBalance = bitcoinFormat.noCode().format(monetary).toString();
-        UI.setAmountText(holder.mBalance, btcBalance);
+        final Coin balance = mService.getCoinBalance(mPointers.get(position));
+        UI.setCoinText(mService, holder.mUnit, holder.mBalance, balance);
     }
 
     @SuppressLint("SetTextI18n")
@@ -86,23 +73,19 @@ class AccountItemAdapter extends RecyclerView.Adapter<AccountItemAdapter.Item> {
 
     public static class Item extends RecyclerView.ViewHolder {
 
-        final RadioButton mRadio;
-        final TextView mBalance;
-        final TextView mBalanceDenomination;
-        final TextView mBalanceDenominationIcon;
-
         final View mView;
-
+        final RadioButton mRadio;
         final TextView mName;
+        final TextView mUnit;
+        final TextView mBalance;
 
         public Item(final View v) {
             super(v);
             mView = v;
             mRadio = UI.find(v, R.id.radio);
             mName = UI.find(v, R.id.name);
+            mUnit = UI.find(v, R.id.mainBalanceUnit);
             mBalance = UI.find(v, R.id.mainBalanceText);
-            mBalanceDenominationIcon = UI.find(v, R.id.mainBalanceBitcoinIcon);
-            mBalanceDenomination = UI.find(v, R.id.mainBitcoinScaleText);
         }
     }
 }

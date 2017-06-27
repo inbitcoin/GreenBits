@@ -17,9 +17,12 @@
 package org.bitcoinj.core;
 
 import com.google.common.base.Objects;
+import com.google.common.net.InetAddresses;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Locale;
@@ -37,10 +40,17 @@ import java.util.Locale;
  */
 public class VersionMessage extends Message {
 
+    /** The version of this library release, as a string. */
+    public static final String BITCOINJ_VERSION = "0.15-SNAPSHOT";
+    /** The value that is prepended to the subVer field of this application. */
+    public static final String LIBRARY_SUBVER = "/bitcoinj:" + BITCOINJ_VERSION + "/";
+
     /** A services flag that denotes whether the peer has a copy of the block chain or not. */
-    public static final int NODE_NETWORK = 1;
+    public static final int NODE_NETWORK = 1 << 0;
     /** A flag that denotes whether the peer supports the getutxos message or not. */
-    public static final int NODE_GETUTXOS = 2;
+    public static final int NODE_GETUTXOS = 1 << 1;
+    /** Indicates that a node can be asked for blocks and transactions including witness data. */
+    public static final int NODE_WITNESS = 1 << 3;
 
     /**
      * The version number of the protocol spoken.
@@ -77,11 +87,6 @@ public class VersionMessage extends Message {
      */
     public boolean relayTxesBeforeFilter;
 
-    /** The version of this library release, as a string. */
-    public static final String BITCOINJ_VERSION = "0.14.3";
-    /** The value that is prepended to the subVer field of this application. */
-    public static final String LIBRARY_SUBVER = "/bitcoinj:" + BITCOINJ_VERSION + "/";
-
     public VersionMessage(NetworkParameters params, byte[] payload) throws ProtocolException {
         super(params, payload, 0);
     }
@@ -97,15 +102,9 @@ public class VersionMessage extends Message {
         time = System.currentTimeMillis() / 1000;
         // Note that the Bitcoin Core doesn't do anything with these, and finding out your own external IP address
         // is kind of tricky anyway, so we just put nonsense here for now.
-        try {
-            // We hard-code the IPv4 localhost address here rather than use InetAddress.getLocalHost() because some
-            // mobile phones have broken localhost DNS entries, also, this is faster.
-            final byte[] localhost = { 127, 0, 0, 1 };
-            myAddr = new PeerAddress(InetAddress.getByAddress(localhost), params.getPort(), 0);
-            theirAddr = new PeerAddress(InetAddress.getByAddress(localhost), params.getPort(), 0);
-        } catch (UnknownHostException e) {
-            throw new RuntimeException(e);  // Cannot happen (illegal IP length).
-        }
+        InetAddress localhost = InetAddresses.forString("127.0.0.1");
+        myAddr = new PeerAddress(params, localhost, params.getPort(), 0, BigInteger.ZERO);
+        theirAddr = new PeerAddress(params, localhost, params.getPort(), 0, BigInteger.ZERO);
         subVer = LIBRARY_SUBVER;
         bestHeight = newBestHeight;
         relayTxesBeforeFilter = true;
@@ -292,5 +291,9 @@ public class VersionMessage extends Message {
     public boolean isGetUTXOsSupported() {
         return clientVersion >= GetUTXOsMessage.MIN_PROTOCOL_VERSION &&
                 (localServices & NODE_GETUTXOS) == NODE_GETUTXOS;
+    }
+
+    public boolean isWitnessSupported() {
+        return (localServices & NODE_WITNESS) == NODE_WITNESS;
     }
 }

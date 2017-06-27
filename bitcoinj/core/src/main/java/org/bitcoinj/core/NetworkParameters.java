@@ -18,9 +18,7 @@
 package org.bitcoinj.core;
 
 import com.google.common.base.Objects;
-import org.bitcoinj.core.Block;
-import org.bitcoinj.core.StoredBlock;
-import org.bitcoinj.core.VerificationException;
+
 import org.bitcoinj.net.discovery.*;
 import org.bitcoinj.params.*;
 import org.bitcoinj.script.*;
@@ -55,12 +53,15 @@ public abstract class NetworkParameters {
     public static final String ID_MAINNET = "org.bitcoin.production";
     /** The string returned by getId() for the testnet. */
     public static final String ID_TESTNET = "org.bitcoin.test";
-    /** The string returned by getId() for the testnet. */
-    public static final String ID_ALPHANET = "org.bitcoin.alpha";
+    /** The string returned by getId() for the segnet. */
+    public static final String ID_SEGNET = "org.bitcoin.segnet";
     /** The string returned by getId() for regtest mode. */
     public static final String ID_REGTEST = "org.bitcoin.regtest";
     /** Unit test network. */
     public static final String ID_UNITTESTNET = "org.bitcoinj.unittest";
+
+    /** The string returned by getId() for elements regtest mode. */
+    public static final String ID_ELEMENTS_REGTEST = "org.bitcoin.elementsregtest";
 
     /** The string used by the payment protocol to represent the main net. */
     public static final String PAYMENT_PROTOCOL_ID_MAINNET = "main";
@@ -69,8 +70,9 @@ public abstract class NetworkParameters {
     /** The string used by the payment protocol to represent unit testing (note that this is non-standard). */
     public static final String PAYMENT_PROTOCOL_ID_UNIT_TESTS = "unittest";
     public static final String PAYMENT_PROTOCOL_ID_REGTEST = "regtest";
-    public static final String PAYMENT_PROTOCOL_ID_ALPHANET = "alpha";
 
+    /** The string used by the payment protocol to represent the test net. */
+    public static final String PAYMENT_PROTOCOL_ID_ELEMENTS_REGTEST = "elementsregtest";
 
     // TODO: Seed nodes should be here as well.
 
@@ -80,6 +82,8 @@ public abstract class NetworkParameters {
     protected long packetMagic;  // Indicates message origin network and is used to seek to the next message when stream state is unknown.
     protected int addressHeader;
     protected int p2shHeader;
+    protected int p2wpkhHeader;
+    protected int p2wshHeader;
     protected int dumpedPrivateKeyHeader;
     protected int interval;
     protected int targetTimespan;
@@ -108,7 +112,7 @@ public abstract class NetworkParameters {
     protected String[] dnsSeeds;
     protected int[] addrSeeds;
     protected HttpDiscovery.Details[] httpSeeds = {};
-    protected Map<Integer, Sha256Hash> checkpoints = new HashMap<Integer, Sha256Hash>();
+    protected Map<Integer, Sha256Hash> checkpoints = new HashMap<>();
     protected transient MessageSerializer defaultSerializer = null;
 
     protected NetworkParameters() {
@@ -149,7 +153,7 @@ public abstract class NetworkParameters {
      * mined upon and thus will be quickly re-orged out as long as the majority are enforcing the rule.
      */
     public static final int BIP16_ENFORCE_TIME = 1333238400;
-    
+
     /**
      * The maximum number of coins to be generated
      */
@@ -228,9 +232,7 @@ public abstract class NetworkParameters {
             return UnitTestParams.get();
         } else if (id.equals(ID_REGTEST)) {
             return RegTestParams.get();
-        } else if (id.equals(ID_ALPHANET)) {
-            return AlphaNetParams.get();
-        }  else {
+        } else {
             return null;
         }
     }
@@ -246,8 +248,6 @@ public abstract class NetworkParameters {
             return UnitTestParams.get();
         } else if (pmtProtocolId.equals(PAYMENT_PROTOCOL_ID_REGTEST)) {
             return RegTestParams.get();
-        } else if (pmtProtocolId.equals(PAYMENT_PROTOCOL_ID_ALPHANET)) {
-            return AlphaNetParams.get();
         } else {
             return null;
         }
@@ -340,6 +340,14 @@ public abstract class NetworkParameters {
         return p2shHeader;
     }
 
+    public int getP2WPKHHeader() {
+        return p2wpkhHeader;
+    }
+
+    public int getP2WSHHeader() {
+        return p2wshHeader;
+    }
+
     /** First byte of a base58 encoded dumped private key. See {@link org.bitcoinj.core.DumpedPrivateKey}. */
     public int getDumpedPrivateKeyHeader() {
         return dumpedPrivateKeyHeader;
@@ -370,7 +378,7 @@ public abstract class NetworkParameters {
         return true;
     }
 
-    /** How many blocks pass between difficulty adjustment periods. Bitcoin standardises this to be 2015. */
+    /** How many blocks pass between difficulty adjustment periods. Bitcoin standardises this to be 2016. */
     public int getInterval() {
         return interval;
     }
@@ -535,7 +543,8 @@ public abstract class NetworkParameters {
         MINIMUM(70000),
         PONG(60001),
         BLOOM_FILTER(70000),
-        CURRENT(70001);
+        WITNESS_VERSION(70012),
+        CURRENT(70012);
 
         private final int bitcoinProtocol;
 

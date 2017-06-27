@@ -1,4 +1,6 @@
 /*
+ * Copyright by the original author or authors.
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -222,7 +224,7 @@ public class PaymentSession {
      * Returns the outputs of the payment request.
      */
     public List<PaymentProtocol.Output> getOutputs() {
-        List<PaymentProtocol.Output> outputs = new ArrayList<PaymentProtocol.Output>(paymentDetails.getOutputsCount());
+        List<PaymentProtocol.Output> outputs = new ArrayList<>(paymentDetails.getOutputsCount());
         for (Protos.Output output : paymentDetails.getOutputsList()) {
             Coin amount = output.hasAmount() ? Coin.valueOf(output.getAmount()) : null;
             outputs.add(new PaymentProtocol.Output(amount, output.getScript().toByteArray()));

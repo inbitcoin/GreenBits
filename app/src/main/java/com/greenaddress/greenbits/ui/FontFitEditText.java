@@ -6,9 +6,8 @@ import android.graphics.Paint;
 import android.text.Layout;
 import android.util.AttributeSet;
 import android.util.TypedValue;
-import android.widget.EditText;
 
-public class FontFitEditText extends EditText {
+public class FontFitEditText extends android.support.v7.widget.AppCompatEditText {
 
     //Attributes
     private Paint mTestPaint;
@@ -98,7 +97,7 @@ public class FontFitEditText extends EditText {
     }
 
     @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+    protected void onSizeChanged(final int w, final int h, final int oldw, final int oldh) {
         if (w != oldw)
             refitText(UI.getText(this), w);
     }

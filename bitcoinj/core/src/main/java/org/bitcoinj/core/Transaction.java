@@ -32,11 +32,10 @@ import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.spongycastle.util.encoders.Hex;
+import org.spongycastle.crypto.params.KeyParameter;
 
 import javax.annotation.Nullable;
 import java.io.*;
-import java.math.BigInteger;
 import java.util.*;
 
 import static org.bitcoinj.core.Utils.*;
@@ -115,13 +114,12 @@ public class Transaction extends ChildMessage {
     public static final Coin MIN_NONDUST_OUTPUT = Coin.valueOf(2730); // satoshis
 
     // These are bitcoin serialized.
-    private long version;
+    protected long version;
     private ArrayList<TransactionInput> inputs;
-    private ArrayList<TransactionOutput> outputs;
+    protected ArrayList<TransactionOutput> outputs;
+    protected ArrayList<TransactionWitness> witnesses;
 
-    private BigInteger feeCT;
-
-    private long lockTime;
+    protected long lockTime;
 
     // This is either the time the transaction was broadcast as measured from the local clock, or the time from the
     // block in which it was included. Note that this can be changed by re-orgs so the wallet may update this field.
@@ -149,7 +147,7 @@ public class Transaction extends ChildMessage {
     // MAX_BLOCK_SIZE must be compared to the optimal encoding, not the actual encoding, so when parsing, we keep track
     // of the size of the ideal encoding in addition to the actual message size (which Message needs) so that Blocks
     // can properly keep track of optimal encoded size
-    private int optimalEncodingMessageSize;
+    protected int optimalEncodingMessageSize;
 
     /**
      * This enum describes the underlying reason the transaction was created. It's useful for rendering wallet GUIs
@@ -193,10 +191,12 @@ public class Transaction extends ChildMessage {
     public Transaction(NetworkParameters params) {
         super(params);
         version = 1;
-        inputs = new ArrayList<TransactionInput>();
-        outputs = new ArrayList<TransactionOutput>();
+        inputs = new ArrayList<>();
+        outputs = new ArrayList<>();
+        witnesses = new ArrayList<>();
         // We don't initialize appearsIn deliberately as it's only useful for transactions stored in the wallet.
         length = 8; // 8 for std fields
+        protocolVersion = params.getProtocolVersionNum(NetworkParameters.ProtocolVersion.CURRENT);
     }
 
     /**
@@ -219,9 +219,7 @@ public class Transaction extends ChildMessage {
      * @param params NetworkParameters object.
      * @param payload Bitcoin protocol formatted byte array containing message content.
      * @param offset The location of the first payload byte within the array.
-     * @param parseRetain Whether to retain the backing byte array for quick reserialization.
-     * If true and the backing byte array is invalidated due to modification of a field then
-     * the cached bytes may be repopulated and retained if the message is serialized again in the future.
+     * @param parent Parent message.
      * @param length The length of message if known.  Usually this is provided when deserializing of the wire
      * as the length will be provided as part of the header.  If unknown then set to Message.UNKNOWN_LENGTH
      * @throws ProtocolException
@@ -245,7 +243,14 @@ public class Transaction extends ChildMessage {
     @Override
     public Sha256Hash getHash() {
         if (hash == null) {
-            hash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(unsafeBitcoinSerialize()));
+            ByteArrayOutputStream stream = new UnsafeByteArrayOutputStream(length < 32 ? 32 : length + 32);
+            try {
+                bitcoinSerializeToStream(stream, TransactionOptions.NONE);
+            } catch (IOException e) {
+                // Cannot happen, we are serializing to a memory stream.
+            }
+            byte[] bits = stream.toByteArray();
+            hash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(bits));
         }
         return hash;
     }
@@ -256,7 +261,7 @@ public class Transaction extends ChildMessage {
      *
      * No verification is performed on this hash.
      */
-    void setHash(Sha256Hash hash) {
+    public void setHash(Sha256Hash hash) {
         this.hash = hash;
     }
 
@@ -343,7 +348,7 @@ public class Transaction extends ChildMessage {
     public void addBlockAppearance(final Sha256Hash blockHash, int relativityOffset) {
         if (appearsInHashes == null) {
             // TODO: This could be a lot more memory efficient as we'll typically only store one element.
-            appearsInHashes = new TreeMap<Sha256Hash, Integer>();
+            appearsInHashes = new TreeMap<>();
         }
         appearsInHashes.put(blockHash, relativityOffset);
     }
@@ -391,6 +396,47 @@ public class Transaction extends ChildMessage {
         return totalOut;
     }
 
+    /**
+     * Get the transaction witness of an input
+     * @return the witness of the input
+     * @throws java.lang.IndexOutOfBoundsException
+     */
+    public TransactionWitness getWitness(int inputIndex) {
+        if (!(0 <= inputIndex && inputIndex < inputs.size()))
+            throw new java.lang.IndexOutOfBoundsException();
+        if (inputIndex >= witnesses.size())
+            return TransactionWitness.getEmpty();
+        return witnesses.get(inputIndex);
+    }
+
+    /**
+     * Set the transaction witness of an input
+     * @throws java.lang.IndexOutOfBoundsException
+     */
+    public void setWitness(int inputIndex, TransactionWitness witness) {
+        if (!(0 <= inputIndex && inputIndex < inputs.size()))
+            throw new java.lang.IndexOutOfBoundsException();
+        witness = witness == null ? TransactionWitness.getEmpty() : witness;
+        while (inputIndex >= witnesses.size()) {
+            witnesses.add(TransactionWitness.getEmpty());
+        }
+        witnesses.set(inputIndex, witness);
+    }
+
+    /**
+     * Returns true if the transaction has witnesses
+     * @return true if the transaction has witnesses
+     */
+    public boolean hasWitness() {
+        for (int i = 0; i < inputs.size(); i++) {
+            if (i >= Math.min(inputs.size(), witnesses.size()))
+                break;
+            if (witnesses.get(i).getPushCount() != 0)
+                return true;
+        }
+        return false;
+    }
+
     @Nullable private Coin cachedValue;
     @Nullable private TransactionBag cachedForBag;
 
@@ -408,10 +454,6 @@ public class Transaction extends ChildMessage {
             cachedForBag = wallet;
         }
         return result;
-    }
-
-    public void setFeeCT(BigInteger feeCT) {
-        this.feeCT = feeCT;
     }
 
     /**
@@ -552,21 +594,73 @@ public class Transaction extends ChildMessage {
 
     @Override
     protected void parse() throws ProtocolException {
+        boolean witSupported = (protocolVersion >= NetworkParameters.ProtocolVersion.WITNESS_VERSION.getBitcoinProtocolVersion())
+                && (transactionOptions & TransactionOptions.WITNESS) != 0;
         cursor = offset;
 
         version = readUint32();
         optimalEncodingMessageSize = 4;
 
-        final boolean isSegWit;
-        byte[] advancedMarker = readBytes(2);
-        if (advancedMarker[0] == 0 && advancedMarker[1] == 1) {
-            isSegWit = true;
+        // First come the inputs.
+        readInputs();
+        byte flags = 0;
+        if (inputs.size() == 0 && witSupported) {
+            flags = readBytes(1)[0];
+            optimalEncodingMessageSize += 1;
+            if (flags != 0) {
+                readInputs();
+                readOutputs();
+            } else {
+                outputs = new ArrayList<TransactionOutput>(0);
+            }
         } else {
-            isSegWit = false;
-            cursor -= 2;
+            readOutputs();
+        }
+        if (((flags & 1) != 0) && witSupported) {
+            flags ^= 1;
+            readWitness();
+        }
+        if (flags != 0) {
+            throw new ProtocolException("Unknown transaction optional data");
         }
 
-        // First come the inputs.
+        lockTime = readUint32();
+        optimalEncodingMessageSize += 4;
+        length = cursor - offset;
+
+        witnesses = witnesses == null ? new ArrayList<TransactionWitness>() : witnesses;
+    }
+
+    protected void readWitness() {
+        witnesses = new ArrayList<TransactionWitness>(inputs.size());
+        for (int i = 0; i < inputs.size(); i++) {
+            long pushCount = readVarInt();
+            TransactionWitness witness = new TransactionWitness((int) pushCount);
+            setWitness(i, witness);
+            optimalEncodingMessageSize += VarInt.sizeOf(pushCount);
+            for (int y = 0; y < pushCount; y++) {
+                long pushSize = readVarInt();
+                optimalEncodingMessageSize += VarInt.sizeOf(pushSize) + pushSize;
+                byte[] push = readBytes((int) pushSize);
+                witness.setPush(y, push);
+            }
+        }
+    }
+
+    protected void readOutputs() {
+        long numOutputs = readVarInt();
+        optimalEncodingMessageSize += VarInt.sizeOf(numOutputs);
+        outputs = new ArrayList<>((int) numOutputs);
+        for (long i = 0; i < numOutputs; i++) {
+            TransactionOutput output = new TransactionOutput(params, this, payload, cursor, serializer);
+            outputs.add(output);
+            long scriptLen = readVarInt(8);
+            optimalEncodingMessageSize += 8 + VarInt.sizeOf(scriptLen) + scriptLen;
+            cursor += scriptLen;
+        }
+    }
+
+    protected void readInputs() {
         long numInputs = readVarInt();
         optimalEncodingMessageSize += VarInt.sizeOf(numInputs);
         inputs = new ArrayList<TransactionInput>((int) numInputs);
@@ -577,41 +671,6 @@ public class Transaction extends ChildMessage {
             optimalEncodingMessageSize += TransactionOutPoint.MESSAGE_LENGTH + VarInt.sizeOf(scriptLen) + scriptLen + 4;
             cursor += scriptLen + 4;
         }
-        if (params.getId().equals(NetworkParameters.ID_ALPHANET)) {
-            feeCT = readUint64();
-        }
-        // Now the outputs
-        long numOutputs = readVarInt();
-        optimalEncodingMessageSize += VarInt.sizeOf(numOutputs);
-        outputs = new ArrayList<TransactionOutput>((int) numOutputs);
-        for (long i = 0; i < numOutputs; i++) {
-            TransactionOutput output = new TransactionOutput(params, this, payload, cursor, serializer);
-            outputs.add(output);
-            long scriptLen;
-            if (params.getId().equals(NetworkParameters.ID_ALPHANET)) {
-                scriptLen = readVarInt(33 +
-                    VarInt.sizeOf(output.getRangeProof().length) + output.getRangeProof().length +
-                    VarInt.sizeOf(output.getNonceCommitment().length) + output.getNonceCommitment().length);
-            } else {
-                scriptLen = readVarInt(8);
-            }
-            optimalEncodingMessageSize += 8 + VarInt.sizeOf(scriptLen) + scriptLen;
-            cursor += scriptLen;
-        }
-
-        if (isSegWit) {
-            for (long i = 0; i < numInputs; ++i) {
-                final long witnessLen = readVarInt();
-                for (long j = 0; j < witnessLen; ++j) {
-                    long itemLen = readVarInt();
-                    cursor += itemLen;
-                }
-            }
-        }
-
-        lockTime = readUint32();
-        optimalEncodingMessageSize += 4;
-        length = cursor - offset;
     }
 
     public int getOptimalEncodingMessageSize() {
@@ -673,8 +732,10 @@ public class Transaction extends ChildMessage {
     public String toString(@Nullable AbstractBlockChain chain) {
         StringBuilder s = new StringBuilder();
         s.append("  ").append(getHashAsString()).append('\n');
-        if (hasConfidence())
-            s.append("  confidence: ").append(getConfidence()).append('\n');
+        if (updatedAt != null)
+            s.append("  updated: ").append(Utils.dateTimeFormat(updatedAt)).append('\n');
+        if (version != 1)
+            s.append("  version ").append(version).append('\n');
         if (isTimeLocked()) {
             s.append("  time locked until ");
             if (lockTime < LOCKTIME_THRESHOLD) {
@@ -822,7 +883,7 @@ public class Transaction extends ChildMessage {
      * to understand the values of sigHash and anyoneCanPay: otherwise you can use the other form of this method
      * that sets them to typical defaults.
      *
-     * @throws ScriptException if the scriptPubKey is not a pay to address or pay to pubkey script.
+     * @throws ScriptException if the scriptPubKey is not P2PKH, P2PK, P2WPKH, or P2WPKH wrapped in P2SH.
      */
     public TransactionInput addSignedInput(TransactionOutPoint prevOut, Script scriptPubKey, ECKey sigKey,
                                            SigHash sigHash, boolean anyoneCanPay) throws ScriptException {
@@ -830,15 +891,42 @@ public class Transaction extends ChildMessage {
         checkState(!outputs.isEmpty(), "Attempting to sign tx without outputs.");
         TransactionInput input = new TransactionInput(params, this, new byte[]{}, prevOut);
         addInput(input);
-        Sha256Hash hash = hashForSignature(inputs.size() - 1, scriptPubKey, sigHash, anyoneCanPay);
+        Sha256Hash hash;
+        // P2WSH not supported by this script
+        if (scriptPubKey.isSentToP2WPKH() || scriptPubKey.isSentToP2WPKHP2SH(sigKey) || scriptPubKey.isSentToP2WSH()) {
+            if (prevOut.getValue() == null)
+                throw new ScriptException("Cannot sign segwit script without value of previous output");
+            Script scriptCode;
+            if (scriptPubKey.isSentToP2WPKHP2SH(sigKey))
+                scriptCode = ScriptBuilder.createP2WPKHOutputScript(sigKey).scriptCode();
+            else
+                scriptCode = scriptPubKey.scriptCode();
+            hash = hashForSignatureWitness(
+                inputs.size() - 1,
+                scriptCode,
+                prevOut.getValue(),
+                sigHash,
+                anyoneCanPay);
+        } else {
+            hash = hashForSignature(inputs.size() - 1, scriptPubKey, sigHash, anyoneCanPay);
+        }
         ECKey.ECDSASignature ecSig = sigKey.sign(hash);
         TransactionSignature txSig = new TransactionSignature(ecSig, sigHash, anyoneCanPay);
-        if (scriptPubKey.isSentToRawPubKey())
+        if (scriptPubKey.isSentToRawPubKey()) {
             input.setScriptSig(ScriptBuilder.createInputScript(txSig));
-        else if (scriptPubKey.isSentToAddress())
+        } else if (scriptPubKey.isSentToAddress()) {
             input.setScriptSig(ScriptBuilder.createInputScript(txSig, sigKey));
-        else
-            throw new ScriptException("Don't know how to sign for this kind of scriptPubKey: " + scriptPubKey);
+        } else if (scriptPubKey.isSentToP2WPKH()) {
+            TransactionWitness witness = TransactionWitness.createWitness(txSig, sigKey);
+            setWitness(inputs.size() - 1, witness);
+        } else if (scriptPubKey.isSentToP2WPKHP2SH(sigKey)) {
+            TransactionWitness witness = TransactionWitness.createWitness(txSig, sigKey);
+            setWitness(inputs.size() - 1, witness);
+            Script p2wpkhProgram = ScriptBuilder.createP2WPKHOutputScript(sigKey);
+            input.setScriptSig(ScriptBuilder.createSegwitP2SHSigScript(p2wpkhProgram));
+        } else {
+            throw new ScriptException("Don't know how to sign this script with key provided: " + scriptPubKey);
+        }
         return input;
     }
 
@@ -935,6 +1023,14 @@ public class Transaction extends ChildMessage {
         return new TransactionSignature(key.sign(hash), hashType, anyoneCanPay);
     }
 
+    public TransactionSignature calculateWitnessSignature(int inputIndex, ECKey key,
+                                                          byte[] redeemScript,
+                                                          Coin value,
+                                                          SigHash hashType, boolean anyoneCanPay) {
+        Sha256Hash hash = hashForSignatureWitness(inputIndex, redeemScript, value, hashType, anyoneCanPay);
+        return new TransactionSignature(key.sign(hash), hashType, anyoneCanPay);
+    }
+
     /**
      * Calculates a signature that is valid for being inserted into the input at the given position. This is simply
      * a wrapper around calling {@link Transaction#hashForSignature(int, byte[], org.bitcoinj.core.Transaction.SigHash, boolean)}
@@ -952,6 +1048,75 @@ public class Transaction extends ChildMessage {
                                                                  SigHash hashType, boolean anyoneCanPay) {
         Sha256Hash hash = hashForSignature(inputIndex, redeemScript.getProgram(), hashType, anyoneCanPay);
         return new TransactionSignature(key.sign(hash), hashType, anyoneCanPay);
+    }
+
+    public TransactionSignature calculateWitnessSignature(int inputIndex, ECKey key,
+                                                          Script redeemScript,
+                                                          Coin value,
+                                                          SigHash hashType, boolean anyoneCanPay) {
+        Sha256Hash hash = hashForSignatureWitness(inputIndex, redeemScript.getProgram(), value, hashType, anyoneCanPay);
+        return new TransactionSignature(key.sign(hash), hashType, anyoneCanPay);
+    }
+
+    /**
+     * Calculates a signature that is valid for being inserted into the input at the given position. This is simply
+     * a wrapper around calling {@link Transaction#hashForSignature(int, byte[], org.bitcoinj.core.Transaction.SigHash, boolean)}
+     * followed by {@link ECKey#sign(Sha256Hash)} and then returning a new {@link TransactionSignature}. The key
+     * must be usable for signing as-is: if the key is encrypted it must be decrypted first external to this method.
+     *
+     * @param inputIndex Which input to calculate the signature for, as an index.
+     * @param key The private key used to calculate the signature.
+     * @param aesKey The AES key to use for decryption of the private key. If null then no decryption is required.
+     * @param redeemScript Byte-exact contents of the scriptPubKey that is being satisified, or the P2SH redeem script.
+     * @param hashType Signing mode, see the enum for documentation.
+     * @param anyoneCanPay Signing mode, see the SigHash enum for documentation.
+     * @return A newly calculated signature object that wraps the r, s and sighash components.
+     */
+    public TransactionSignature calculateSignature(int inputIndex, ECKey key,
+                                                   @Nullable KeyParameter aesKey,
+                                                   byte[] redeemScript,
+                                                   SigHash hashType, boolean anyoneCanPay) {
+        Sha256Hash hash = hashForSignature(inputIndex, redeemScript, hashType, anyoneCanPay);
+        return new TransactionSignature(key.sign(hash, aesKey), hashType, anyoneCanPay);
+    }
+
+    public TransactionSignature calculateWitnessSignature(int inputIndex, ECKey key,
+                                                          @Nullable KeyParameter aesKey,
+                                                          byte[] redeemScript,
+                                                          Coin value,
+                                                          SigHash hashType, boolean anyoneCanPay) {
+        Sha256Hash hash = hashForSignatureWitness(inputIndex, redeemScript, value, hashType, anyoneCanPay);
+        return new TransactionSignature(key.sign(hash, aesKey), hashType, anyoneCanPay);
+    }
+
+    /**
+     * Calculates a signature that is valid for being inserted into the input at the given position. This is simply
+     * a wrapper around calling {@link Transaction#hashForSignature(int, byte[], org.bitcoinj.core.Transaction.SigHash, boolean)}
+     * followed by {@link ECKey#sign(Sha256Hash)} and then returning a new {@link TransactionSignature}.
+     *
+     * @param inputIndex Which input to calculate the signature for, as an index.
+     * @param key The private key used to calculate the signature.
+     * @param aesKey The AES key to use for decryption of the private key. If null then no decryption is required.
+     * @param redeemScript The scriptPubKey that is being satisified, or the P2SH redeem script.
+     * @param hashType Signing mode, see the enum for documentation.
+     * @param anyoneCanPay Signing mode, see the SigHash enum for documentation.
+     * @return A newly calculated signature object that wraps the r, s and sighash components.
+     */
+    public TransactionSignature calculateSignature(int inputIndex, ECKey key,
+                                                   @Nullable KeyParameter aesKey,
+                                                   Script redeemScript,
+                                                   SigHash hashType, boolean anyoneCanPay) {
+        Sha256Hash hash = hashForSignature(inputIndex, redeemScript.getProgram(), hashType, anyoneCanPay);
+        return new TransactionSignature(key.sign(hash, aesKey), hashType, anyoneCanPay);
+    }
+
+    public TransactionSignature calculateWitnessSignature(int inputIndex, ECKey key,
+                                                          @Nullable KeyParameter aesKey,
+                                                          Script redeemScript,
+                                                          Coin value,
+                                                          SigHash hashType, boolean anyoneCanPay) {
+        Sha256Hash hash = hashForSignatureWitness(inputIndex, redeemScript.getProgram(), value, hashType, anyoneCanPay);
+        return new TransactionSignature(key.sign(hash, aesKey), hashType, anyoneCanPay);
     }
 
     /**
@@ -972,12 +1137,6 @@ public class Transaction extends ChildMessage {
                                                     SigHash type, boolean anyoneCanPay) {
         byte sigHashType = (byte) TransactionSignature.calcSigHashValue(type, anyoneCanPay);
         return hashForSignature(inputIndex, redeemScript, sigHashType);
-    }
-
-    public Sha256Hash hashForSignatureV2(int inputIndex, byte[] redeemScript,
-                                         Coin prevValue, SigHash type, boolean anyoneCanPay) {
-        byte sigHashType = (byte) TransactionSignature.calcSigHashValue(type, anyoneCanPay);
-        return hashForSignatureV2(inputIndex, redeemScript, prevValue, sigHashType);
     }
 
     /**
@@ -1039,7 +1198,7 @@ public class Transaction extends ChildMessage {
 
             if ((sigHashType & 0x1f) == SigHash.NONE.value) {
                 // SIGHASH_NONE means no outputs are signed at all - the signature is effectively for a "blank cheque".
-                tx.outputs = new ArrayList<TransactionOutput>(0);
+                tx.outputs = new ArrayList<>(0);
                 // The signature isn't broken by new versions of the transaction issued by other parties.
                 for (int i = 0; i < tx.inputs.size(); i++)
                     if (i != inputIndex)
@@ -1059,7 +1218,7 @@ public class Transaction extends ChildMessage {
                 }
                 // In SIGHASH_SINGLE the outputs after the matching input index are deleted, and the outputs before
                 // that position are "nulled out". Unintuitively, the value in a "null" transaction is set to -1.
-                tx.outputs = new ArrayList<TransactionOutput>(tx.outputs.subList(0, inputIndex + 1));
+                tx.outputs = new ArrayList<>(tx.outputs.subList(0, inputIndex + 1));
                 for (int i = 0; i < inputIndex; i++)
                     tx.outputs.set(i, new TransactionOutput(tx.params, tx, Coin.NEGATIVE_SATOSHI, new byte[] {}));
                 // The signature isn't broken by new versions of the transaction issued by other parties.
@@ -1090,44 +1249,87 @@ public class Transaction extends ChildMessage {
         }
     }
 
-    public synchronized Sha256Hash hashForSignatureV2(int inputIndex, byte[] connectedScript, Coin prevValue, byte sigHashType) {
+    /**
+     * <p>Calculates a signature hash, that is, a hash of a simplified form of the transaction. How exactly the transaction
+     * is simplified is specified by the type and anyoneCanPay parameters.</p>
+     *
+     * <p>This is a low level API and when using the regular {@link Wallet} class you don't have to call this yourself.
+     * When working with more complex transaction types and contracts, it can be necessary. When signing a Witness output
+     * the scriptCode should be the script encoded into the scriptSig field, for normal transactions, it's the
+     * scriptPubKey of the output you're signing for. (See BIP143: https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki)</p>
+     *
+     * @param inputIndex input the signature is being calculated for. Tx signatures are always relative to an input.
+     * @param scriptCode the script that should be in the given input during signing.
+     * @param prevValue the value of the coin being spent
+     * @param type Should be SigHash.ALL
+     * @param anyoneCanPay should be false.
+     */
+    public synchronized Sha256Hash hashForSignatureWitness(int inputIndex, Script scriptCode, Coin prevValue,
+                                                           SigHash type, boolean anyoneCanPay) {
+        byte[] connectedScript = scriptCode.getProgram();
+        return hashForSignatureWitness(inputIndex, connectedScript, prevValue, type, anyoneCanPay);
+    }
+
+    public synchronized Sha256Hash hashForSignatureWitness(int inputIndex, byte[] connectedScript, Coin prevValue,
+                                                           SigHash type, boolean anyoneCanPay) {
+        byte sigHashType = (byte) TransactionSignature.calcSigHashValue(type, anyoneCanPay);
         ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream(length == UNKNOWN_LENGTH ? 256 : length + 4);
         try {
+            byte[] hashPrevouts = new byte[32];
+            byte[] hashSequence = new byte[32];
+            byte[] hashOutputs = new byte[32];
+            anyoneCanPay = (sigHashType & SIGHASH_ANYONECANPAY_VALUE) == SIGHASH_ANYONECANPAY_VALUE;
+
+            if (!anyoneCanPay) {
+                ByteArrayOutputStream bosHashPrevouts = new UnsafeByteArrayOutputStream(256);
+                for (int i = 0; i < this.inputs.size(); ++i) {
+                    bosHashPrevouts.write(this.inputs.get(i).getOutpoint().getHash().getReversedBytes());
+                    uint32ToByteStreamLE(this.inputs.get(i).getOutpoint().getIndex(), bosHashPrevouts);
+                }
+                hashPrevouts = Sha256Hash.hashTwice(bosHashPrevouts.toByteArray());
+            }
+
+            if (!anyoneCanPay && type != SigHash.SINGLE && type != SigHash.NONE) {
+                ByteArrayOutputStream bosSequence = new UnsafeByteArrayOutputStream(256);
+                for (int i = 0; i < this.inputs.size(); ++i) {
+                    uint32ToByteStreamLE(this.inputs.get(i).getSequenceNumber(), bosSequence);
+                }
+                hashSequence = Sha256Hash.hashTwice(bosSequence.toByteArray());
+            }
+
+            if (type != SigHash.SINGLE && type != SigHash.NONE) {
+                ByteArrayOutputStream bosHashOutputs = new UnsafeByteArrayOutputStream(256);
+                for (int i = 0; i < this.outputs.size(); ++i) {
+                    uint64ToByteStreamLE(
+                            BigInteger.valueOf(this.outputs.get(i).getValue().getValue()),
+                            bosHashOutputs
+                    );
+                    bosHashOutputs.write(new VarInt(this.outputs.get(i).getScriptBytes().length).encode());
+                    bosHashOutputs.write(this.outputs.get(i).getScriptBytes());
+                }
+                hashOutputs = Sha256Hash.hashTwice(bosHashOutputs.toByteArray());
+            } else if (type == SigHash.SINGLE && inputIndex < outputs.size()) {
+                ByteArrayOutputStream bosHashOutputs = new UnsafeByteArrayOutputStream(256);
+                uint64ToByteStreamLE(
+                        BigInteger.valueOf(this.outputs.get(inputIndex).getValue().getValue()),
+                        bosHashOutputs
+                );
+                bosHashOutputs.write(new VarInt(this.outputs.get(inputIndex).getScriptBytes().length).encode());
+                bosHashOutputs.write(this.outputs.get(inputIndex).getScriptBytes());
+                hashOutputs = Sha256Hash.hashTwice(bosHashOutputs.toByteArray());
+            }
             uint32ToByteStreamLE(version, bos);
-
-            ByteArrayOutputStream bosHashPrevouts = new UnsafeByteArrayOutputStream(256);
-            for (int i = 0; i < this.inputs.size(); ++i) {
-                bosHashPrevouts.write(this.inputs.get(i).getOutpoint().getHash().getReversedBytes());
-                uint32ToByteStreamLE(this.inputs.get(i).getOutpoint().getIndex(), bosHashPrevouts);
-            }
-            bos.write(Sha256Hash.hashTwice(bosHashPrevouts.toByteArray()));
-
-            ByteArrayOutputStream bosSequence = new UnsafeByteArrayOutputStream(256);
-            for (int i = 0; i < this.inputs.size(); ++i) {
-                uint32ToByteStreamLE(this.inputs.get(i).getSequenceNumber(), bosSequence);
-            }
-            bos.write(Sha256Hash.hashTwice(bosSequence.toByteArray()));
-
+            bos.write(hashPrevouts);
+            bos.write(hashSequence);
             bos.write(inputs.get(inputIndex).getOutpoint().getHash().getReversedBytes());
             uint32ToByteStreamLE(inputs.get(inputIndex).getOutpoint().getIndex(), bos);
             bos.write(new VarInt(connectedScript.length).encode());
             bos.write(connectedScript);
             uint64ToByteStreamLE(BigInteger.valueOf(prevValue.getValue()), bos);
             uint32ToByteStreamLE(inputs.get(inputIndex).getSequenceNumber(), bos);
-
-            ByteArrayOutputStream bosHashOutputs = new UnsafeByteArrayOutputStream(256);
-            for (int i = 0; i < this.outputs.size(); ++i) {
-                uint64ToByteStreamLE(
-                        BigInteger.valueOf(this.outputs.get(i).getValue().getValue()),
-                        bosHashOutputs
-                );
-                bosHashOutputs.write(new VarInt(this.outputs.get(i).getScriptBytes().length).encode());
-                bosHashOutputs.write(this.outputs.get(i).getScriptBytes());
-            }
-            bos.write(Sha256Hash.hashTwice(bosHashOutputs.toByteArray()));
-
+            bos.write(hashOutputs);
             uint32ToByteStreamLE(this.lockTime, bos);
-            uint32ToByteStreamLE(sigHashType, bos);
+            uint32ToByteStreamLE(0x000000ff & sigHashType, bos);
         } catch (IOException e) {
             throw new RuntimeException(e);  // Cannot happen.
         }
@@ -1135,63 +1337,41 @@ public class Transaction extends ChildMessage {
         return Sha256Hash.twiceOf(bos.toByteArray());
     }
 
-    public synchronized Sha256Hash hashForCTSignature(int inputIndex, byte[] connectedScript) {
-        try {
-            byte[][] inputScripts = new byte[inputs.size()][];
-            for (int i = 0; i < inputs.size(); i++) {
-                inputScripts[i] = inputs.get(i).getScriptBytes();
-                inputs.get(i).clearScriptBytes();
-            }
-
-            TransactionInput input = inputs.get(inputIndex);
-            input.setScriptBytes(connectedScript);
-
-            ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream(length == UNKNOWN_LENGTH ? 256 : length + 4);
-            bitcoinSerializeForCTSigning(bos);
-            byte sigHashType = (byte) TransactionSignature.calcSigHashValue(SigHash.ALL, false);
-            // We also have to write a hash type (sigHashType is actually an unsigned char)
-            uint32ToByteStreamLE(0x000000ff & sigHashType, bos);
-
-            // Note that this is NOT reversed to ensure it will be signed correctly. If it were to be printed out
-            // however then we would expect that it is IS reversed.
-            Sha256Hash hash = Sha256Hash.twiceOf(bos.toByteArray());
-            bos.close();
-            // Put the transaction back to how we found it.
-            for (int i = 0; i < inputs.size(); i++) {
-                inputs.get(i).setScriptBytes(inputScripts[i]);
-            }
-
-            return hash;
-        } catch (IOException e) {
-            throw new RuntimeException(e);  // Cannot happen.
-        }
-    }
-
     @Override
     protected void bitcoinSerializeToStream(OutputStream stream) throws IOException {
+        bitcoinSerializeToStream(stream, this.transactionOptions);
+    }
+
+    protected void bitcoinSerializeToStream(OutputStream stream, int transactionOptions) throws IOException {
+        boolean witSupported = (protocolVersion >= NetworkParameters.ProtocolVersion.WITNESS_VERSION.getBitcoinProtocolVersion())
+                && (transactionOptions & TransactionOptions.WITNESS) != 0;
+        boolean serializeWit = hasWitness() && witSupported;
         uint32ToByteStreamLE(version, stream);
+        if (serializeWit) {
+            stream.write(new byte[]{0, 1});
+        }
         stream.write(new VarInt(inputs.size()).encode());
         for (TransactionInput in : inputs)
             in.bitcoinSerialize(stream);
-        if (params.getId() == NetworkParameters.ID_ALPHANET) {
-            uint64ToByteStreamLE(feeCT, stream);
-        }
         stream.write(new VarInt(outputs.size()).encode());
         for (TransactionOutput out : outputs)
             out.bitcoinSerialize(stream);
+
+        if (serializeWit) {
+            for (int i = 0; i < inputs.size(); i++) {
+                TransactionWitness witness = getWitness(i);
+                stream.write(new VarInt(witness.getPushCount()).encode());
+                for (int y = 0; y < witness.getPushCount(); y++) {
+                    byte[] push = witness.getPush(y);
+                    stream.write(new VarInt(push.length).encode());
+                    stream.write(push);
+                }
+            }
+        }
+
         uint32ToByteStreamLE(lockTime, stream);
     }
 
-    protected void bitcoinSerializeForCTSigning(OutputStream stream) throws IOException {
-        uint32ToByteStreamLE(version, stream);
-        stream.write(new VarInt(inputs.size()).encode());
-        for (TransactionInput in : inputs)
-            in.bitcoinSerializeForCTSigning(stream);
-        stream.write(new VarInt(outputs.size()).encode());
-        for (TransactionOutput out : outputs)
-            out.bitcoinSerializeForCTSigning(stream);
-        uint32ToByteStreamLE(lockTime, stream);
-    }
 
     /**
      * Transactions can have an associated lock time, specified either as a block height or in seconds since the
@@ -1226,11 +1406,13 @@ public class Transaction extends ChildMessage {
         this.lockTime = lockTime;
     }
 
-    /**
-     * @return the version
-     */
     public long getVersion() {
         return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+        unCache();
     }
 
     /** Returns an unmodifiable view of all inputs. */
@@ -1252,7 +1434,7 @@ public class Transaction extends ChildMessage {
      * @return linked list of outputs relevant to the wallet in this transaction
      */
     public List<TransactionOutput> getWalletOutputs(TransactionBag transactionBag){
-        List<TransactionOutput> walletOutputs = new LinkedList<TransactionOutput>();
+        List<TransactionOutput> walletOutputs = new LinkedList<>();
         for (TransactionOutput o : outputs) {
             if (!o.isMineOrWatched(transactionBag)) continue;
             walletOutputs.add(o);
@@ -1378,7 +1560,7 @@ public class Transaction extends ChildMessage {
             throw new VerificationException.LargerThanMaxBlockSize();
 
         Coin valueOut = Coin.ZERO;
-        HashSet<TransactionOutPoint> outpoints = new HashSet<TransactionOutPoint>();
+        HashSet<TransactionOutPoint> outpoints = new HashSet<>();
         for (TransactionInput input : inputs) {
             if (outpoints.contains(input.getOutpoint()))
                 throw new VerificationException.DuplicatedOutPoint();

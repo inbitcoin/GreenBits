@@ -17,6 +17,7 @@
 package org.bitcoinj.protocols.channels;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.AsyncFunction;
 import org.bitcoinj.core.*;
 import org.bitcoinj.protocols.channels.PaymentChannelCloseException.CloseReason;
 import org.bitcoinj.utils.Threading;
@@ -29,6 +30,7 @@ import com.google.protobuf.ByteString;
 import net.jcip.annotations.GuardedBy;
 import org.bitcoin.paymentchannel.Protos;
 import org.slf4j.LoggerFactory;
+import org.spongycastle.crypto.params.KeyParameter;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -117,8 +119,34 @@ public class PaymentChannelServer {
          */
         @Nullable
         ListenableFuture<ByteString> paymentIncrease(Coin by, Coin to, @Nullable ByteString info);
+
+        /**
+         * <p>Called when a channel is being closed and must be signed, possibly with an encrypted key.</p>
+         * @return A future for the (nullable) KeyParameter for the ECKey, or <code>null</code> if no key is required.
+         */
+        @Nullable
+        ListenableFuture<KeyParameter> getUserKey();
     }
     private final ServerConnection conn;
+
+    public interface ServerChannelProperties {
+        /**
+         * The size of the payment that the client is requested to pay in the initiate phase.
+         */
+        Coin getMinPayment();
+
+        /**
+         * The maximum allowed channel time window in seconds.
+         * Note that the server need to be online for the whole time the channel is open.
+         * Failure to do this could cause loss of all payments received on the channel.
+         */
+        long getMaxTimeWindow();
+
+        /**
+         * The minimum allowed channel time window in seconds, must be larger than 7200.
+         */
+        long getMinTimeWindow();
+    }
 
     // Used to track the negotiated version number
     @GuardedBy("lock") private int majorVersion;
@@ -134,6 +162,10 @@ public class PaymentChannelServer {
 
     // The key used for multisig in this channel
     @GuardedBy("lock") private ECKey myKey;
+
+    // The fee server charges for managing (and settling the channel).
+    // This is will be requested in the setup via the min_payment field in the initiate message.
+    private final Coin minPayment;
 
     // The minimum accepted channel value
     private final Coin minAcceptedChannelSize;
@@ -178,7 +210,7 @@ public class PaymentChannelServer {
      */
     public PaymentChannelServer(TransactionBroadcaster broadcaster, Wallet wallet,
                                 Coin minAcceptedChannelSize, ServerConnection conn) {
-        this(broadcaster, wallet, minAcceptedChannelSize, DEFAULT_MIN_TIME_WINDOW, DEFAULT_MAX_TIME_WINDOW, conn);
+        this(broadcaster, wallet, minAcceptedChannelSize, new DefaultServerChannelProperties(), conn);
     }
 
     /**
@@ -192,22 +224,21 @@ public class PaymentChannelServer {
      *                               and may cause fees to be require to settle the channel. A reasonable value depends
      *                               entirely on the expected maximum for the channel, and should likely be somewhere
      *                               between a few bitcents and a bitcoin.
-     * @param minTimeWindow The minimum allowed channel time window in seconds, must be larger than 7200.
-     * @param maxTimeWindow The maximum allowed channel time window in seconds. Note that the server need to be online for the whole time the channel is open.
-     *                              Failure to do this could cause loss of all payments received on the channel.
+     * @param serverChannelProperties Modify the channel's properties. You may extend {@link DefaultServerChannelProperties}
      * @param conn A callback listener which represents the connection to the client (forwards messages we generate to
      *              the client and will close the connection on request)
      */
     public PaymentChannelServer(TransactionBroadcaster broadcaster, Wallet wallet,
-                                Coin minAcceptedChannelSize, long minTimeWindow, long maxTimeWindow, ServerConnection conn) {
+                                Coin minAcceptedChannelSize, ServerChannelProperties serverChannelProperties, ServerConnection conn) {
+        minTimeWindow = serverChannelProperties.getMinTimeWindow();
+        maxTimeWindow = serverChannelProperties.getMaxTimeWindow();
         if (minTimeWindow > maxTimeWindow) throw new IllegalArgumentException("minTimeWindow must be less or equal to maxTimeWindow");
         if (minTimeWindow < HARD_MIN_TIME_WINDOW) throw new IllegalArgumentException("minTimeWindow must be larger than" + HARD_MIN_TIME_WINDOW  + " seconds");
         this.broadcaster = checkNotNull(broadcaster);
         this.wallet = checkNotNull(wallet);
+        this.minPayment = checkNotNull(serverChannelProperties.getMinPayment());
         this.minAcceptedChannelSize = checkNotNull(minAcceptedChannelSize);
         this.conn = checkNotNull(conn);
-        this.minTimeWindow = minTimeWindow;
-        this.maxTimeWindow = maxTimeWindow;
     }
 
     /**
@@ -290,7 +321,7 @@ public class PaymentChannelServer {
                 .setMultisigKey(ByteString.copyFrom(myKey.getPubKey()))
                 .setExpireTimeSecs(expireTime)
                 .setMinAcceptedChannelSize(minAcceptedChannelSize.value)
-                .setMinPayment(Transaction.REFERENCE_DEFAULT_MIN_TX_FEE.value);
+                .setMinPayment(minPayment.value);
 
         conn.sendToClient(Protos.TwoWayChannelMessage.newBuilder()
                 .setInitiate(initiateBuilder)
@@ -520,7 +551,19 @@ public class PaymentChannelServer {
         // close() on us here below via the stored channel state.
         // TODO: Strongly separate the lifecycle of the payment channel from the TCP connection in these classes.
         channelSettling = true;
-        Futures.addCallback(state.close(), new FutureCallback<Transaction>() {
+        ListenableFuture<KeyParameter> keyFuture = conn.getUserKey();
+        ListenableFuture<Transaction> result;
+        if (keyFuture != null) {
+            result = Futures.transform(conn.getUserKey(), new AsyncFunction<KeyParameter, Transaction>() {
+                @Override
+                public ListenableFuture<Transaction> apply(KeyParameter userKey) throws Exception {
+                    return state.close(userKey);
+                }
+            });
+        } else {
+            result = state.close();
+        }
+        Futures.addCallback(result, new FutureCallback<Transaction>() {
             @Override
             public void onSuccess(Transaction result) {
                 // Send the successfully accepted transaction back to the client.
@@ -613,4 +656,27 @@ public class PaymentChannelServer {
             lock.unlock();
         }
     }
+
+    /**
+     * Extend this class and override the values you want to change.
+     */
+    public static class DefaultServerChannelProperties implements ServerChannelProperties {
+
+        @Override
+        public Coin getMinPayment() {
+            return Transaction.REFERENCE_DEFAULT_MIN_TX_FEE;
+        }
+
+        @Override
+        public long getMaxTimeWindow() {
+            return DEFAULT_MAX_TIME_WINDOW;
+        }
+
+        @Override
+        public long getMinTimeWindow() {
+            return DEFAULT_MIN_TIME_WINDOW;
+        }
+
+    }
+
 }

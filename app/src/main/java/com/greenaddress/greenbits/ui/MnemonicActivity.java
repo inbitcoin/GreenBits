@@ -1,6 +1,5 @@
 package com.greenaddress.greenbits.ui;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -24,7 +23,6 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -132,12 +130,10 @@ public class MnemonicActivity extends LoginActivity {
 
         mOkButton.setProgress(50);
         mMnemonicText.setEnabled(false);
-
+        hideKeyboardFrom(mMnemonicText);
         // disable advanced option items
         mService.cfgEdit("advanced_options").putBoolean("enabled", false).apply();
 
-        final InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(mMnemonicText.getWindowToken(), 0);
 
         final AsyncFunction<Void, LoginData> connectToLogin = new AsyncFunction<Void, LoginData>() {
             @Override
@@ -226,7 +222,7 @@ public class MnemonicActivity extends LoginActivity {
 
     @Override
     protected void onCreateWithService(final Bundle savedInstanceState) {
-        Log.i(TAG, getIntent().getType() + "" + getIntent());
+        Log.i(TAG, getIntent().getType() + ' ' + getIntent());
 
         mService.setFlagSecure(this, true);
 
@@ -359,7 +355,7 @@ public class MnemonicActivity extends LoginActivity {
             CB.after(askForPassphrase(), new CB.Op<String>() {
                 @Override
                 public void onSuccess(final String passphrase) {
-                    String mnemonics = CryptoHelper.encrypted_mnemonic_to_mnemonic(getNFCPayload(intent), passphrase);
+                    final String mnemonics = CryptoHelper.encrypted_mnemonic_to_mnemonic(getNFCPayload(intent), passphrase);
                     mMnemonicText.setText(mnemonics);
                     loginOnUiThread(mnemonics);
                 }
@@ -398,7 +394,7 @@ public class MnemonicActivity extends LoginActivity {
             spannable.setSpan(s, start, end, 0);
     }
 
-    class Spans {
+    static class Spans {
         final String word;
         final List<Object> spans = new ArrayList<>(4);
         Spans(final String word) {

@@ -50,7 +50,9 @@ public class ApplicationService extends Service {
     @Override
     public void onTaskRemoved(Intent rootIntent) {
         if (mService != null) {
-            mService.mSPV.stopSync();
+            // FIXME
+            mService.disconnect(false);
+            //mService.mSPV.stopSync();
         }
         super.onTaskRemoved(rootIntent);
     }

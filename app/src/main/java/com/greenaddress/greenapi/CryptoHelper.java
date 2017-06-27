@@ -5,17 +5,21 @@ import com.greenaddress.greenbits.ui.MnemonicHelper;
 import org.bitcoin.NativeSecp256k1;
 import org.bitcoin.NativeSecp256k1Util;
 import org.bitcoin.Secp256k1Context;
+import org.codehaus.jackson.map.MappingJsonFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.text.Normalizer;
 import java.util.Arrays;
+import java.util.Map;
 
 public class CryptoHelper {
 
     private final static int BL = Wally.AES_BLOCK_LEN;
     private final static Object WL = Wally.bip39_get_wordlist("en");
 
-    public static byte[] randomBytes(int len) {
+    public static byte[] randomBytes(final int len) {
         final byte[] b = new byte[len];
         new SecureRandom().nextBytes(b);
         return b;
@@ -71,7 +75,7 @@ public class CryptoHelper {
         return Arrays.copyOf(pbkdf2_hmac_sha512(password, salt), 32);
     }
 
-    public static byte[] encrypt_aes_cbc(final byte[] data, final byte[] password, final byte[] salt) {
+    private static byte[] encrypt_aes_cbc(final byte[] data, final byte[] password, final byte[] salt) {
         final byte[] key = getKey(password, salt);
 
         final byte[] iv = randomBytes(BL);
@@ -86,7 +90,7 @@ public class CryptoHelper {
         return ivAndEncrypted;
     }
 
-    public static byte[] decrypt_aes_cbc(final byte[] ivAndData, final byte[] password, final byte[] salt) {
+    private static byte[] decrypt_aes_cbc(final byte[] ivAndData, final byte[] password, final byte[] salt) {
         final byte[] key = getKey(password, salt);
 
         final byte[] iv = new byte[BL];
@@ -106,5 +110,27 @@ public class CryptoHelper {
 
     public static byte[] pbkdf2_hmac_sha512(final byte[] password, final byte[] salt) {
         return Wally.pbkdf2_hmac_sha512(password, salt, 0, 2048);
+    }
+
+    public static byte[] encryptJSON(final JSONMap json, final byte[] password, final byte[] salt) {
+        final ByteArrayOutputStream b = new ByteArrayOutputStream();
+        try {
+            new MappingJsonFactory().getCodec().writeValue(b, json.mData);
+        } catch (final IOException e) {
+            throw new RuntimeException(e.getMessage());// coding error
+        }
+
+        return encrypt_aes_cbc(b.toByteArray(), password, salt);
+    }
+
+    public static JSONMap decryptJSON(final byte[] encryptedData, final byte[] password, final byte[] salt) {
+        final byte[] decrypted = decrypt_aes_cbc(encryptedData, password, salt);
+        final Map<String, Object> json;
+        try {
+            json = new MappingJsonFactory().getCodec().readValue(new String(decrypted), Map.class);
+        } catch (final IOException e) {
+            throw new RuntimeException(e.getMessage()); // Coding error
+        }
+        return new JSONMap(json);
     }
 }

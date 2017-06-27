@@ -12,7 +12,7 @@ public class FailHardActivity extends AppCompatActivity {
     private final static String TAG = FailHardActivity.class.getSimpleName();
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_fail_hard);
     }
@@ -21,7 +21,7 @@ public class FailHardActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         final Intent i = getIntent();
-        Log.e(TAG, i.getStringExtra("errorTitle") + ":" + i.getStringExtra("errorContent"));
+        Log.e(TAG, i.getStringExtra("errorTitle") + ':' + i.getStringExtra("errorContent"));
 
         UI.popup(this, i.getStringExtra("errorTitle"))
                   .content(i.getStringExtra("errorContent"))

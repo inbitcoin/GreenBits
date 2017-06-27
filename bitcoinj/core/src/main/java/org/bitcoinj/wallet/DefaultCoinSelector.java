@@ -1,4 +1,6 @@
 /*
+ * Copyright by the original author or authors.
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -32,10 +34,10 @@ import java.util.*;
 public class DefaultCoinSelector implements CoinSelector {
     @Override
     public CoinSelection select(Coin target, List<TransactionOutput> candidates) {
-        ArrayList<TransactionOutput> selected = new ArrayList<TransactionOutput>();
+        ArrayList<TransactionOutput> selected = new ArrayList<>();
         // Sort the inputs by age*value so we get the highest "coindays" spent.
         // TODO: Consider changing the wallets internal format to track just outputs and keep them ordered.
-        ArrayList<TransactionOutput> sortedOutputs = new ArrayList<TransactionOutput>(candidates);
+        ArrayList<TransactionOutput> sortedOutputs = new ArrayList<>(candidates);
         // When calculating the wallet balance, we may be asked to select all possible coins, if so, avoid sorting
         // them in order to improve performance.
         // TODO: Take in network parameters when instanatiated, and then test against the current network. Or just have a boolean parameter for "give me everything"

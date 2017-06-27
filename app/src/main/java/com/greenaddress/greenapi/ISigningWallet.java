@@ -19,15 +19,17 @@ public abstract class ISigningWallet {
     private static final String TAG = ISigningWallet.class.getSimpleName();
 
     protected static final int HARDENED = 0x80000000;
+    protected static final int PASSWORD_PATH = 0x70617373 | HARDENED; // 'pass'
+    protected static final byte[] PASSWORD_SALT = new byte[] {
+        0x70, 0x61, 0x73, 0x73, 0x73, 0x61, 0x6c, 0x74 // 'passsalt'
+    };
 
     public abstract boolean requiresPrevoutRawTxs(); // FIXME: Get rid of this
 
-    public DeterministicKey getMyPublicKey(final int subAccount) {
-        return getMyKey(subAccount).getPubKey();
-    }
-    protected abstract ISigningWallet getMyKey(final int subAccount);
-    public abstract DeterministicKey getMyPublicKey(final int subAccount, final Integer pointer);
+    public abstract DeterministicKey getSubAccountPublicKey(final int subAccount);
     public abstract List<byte[]> signTransaction(PreparedTransaction ptx);
+    public abstract List<byte[]> signTransaction(final Transaction tx, final PreparedTransaction ptx, final List<Output> prevOuts);
+
     // FIXME: This is only needed until the challenge RPC is unified
     public abstract Object[] getChallengeArguments();
     public abstract String[] signChallenge(final String challengeString, final String[] challengePath);
@@ -94,4 +96,9 @@ public abstract class ISigningWallet {
         System.arraycopy(Utils.bigIntegerToBytes(signature.s, 32), 0, sigData, 33, 32);
         return new String(Base64.encode(sigData), Charset.forName("UTF-8"));
     }
+
+    // Derive a local password for encryption of client side data.
+    // This takes a hardened public key using PASSWORD_PATH and returns
+    // the pbkdf2_hmac_sha512 of its serialized bytes with PASSWORD_SALT.
+    public abstract byte[] getLocalEncryptionPassword();
 }

@@ -117,8 +117,8 @@ public class SubaccountsPreferenceFragment extends GAPreferenceFragment {
     private void create2to2subaccount(final String label) {
         final int pointer = mService.getSubaccountObjs().size() + 1;
         final ISigningWallet iSigningWallet = mService.getSigningWallet();
-        final String user_public = Wally.hex_from_bytes(iSigningWallet.getMyPublicKey(pointer).getPubKey());
-        final String user_chaincode = Wally.hex_from_bytes(iSigningWallet.getMyPublicKey(pointer).getChainCode());
+        final String user_public = Wally.hex_from_bytes(iSigningWallet.getSubAccountPublicKey(pointer).getPubKey());
+        final String user_chaincode = Wally.hex_from_bytes(iSigningWallet.getSubAccountPublicKey(pointer).getChainCode());
         Futures.addCallback(mService.create2to2subaccount(pointer, label, user_public,
                 user_chaincode, "simple"), new FutureCallback<String>()
         {
@@ -143,7 +143,7 @@ public class SubaccountsPreferenceFragment extends GAPreferenceFragment {
             @Override
             public void onFailure(Throwable throwable) {
                 throwable.printStackTrace();
-                ((GaPreferenceActivity) getActivity()).toast(throwable.getMessage());
+                UI.toast(getActivity(), throwable.getMessage(), Toast.LENGTH_LONG);
             }
         });
     }

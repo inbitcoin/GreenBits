@@ -50,8 +50,6 @@ public class TransactionInput extends ChildMessage {
     // Magic outpoint index that indicates the input is in fact unconnected.
     private static final long UNCONNECTED = 0xFFFFFFFFL;
 
-    public TransactionOutput prevOut;
-
     // Allows for altering transactions after they were broadcast. Values below NO_SEQUENCE-1 mean it can be altered.
     private long sequence;
     // Data needed to connect to the output of the transaction we're gathering coins from.
@@ -149,20 +147,6 @@ public class TransactionInput extends ChildMessage {
         Utils.uint32ToByteStreamLE(sequence, stream);
     }
 
-    protected void bitcoinSerializeForCTSigning(OutputStream stream) throws IOException {
-        outpoint.bitcoinSerialize(stream);
-
-        stream.write(prevOut.getCommitment());
-        stream.write(new VarInt(prevOut.getRangeProof().length).encode());
-        stream.write(prevOut.getRangeProof());
-        stream.write(new VarInt(prevOut.getNonceCommitment().length).encode());
-        stream.write(prevOut.getNonceCommitment());
-
-        stream.write(new VarInt(scriptBytes.length).encode());
-        stream.write(scriptBytes);
-        Utils.uint32ToByteStreamLE(sequence, stream);
-    }
-
     /**
      * Coinbase transactions have special inputs with hashes of zero. If this is such an input, returns true.
      */
@@ -181,14 +165,14 @@ public class TransactionInput extends ChildMessage {
         Script script = scriptSig == null ? null : scriptSig.get();
         if (script == null) {
             script = new Script(scriptBytes);
-            scriptSig = new WeakReference<Script>(script);
+            scriptSig = new WeakReference<>(script);
         }
         return script;
     }
 
     /** Set the given program as the scriptSig that is supposed to satisfy the connected output script. */
     public void setScriptSig(Script scriptSig) {
-        this.scriptSig = new WeakReference<Script>(checkNotNull(scriptSig));
+        this.scriptSig = new WeakReference<>(checkNotNull(scriptSig));
         // TODO: This should all be cleaned up so we have a consistent internal representation.
         setScriptBytes(scriptSig.getProgram());
     }
@@ -375,11 +359,23 @@ public class TransactionInput extends ChildMessage {
      * @return true if the disconnection took place, false if it was not connected.
      */
     public boolean disconnect() {
-        if (outpoint.fromTx == null) return false;
-        TransactionOutput output = outpoint.fromTx.getOutput((int) outpoint.getIndex());
-        if (output.getSpentBy() == this) {
-            output.markAsUnspent();
+        TransactionOutput connectedOutput;
+        if (outpoint.fromTx != null) {
+            // The outpoint is connected using a "standard" wallet, disconnect it.
+            connectedOutput = outpoint.fromTx.getOutput((int) outpoint.getIndex());
             outpoint.fromTx = null;
+        } else if (outpoint.connectedOutput != null) {
+            // The outpoint is connected using a UTXO based wallet, disconnect it.
+            connectedOutput = outpoint.connectedOutput;
+            outpoint.connectedOutput = null;
+        } else {
+            // The outpoint is not connected, do nothing.
+            return false;
+        }
+
+        if (connectedOutput != null && connectedOutput.getSpentBy() == this) {
+            // The outpoint was connected to an output, disconnect the output.
+            connectedOutput.markAsUnspent();
             return true;
         } else {
             return false;

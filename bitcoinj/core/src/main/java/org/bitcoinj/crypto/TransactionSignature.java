@@ -37,17 +37,10 @@ public class TransactionSignature extends ECKey.ECDSASignature {
      * otherwise we'll fail to verify signature hashes.
      */
     public final int sighashFlags;
-    private byte[] schnorr;
 
     /** Constructs a signature with the given components and SIGHASH_ALL. */
     public TransactionSignature(BigInteger r, BigInteger s) {
         this(r, s, Transaction.SigHash.ALL.value);
-    }
-
-    public TransactionSignature(byte[] schnorr, Transaction.SigHash mode, boolean anyoneCanPay) {
-        super(null, null);
-        this.schnorr = schnorr;
-        this.sighashFlags = calcSigHashValue(mode, anyoneCanPay);
     }
 
     /** Constructs a signature with the given components and raw sighash flag bytes (needed for rule compatibility). */
@@ -149,17 +142,6 @@ public class TransactionSignature extends ECKey.ECDSASignature {
      * components into a structure, and then we append a byte to the end for the sighash flags.
      */
     public byte[] encodeToBitcoin() {
-        if (schnorr != null) {
-            try {
-                ByteArrayOutputStream bos = new ByteArrayOutputStream(65);
-                bos.write(schnorr);
-                bos.write(sighashFlags);
-                return bos.toByteArray();
-            } catch (IOException e) {
-                throw new RuntimeException(e);  // Cannot happen.
-            }
-        }
-
         try {
             ByteArrayOutputStream bos = derByteStream();
             bos.write(sighashFlags);

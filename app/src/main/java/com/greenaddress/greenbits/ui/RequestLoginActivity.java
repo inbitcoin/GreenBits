@@ -51,8 +51,8 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
     private static final String TAG = RequestLoginActivity.class.getSimpleName();
     private static final byte DUMMY_COMMAND[] = { (byte)0xE0, (byte)0xC4, (byte)0x00, (byte)0x00, (byte)0x00 };
 
-    private Dialog mBTChipDialog = null;
-    private BTChipHWWallet mHwWallet = null;
+    private Dialog mBTChipDialog;
+    private BTChipHWWallet mHwWallet;
     private TagDispatcher mTagDispatcher;
     private Tag mTag;
     private SettableFuture<BTChipTransport> mTransportFuture;
@@ -90,7 +90,7 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
                             final int ii = i;
                             buttons[i].setOnClickListener(new View.OnClickListener() {
                                 @Override
-                                public void onClick(View v) {
+                                public void onClick(final View v) {
                                     pinValue.setText(UI.getText(pinValue) + (ii + 1));
                                     pinValue.setSelection(UI.getText(pinValue).length());
                                 }
@@ -125,7 +125,7 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
                                 .customView(v, true)
                                 .onPositive(new MaterialDialog.SingleButtonCallback() {
                                     @Override
-                                    public void onClick(MaterialDialog dialog, DialogAction which) {
+                                    public void onClick(final MaterialDialog dialog, final DialogAction which) {
                                         ret.set(UI.getText(passphraseValue));
                                     }
                                 }).build().show();
@@ -188,7 +188,7 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
 
     private void onLedger(final Intent intent) {
         final TextView edit = UI.find(this, R.id.firstLoginRequestedInstructionsText);
-        edit.setText("");
+        UI.clear(edit);
         UI.hide(edit);
         // not TREZOR/KeepKey/BWALLET/AvalonWallet, so must be BTChip
         if (mTag != null)
@@ -219,7 +219,7 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
         Futures.addCallback(Futures.transform(mService.onConnected, new AsyncFunction<Void, LoginData>() {
                     @Override
                     public ListenableFuture<LoginData> apply(final Void nada) throws Exception {
-                        BTChipTransport transport;
+                        final BTChipTransport transport;
                         if (device != null) {
                             final UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
                             transport = BTChipTransportAndroid.open(manager, device);
@@ -369,7 +369,7 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
     }
 
 
-    final FutureCallback<LoginData> mOnLoggedIn = new FutureCallback<LoginData>() {
+    private final FutureCallback<LoginData> mOnLoggedIn = new FutureCallback<LoginData>() {
         @Override
         public void onSuccess(final LoginData result) {
             if (result != null)

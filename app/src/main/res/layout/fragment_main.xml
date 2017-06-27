@@ -33,14 +33,8 @@
             android:gravity="end"
             android:paddingRight="@dimen/activity_horizontal_margin">
 
-            <TextView
-                android:id="@+id/mainBitcoinScaleText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/textColor"
-                android:textSize="34sp" />
             <com.greenaddress.greenbits.ui.FontAwesomeTextView
-                android:id="@+id/mainBalanceBitcoinIcon"
+                android:id="@+id/mainBalanceUnit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/textColor"
@@ -65,6 +59,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/mainLocalBalance"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:gravity="end"
@@ -91,7 +86,7 @@
                 android:textColor="@color/secondaryTextColor"
                 android:textSize="24sp"
                 android:layout_weight="0"
-                android:layout_gravity="top"/>
+                android:layout_gravity="top" />
         </LinearLayout>
 
     </LinearLayout>
@@ -111,7 +106,7 @@
             android:layout_height="wrap_content"
             android:paddingBottom="60dp"
             android:clipToPadding="false"
-            android:scrollbars="vertical"/>
+            android:scrollbars="vertical" />
 
         <LinearLayout
             android:gravity="center"
@@ -127,7 +122,7 @@
                 android:gravity="center"
                 android:padding="16dp"
                 android:text="@string/noBalanceFirstLine"
-                android:textSize="20sp"/>
+                android:textSize="20sp" />
 
             <TextView
                 android:id="@+id/mainSecondParagraphText"
@@ -136,7 +131,7 @@
                 android:gravity="center"
                 android:padding="16dp"
                 android:text="@string/noBalanceSecondLine"
-                android:textSize="20sp"/>
+                android:textSize="20sp" />
 
             <TextView
                 android:id="@+id/mainThirdParagraphText"

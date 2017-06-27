@@ -1,8 +1,10 @@
 package com.greenaddress.greenbits.ui;
 
 import android.app.Activity;
+import android.transition.CircularPropagation;
 import android.widget.Button;
 
+import com.dd.CircularProgressButton;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -10,8 +12,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 public final class CB {
 
-    public static <T> void after(ListenableFuture<T> f,
-                                 FutureCallback<? super T> cb) {
+    public static <T> void after(final ListenableFuture<T> f,
+                                 final FutureCallback<? super T> cb) {
         Futures.addCallback(f, cb);
     }
 
@@ -34,6 +36,7 @@ public final class CB {
 
        final Activity mActivity;
        final Button mEnabler;
+       final CircularProgressButton mCircular;
 
        Toast(final Activity activity) {
            this(activity, null);
@@ -43,12 +46,23 @@ public final class CB {
            super();
            mActivity = activity;
            mEnabler = enabler;
+           mCircular = null;
        }
+
+       Toast(final Activity activity, final CircularProgressButton enabler) {
+            super();
+            mActivity = activity;
+            mEnabler = null;
+            mCircular = enabler;
+        }
 
        @Override
        public void onFailure(final Throwable t) {
            t.printStackTrace();
-           UI.toast(mActivity, t, mEnabler);
+           if (mCircular != null)
+               UI.toast(mActivity, t, mCircular);
+           else
+               UI.toast(mActivity, t, mEnabler);
        }
     }
 

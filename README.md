@@ -6,11 +6,11 @@ Build status: [![Build Status](https://api.travis-ci.org/inbitcoin/altana-androi
 
 You need to have the following Android developer tools installed:
 
-- "Android SDK Platform-tools" version 25.0.3 recommended
-- "Android SDK Tools" version 25.2.5 recommended
-- "Android SDK Build-tools" version 25.0.2 recommended
-- "Android Support Library" version 25.1.1 recommended
-- "Android NDK" version r13b recommended
+- "Android SDK Platform-tools" version 25.0.5 recommended
+- "Android SDK Tools" version 26.0.2 recommended
+- "Android SDK Build-tools" version 25.0.3 recommended
+- "Android Support Library" version 25.3.1 recommended
+- "Android NDK" version r14b recommended
 
 The above tools can be installed from the Android SDK manager.
 
@@ -64,6 +64,19 @@ On TESTNET:
 Or to build both at once, run:
 
 `./buildCheckpoints.sh`
+
+If you have docker configured and want to build the app in release mode without having to deal with setting up an Android development environment
+
+`cd contrib`
+
+`docker build -t greenbits_docker .`
+
+`docker run -v $PATH_TO_GREENBITS_REPO:/gb greenbits_docker`
+
+if you don't need to build the Docker image, you can directly do:
+
+`docker pull greenaddress/android && docker run -v $PATH_TO_GREENBITS_REPO:/gb greenaddress/android`
+
 
 ### Acknowledgements
 

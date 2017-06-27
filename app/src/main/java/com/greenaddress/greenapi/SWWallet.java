@@ -46,19 +46,18 @@ public class SWWallet extends ISigningWallet {
         return new SWWallet(HDKey.deriveChildKey(mRootKey, childNumber));
     }
 
-    @Override
-    public DeterministicKey getMyPublicKey(final int subAccount, final Integer pointer) {
-        DeterministicKey k = getMyPublicKey(subAccount);
-        // Currently only regular transactions are supported
-        k = HDKey.deriveChildKey(k, HDKey.BRANCH_REGULAR);
-        return HDKey.deriveChildKey(k, pointer);
+    public DeterministicKey getSubAccountPublicKey(final int subAccount) {
+        return getMyKey(subAccount).mRootKey;
     }
 
     @Override
     public List<byte[]> signTransaction(final PreparedTransaction ptx) {
-        final Transaction tx = ptx.mDecoded;
+        return signTransaction(ptx.mDecoded, ptx, ptx.mPrevOutputs);
+    }
+
+    @Override
+    public List<byte[]> signTransaction(final Transaction tx, final PreparedTransaction ptx, final List<Output> prevOuts) {
         final List<TransactionInput> txInputs = tx.getInputs();
-        final List<Output> prevOuts = ptx.mPrevOutputs;
         final List<byte[]> sigs = new ArrayList<>(txInputs.size());
 
         for (int i = 0; i < txInputs.size(); ++i) {
@@ -66,8 +65,8 @@ public class SWWallet extends ISigningWallet {
 
             final Script script = new Script(Wally.hex_to_bytes(prevOut.script));
             final Sha256Hash hash;
-            if (prevOut.scriptType.equals(14))
-                hash = tx.hashForSignatureV2(i, script.getProgram(), Coin.valueOf(prevOut.value), Transaction.SigHash.ALL, false);
+            if (prevOut.scriptType.equals(GATx.P2SH_P2WSH_FORTIFIED_OUT))
+                hash = tx.hashForSignatureWitness(i, script.getProgram(), Coin.valueOf(prevOut.value), Transaction.SigHash.ALL, false);
             else
                 hash = tx.hashForSignature(i, script.getProgram(), Transaction.SigHash.ALL, false);
 
@@ -98,7 +97,7 @@ public class SWWallet extends ISigningWallet {
         // Derive the private key for signing the challenge from the path
         DeterministicKey key = mRootKey;
         for (int i = 0; i < path.length / 2; ++i) {
-            int step = u8(path[i * 2]) * 256 + u8(path[i * 2 + 1]);
+            final int step = u8(path[i * 2]) * 256 + u8(path[i * 2 + 1]);
             key = HDKey.deriveChildKey(key, step);
         }
 
@@ -123,16 +122,13 @@ public class SWWallet extends ISigningWallet {
         return mRootKey;
     }
 
-    @Override
-    protected SWWallet getMyKey(final int subAccount) {
+    private SWWallet getMyKey(final int subAccount) {
         SWWallet parent = this;
         if (subAccount != 0)
             parent = parent.derive(ISigningWallet.HARDENED | 3)
                            .derive(ISigningWallet.HARDENED | subAccount);
         return parent;
     }
-
-    private int u8(int i) { return i < 0 ? 256 + i : i; }
 
     @Override
     public ECKey.ECDSASignature signMessage(final String message) {
@@ -144,4 +140,11 @@ public class SWWallet extends ISigningWallet {
     public DeterministicKey getPubKey() {
         return mRootKey.dropPrivateBytes();
     }
+
+    public byte[] getLocalEncryptionPassword() {
+        final byte[] pubkey = this.derive(PASSWORD_PATH).mRootKey.getPubKey();
+        return CryptoHelper.pbkdf2_hmac_sha512(pubkey, PASSWORD_SALT);
+    }
+
+    private int u8(final int i) { return i < 0 ? 256 + i : i; }
 }

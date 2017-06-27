@@ -17,9 +17,7 @@
 package org.bitcoinj.script;
 
 import com.google.common.collect.Lists;
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
+import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.TransactionSignature;
 
 import javax.annotation.Nullable;
@@ -49,7 +47,7 @@ public class ScriptBuilder {
 
     /** Creates a fresh ScriptBuilder with the given program as the starting point. */
     public ScriptBuilder(Script template) {
-        chunks = new ArrayList<ScriptChunk>(template.getChunks());
+        chunks = new ArrayList<>(template.getChunks());
     }
 
     /** Adds the given chunk to the end of the program */
@@ -178,7 +176,7 @@ public class ScriptBuilder {
         if (num == 0) {
             data = new byte[0];
         } else {
-            Stack<Byte> result = new Stack<Byte>();
+            Stack<Byte> result = new Stack<>();
             final boolean neg = num < 0;
             long absvalue = Math.abs(num);
 
@@ -223,6 +221,11 @@ public class ScriptBuilder {
                 .data(to.getHash160())
                 .op(OP_EQUAL)
                 .build();
+        } else if (to.isP2WPKHAddress() || to.isP2WSHAddress()) {
+            return new ScriptBuilder()
+                .smallNum(0)
+                .data(to.getHash())
+                .build();
         } else {
             // OP_DUP OP_HASH160 <pubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
             return new ScriptBuilder()
@@ -259,6 +262,15 @@ public class ScriptBuilder {
         return new ScriptBuilder().data(sigBytes).build();
     }
 
+    /**
+     * Creates a scriptSig including a segwit program to use when paying to segwit outputs wrapped in P2SH.
+     * @param segwitProgram
+     * @return
+     */
+    public static Script createSegwitP2SHSigScript(Script segwitProgram) {
+        return new ScriptBuilder().data(segwitProgram.getProgram()).build();
+    }
+
     /** Creates a program that requires at least N of the given keys to sign, using OP_CHECKMULTISIG. */
     public static Script createMultiSigOutputScript(int threshold, List<ECKey> pubkeys) {
         checkArgument(threshold > 0);
@@ -276,7 +288,7 @@ public class ScriptBuilder {
 
     /** Create a program that satisfies an OP_CHECKMULTISIG program. */
     public static Script createMultiSigInputScript(List<TransactionSignature> signatures) {
-        List<byte[]> sigs = new ArrayList<byte[]>(signatures.size());
+        List<byte[]> sigs = new ArrayList<>(signatures.size());
         for (TransactionSignature signature : signatures) {
             sigs.add(signature.encodeToBitcoin());
         }
@@ -300,7 +312,7 @@ public class ScriptBuilder {
      */
     public static Script createP2SHMultiSigInputScript(@Nullable List<TransactionSignature> signatures,
                                                        Script multisigProgram) {
-        List<byte[]> sigs = new ArrayList<byte[]>();
+        List<byte[]> sigs = new ArrayList<>();
         if (signatures == null) {
             // create correct number of empty signatures
             int numSigs = multisigProgram.getNumberOfSignaturesRequiredToSpend();
@@ -391,6 +403,22 @@ public class ScriptBuilder {
     }
 
     /**
+     * Creates a segwit scriptPubKey that sends to the given public key hash.
+     */
+    public static Script createP2WPKHOutputScript(byte[] hash) {
+        checkArgument(hash.length == 20);
+        return new ScriptBuilder().smallNum(0).data(hash).build();
+    }
+
+    /**
+     * Creates a segwit scriptPubKey that sends to the given public key.
+     */
+    public static Script createP2WPKHOutputScript(ECKey key) {
+        checkArgument(key.isCompressed());
+        return createP2WPKHOutputScript(key.getPubKeyHash());
+    }
+
+    /**
      * Creates a scriptPubKey that sends to the given script hash. Read
      * <a href="https://github.com/bitcoin/bips/blob/master/bip-0016.mediawiki">BIP 16</a> to learn more about this
      * kind of script.
@@ -398,14 +426,6 @@ public class ScriptBuilder {
     public static Script createP2SHOutputScript(byte[] hash) {
         checkArgument(hash.length == 20);
         return new ScriptBuilder().op(OP_HASH160).data(hash).op(OP_EQUAL).build();
-    }
-
-    /**
-     * Creates a scriptPubKey for the given redeem script.
-     */
-    public static Script createP2SHOutputScript(Script redeemScript) {
-        byte[] hash = Utils.sha256hash160(redeemScript.getProgram());
-        return ScriptBuilder.createP2SHOutputScript(hash);
     }
 
     /**
@@ -418,11 +438,35 @@ public class ScriptBuilder {
     }
 
     /**
+     * Creates a scriptPubKey for the given redeem script.
+     */
+    public static Script createP2SHOutputScript(Script redeemScript) {
+        byte[] hash = Utils.sha256hash160(redeemScript.getProgram());
+        return ScriptBuilder.createP2SHOutputScript(hash);
+    }
+
+    /**
+     * Creates a segwit P2WSH pubKeyScript for provided script.
+     */
+    public static Script createP2WSHOutputScript(Script segwitScript) {
+        byte[] hash = Sha256Hash.hash(segwitScript.getProgram());
+        return ScriptBuilder.createP2WSHOutputScript(hash);
+    }
+
+    /**
+     * Creates a segwit scriptPubKey for the given redeem script sha256 hash.
+     */
+    public static Script createP2WSHOutputScript(byte[] hash) {
+        checkArgument(hash.length == 32);
+        return new ScriptBuilder().smallNum(0).data(hash).build();
+    }
+
+    /**
      * Creates redeem script with given public keys and threshold. Given public keys will be placed in
      * redeem script in the lexicographical sorting order.
      */
     public static Script createRedeemScript(int threshold, List<ECKey> pubkeys) {
-        pubkeys = new ArrayList<ECKey>(pubkeys);
+        pubkeys = new ArrayList<>(pubkeys);
         Collections.sort(pubkeys, ECKey.PUBKEY_COMPARATOR);
         return ScriptBuilder.createMultiSigOutputScript(threshold, pubkeys);
     }

@@ -2,6 +2,7 @@
 <resources>
 
     <string name="app_name" translatable="false">Altana</string>
+    <string name="empty" translatable="false"></string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_mnemonic">Restore</string>
     <string name="sendToText">To</string>
@@ -244,16 +245,18 @@
     <string name="remember_warn_title">Warning: The username will be saved on device</string>
     <string name="remember_warn_content">Saving the username on the device can be dangerous; if someone can access your memory they will have access to your username in clear text. If you choose to continue, please press "OK".</string>
     <string name="advanced_options">Show advanced options</string>
-    <string name="generating_address">Generating address...</string>
-    <string name="loading_transactions">Loading transactions...</string>
+    <string name="generating_address">Generating address…</string>
+    <string name="loading_transactions">Loading transactions…</string>
 
     <!-- FontAwesome Glyphs -->
     <string name="fa_arrow_down" translatable="false">&#xf063;</string>
+    <string name="fa_bits_space" translatable="false">bits\u0020</string>
     <string name="fa_btc" translatable="false">&#xf15a;</string>
     <string name="fa_btc_space" translatable="false">&#xf15a;\u0020</string>
     <string name="fa_camera" translatable="false">&#xf030;</string>
     <string name="fa_clock_o" translatable="false">&#xf017;</string>
     <string name="fa_copy" translatable="false">&#xf0c5;</string>
+    <string name="fa_mbtc_space" translatable="false">m&#xf15a;\u0020</string>
     <string name="fa_pencil" translatable="false">&#xf040;</string>
     <string name="fa_plus" translatable="false">&#xf067;</string>
     <string name="fa_qrcode" translatable="false">&#xf029;</string>
@@ -269,7 +272,10 @@
     <string name="fa_share_alt" translatable="false">&#xf1e0;</string>
     <string name="fa_usd" translatable="false">&#xf155;</string>
     <string name="fa_trash" translatable="false">&#xf1f8;</string>
+    <string name="fa_ubtc_space" translatable="false">\u00b5&#xf15a;\u0020</string>
+
     <string name="transactionCompleted">Transaction successfully completed</string>
+    <string name="unable_to_create_change">Unable to create change output</string>
     <string name="unable_to_connect_to_service">GreenBits is unable to connect, please verify your internet connection</string>
     <string name="nfcDialogMessage">Hold your NFC tag close to the device</string>
     <string name="securePassphraseMsg">Please secure your passphrase and confirm you agree to the Terms of Service</string>
@@ -293,6 +299,38 @@
     <string name="segwit_dialog_content">Your account has been automatically updated to enable segregated witness. You can disable this upgrade in settings only until you generate the next address to receive funds.</string>
     <string name="segwit_disable">Disable Segwit</string>
     <string name="segwit_enable">Enable Segwit</string>
+    <string name="sellTo">Sell to</string>
+    <string name="exchanger">Exchanger</string>
+    <string name="exchangerSellTitle">Sell</string>
+    <string name="exchangerBuyTitle">Buy</string>
+    <string name="exchangerPreferenceFiat">Preset buttons for fiat</string>
+    <string name="exchangerPreferenceFiatDesc">Use fiat values, in your current currency, separated by space. Example: "10 20.5 50 100 200"</string>
+    <string name="exchangerPreferenceFiatInPocket">Fiat in your pocket</string>
+    <string name="exchangerPreferenceFiatInPocketDesc">in your current currency</string>
+    <string name="noEnoughMoneyInPocket">No enough money in your pocket</string>
+    <string name="txExchangerMemo">Exchanger transaction</string>
+    <string name="waitingTransaction">Waiting for transaction...</string>
+    <string name="show_exchanger_menu">Show exchanger menu</string>
+    <string name="buy_commission_percentage">Buy percentage commission</string>
+    <string name="buy_commission_fixed">Buy fixed commission</string>
+    <string name="sell_commission_percentage">Sell percentage commission</string>
+    <string name="sell_commission_fixed">Sell fixed commission</string>
+    <string name="buy_commission_percentage_elements">Cash out percentage commission</string>
+    <string name="buy_commission_fixed_elements">Cash out fixed commission</string>
+    <string name="sell_commission_percentage_elements">Cash in percentage commission</string>
+    <string name="sell_commission_fixed_elements">Cash in fixed commission</string>
+    <string name="enterValidValue">Enter a valid value</string>
+    <string name="enterValidPerc">Enter value from 0 to 100</string>
+    <string name="enterValidValueGreaterZero">Enter value greater than 0</string>
+    <string name="fixedCommissionDesc">fixed commission in</string>
+    <string name="totalWithCommissions">Total with commissions:</string>
+    <string name="showQrCode">Show QR code</string>
+    <string name="cash_in">Cash in</string>
+    <string name="cash_out">Cash out</string>
+    <string name="send_to_address">Send to address</string>
+    <string name="twoFacLimitTitle">Set Two Factor Threshold</string>
+    <string name="twoFacLimitEnabled">Two Factor Authentication will be skipped for transactions under your threshold.</string>
+    <string name="twoFacLimitDisabled">You must enable at least one Two Factor Authentication method before you can change the threshold.</string>
     <string name="sweep_wait_message">This operation may take several seconds…</string>
     <string name="doubleTilde" translatable="false">≈</string>
     <string name="sharedVia">Shared via</string>

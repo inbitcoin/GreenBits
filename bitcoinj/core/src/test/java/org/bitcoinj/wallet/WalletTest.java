@@ -93,8 +93,6 @@ public class WalletTest extends TestWithWallet {
     private static final CharSequence PASSWORD1 = "my helicopter contains eels";
     private static final CharSequence WRONG_PASSWORD = "nothing noone nobody nowhere";
 
-    private SecureRandom secureRandom = new SecureRandom();
-
     private final Address OTHER_ADDRESS = new ECKey().toAddress(PARAMS);
 
     @Before
@@ -565,7 +563,7 @@ public class WalletTest extends TestWithWallet {
         // Test that we correctly process transactions arriving from the chain, with callbacks for inbound and outbound.
         final Coin[] bigints = new Coin[4];
         final Transaction[] txn = new Transaction[2];
-        final LinkedList<Transaction> confTxns = new LinkedList<Transaction>();
+        final LinkedList<Transaction> confTxns = new LinkedList<>();
         wallet.addCoinsReceivedEventListener(new WalletCoinsReceivedEventListener() {
             @Override
             public void onCoinsReceived(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
@@ -815,7 +813,7 @@ public class WalletTest extends TestWithWallet {
         Transaction send3 = checkNotNull(wallet.createSend(OTHER_ADDRESS, value));
         wallet.commitTx(send3);
         assertEquals(ZERO, wallet.getBalance());
-        final LinkedList<TransactionConfidence> dead = new LinkedList<TransactionConfidence>();
+        final LinkedList<TransactionConfidence> dead = new LinkedList<>();
         final TransactionConfidence.Listener listener = new TransactionConfidence.Listener() {
             @Override
             public void onConfidenceChanged(TransactionConfidence confidence, ChangeReason reason) {
@@ -1220,7 +1218,7 @@ public class WalletTest extends TestWithWallet {
             Transaction send1c = checkNotNull(wallet.createSend(OTHER_ADDRESS, valueOf(0, 25)));
             wallet.commitTx(send1c);
             wallet.commitTx(send2);
-            Set<Transaction> txns = new HashSet<Transaction>();
+            Set<Transaction> txns = new HashSet<>();
             txns.add(send1);
             wallet.addTransactionsDependingOn(txns, wallet.getTransactions(true));
             assertEquals(3, txns.size());
@@ -1269,7 +1267,7 @@ public class WalletTest extends TestWithWallet {
             wallet.completeTx(req2c);
             Transaction send2c = req2c.tx;
 
-            Set<Transaction> unsortedTxns = new HashSet<Transaction>();
+            Set<Transaction> unsortedTxns = new HashSet<>();
             unsortedTxns.add(send1a);
             unsortedTxns.add(send1b);
             unsortedTxns.add(send1c);
@@ -1587,7 +1585,6 @@ public class WalletTest extends TestWithWallet {
         // TODO: This code is messy, improve the Script class and fixinate!
         assertEquals(t2.toString(), 1, t2.getInputs().get(0).getScriptSig().getChunks().size());
         assertTrue(t2.getInputs().get(0).getScriptSig().getChunks().get(0).data.length > 50);
-        log.info(t2.toString(chain));
     }
 
     @Test
@@ -1713,7 +1710,7 @@ public class WalletTest extends TestWithWallet {
 
     @Test
     public void removeWatchedAddresses() {
-        List<Address> addressesForRemoval = new ArrayList<Address>();
+        List<Address> addressesForRemoval = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             Address watchedAddress = new ECKey().toAddress(PARAMS);
             addressesForRemoval.add(watchedAddress);
@@ -1738,7 +1735,7 @@ public class WalletTest extends TestWithWallet {
 
     @Test
     public void removeScriptsBloomFilter() throws Exception {
-        List<Address> addressesForRemoval = new ArrayList<Address>();
+        List<Address> addressesForRemoval = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             Address watchedAddress = new ECKey().toAddress(PARAMS);
             addressesForRemoval.add(watchedAddress);
@@ -2094,9 +2091,8 @@ public class WalletTest extends TestWithWallet {
 
         // Try added an ECKey that was encrypted with a differenct ScryptParameters (i.e. a non-homogenous key).
         // This is not allowed as the ScryptParameters is stored at the Wallet level.
-        byte[] salt = new byte[KeyCrypterScrypt.SALT_LENGTH];
-        secureRandom.nextBytes(salt);
-        Protos.ScryptParameters.Builder scryptParametersBuilder = Protos.ScryptParameters.newBuilder().setSalt(ByteString.copyFrom(salt));
+        Protos.ScryptParameters.Builder scryptParametersBuilder = Protos.ScryptParameters.newBuilder()
+                .setSalt(ByteString.copyFrom(KeyCrypterScrypt.randomSalt()));
         Protos.ScryptParameters scryptParameters = scryptParametersBuilder.build();
         KeyCrypter keyCrypterDifferent = new KeyCrypterScrypt(scryptParameters);
         ECKey ecKeyDifferent = new ECKey();
@@ -3073,7 +3069,7 @@ public class WalletTest extends TestWithWallet {
         goodKey.setCreationTimeSeconds(Utils.currentTimeSeconds());
 
         // Do an upgrade based on the bad key.
-        final AtomicReference<List<DeterministicKeyChain>> fChains = new AtomicReference<List<DeterministicKeyChain>>();
+        final AtomicReference<List<DeterministicKeyChain>> fChains = new AtomicReference<>();
         KeyChainGroup kcg = new KeyChainGroup(PARAMS) {
 
             {

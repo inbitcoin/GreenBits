@@ -1,4 +1,6 @@
 /*
+ * Copyright by the original author or authors.
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -55,7 +57,7 @@ public class BaseTaggableObject implements TaggableObject {
         checkNotNull(tag);
         checkNotNull(value);
         if (tags == null)
-            tags = new HashMap<String, ByteString>();
+            tags = new HashMap<>();
         tags.put(tag, value);
     }
 

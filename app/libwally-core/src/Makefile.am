@@ -68,7 +68,10 @@ $(sjs)/$(cbt)/%.class: $(sjs)/$(cbt)/%.java swig_java/wallycore.jar
 if HAVE_JAVAC
 all: swig_java/wallycore.jar
 
-SWIG_JAVA_TEST_DEPS = $(sjs)/$(cbt)/test_bip32.class $(sjs)/$(cbt)/test_mnemonic.class
+SWIG_JAVA_TEST_DEPS = \
+    $(sjs)/$(cbt)/test_assets.class \
+    $(sjs)/$(cbt)/test_bip32.class \
+    $(sjs)/$(cbt)/test_mnemonic.class
 
 all: $(SWIG_JAVA_TEST_DEPS)
 
@@ -90,6 +93,7 @@ libwallycore_la_SOURCES = \
     bip32.c \
     bip38.c \
     bip39.c \
+    elements.c \
     hex.c \
     hmac.c \
     internal.c \
@@ -122,7 +126,7 @@ noinst_PROGRAMS = test_clear
 test_clear_SOURCES = ctest/test_clear.c
 test_clear_CFLAGS = -I$(top_srcdir)/include $(PTHREAD_CFLAGS) $(AM_CFLAGS)
 test_clear_LIBS = $(PTHREAD_LIBS)
-test_clear_LDADD = $(lib_LTLIBRARIES)
+test_clear_LDADD = $(lib_LTLIBRARIES) @CTEST_EXTRA_STATIC@
 endif
 
 check-local: $(SWIG_PYTHON_TEST_DEPS) $(SWIG_JAVA_TEST_DEPS)
@@ -141,10 +145,12 @@ if RUN_PYTHON_TESTS
 	$(AM_V_at)$(PYTHON_TEST) test/test_sign.py
 	$(AM_V_at)$(PYTHON_TEST) test/test_wordlist.py
 if USE_SWIG_PYTHON
+	$(AM_V_at)$(PYTHON_SWIGTEST) swig_python/contrib/bip32.py
 	$(AM_V_at)$(PYTHON_SWIGTEST) swig_python/contrib/mnemonic.py
 endif
 endif # RUN_PYTHON_TESTS
 if RUN_JAVA_TESTS
+	$(AM_V_at)$(JAVA_TEST)test_assets
 	$(AM_V_at)$(JAVA_TEST)test_bip32
 	$(AM_V_at)$(JAVA_TEST)test_mnemonic
 endif

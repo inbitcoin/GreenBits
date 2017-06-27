@@ -46,7 +46,7 @@ public class SignUpActivity extends LoginActivity {
     private CheckBox mAcceptCheckBox;
     private CircularProgressButton mContinueButton;
 
-    private ListenableFuture<LoginData> mOnSignUp = null;
+    private ListenableFuture<LoginData> mOnSignUp;
 
     @Override
     protected int getMainViewId() { return R.layout.activity_sign_up; }

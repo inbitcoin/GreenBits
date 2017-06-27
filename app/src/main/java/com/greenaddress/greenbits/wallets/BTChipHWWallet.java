@@ -91,7 +91,7 @@ public class BTChipHWWallet extends HWWallet {
     }
 
     private String outToPath(final Output out) {
-        final String BRANCH = Integer.toString(HDKey.BRANCH_REGULAR) + "/";
+        final String BRANCH = Integer.toString(HDKey.BRANCH_REGULAR) + '/';
         if (out.subAccount != 0)
             return "3'/" + out.subAccount + "'/" + BRANCH + out.pointer;
         return BRANCH + out.pointer;
@@ -251,10 +251,19 @@ public class BTChipHWWallet extends HWWallet {
     }
 
     @Override
+    public List<byte[]> signTransaction(final Transaction tx, final PreparedTransaction ptx, final List<Output> prevOuts) {
+        // see TODOs in TrezorHWWallet.signTransaction
+        ptx.mDecoded = tx;
+        ptx.mPrevOutputs = prevOuts;
+        return signTransaction(ptx);
+    }
+
+    @Override
     public DeterministicKey getPubKey() {
         try {
             return internalGetPubKey();
         } catch (final BTChipException e) {
+            e.printStackTrace();
             return null;
         }
     }
@@ -283,7 +292,7 @@ public class BTChipHWWallet extends HWWallet {
         for (final Integer i : mAddrn) {
             String s = String.valueOf(i & ~0x80000000);
             if ((i & 0x80000000) != 0)
-                s = s + "'";
+                s = s + '\'';
             pathStr.add(s);
         }
         return Joiner.on("/").join(pathStr);

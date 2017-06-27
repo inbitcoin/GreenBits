@@ -36,6 +36,23 @@
         <item name="android:background">@color/primaryDark</item>
     </style>
 
+    <style name="AppTheme.Base.Mark" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+
+        <!-- colorPrimary is used for the default action bar background -->
+        <item name="colorPrimary">@color/markPrimary</item>
+
+        <!-- colorPrimaryDark is used for the status bar -->
+        <item name="colorPrimaryDark">@color/markPrimaryDark</item>
+
+        <!-- colorAccent is used as the default value for colorControlActivated
+             which is used to tint widgets -->
+        <item name="colorAccent">@color/markAccent</item>
+
+        <!-- You can also set colorControlNormal, colorControlActivated
+             colorControlHighlight & colorSwitchThumbNormal. -->
+    </style>
+
     <style name="myButton">
         <item name="android:background">@drawable/material_button</item>
         <item name="android:paddingLeft">8dp</item>
@@ -62,5 +79,11 @@
     </style>
 
     <style name="myButtonCircle" parent="myButton" />
+
+    <style name="AppThemeMark" parent="AppTheme.Base.Mark">
+        <item name="android:textColor">@color/textColor</item>
+        <item name="android:textColorSecondary">@color/secondaryTextColor</item>
+        <item name="android:windowBackground">@color/white</item>
+    </style>
 
 </resources>

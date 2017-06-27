@@ -19,14 +19,13 @@ package org.bitcoinj.params;
 
 import java.math.BigInteger;
 import java.util.Date;
+import java.util.EnumSet;
 
-import org.bitcoinj.core.Block;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.StoredBlock;
-import org.bitcoinj.core.Utils;
-import org.bitcoinj.core.VerificationException;
+import org.bitcoinj.core.*;
+import org.bitcoinj.script.Script;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
+import org.bitcoinj.utils.VersionTally;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -35,6 +34,8 @@ import static com.google.common.base.Preconditions.checkState;
  * and testing of applications and new Bitcoin versions.
  */
 public class TestNet3Params extends AbstractBitcoinNetParams {
+    public static final int SEGWIT_ENFORCE_HEIGHT = 834624; // TODO: implement BIP-9 instead
+
     public TestNet3Params() {
         super();
         id = ID_TESTNET;
@@ -46,7 +47,9 @@ public class TestNet3Params extends AbstractBitcoinNetParams {
         port = 18333;
         addressHeader = 111;
         p2shHeader = 196;
-        acceptableAddressCodes = new int[] { addressHeader, p2shHeader };
+        p2wpkhHeader = 3;
+        p2wshHeader = 40;
+        acceptableAddressCodes = new int[] { addressHeader, p2shHeader, p2wpkhHeader, p2wshHeader };
         dumpedPrivateKeyHeader = 239;
         genesisBlock.setTime(1296688602L);
         genesisBlock.setDifficultyTarget(0x1d00ffffL);
@@ -58,8 +61,10 @@ public class TestNet3Params extends AbstractBitcoinNetParams {
         alertSigningKey = Utils.HEX.decode("04302390343f91cc401d56d68b123028bf52e5fca1939df127f63c6467cdf9c8e2c14b61104cf817d0b780da337893ecc4aaff1309e536162dabbdb45200ca2b0a");
 
         dnsSeeds = new String[] {
-                "testnet-seed.bitcoin.schildbach.de", // Andreas Schildbach
-                "testnet-seed.bitcoin.petertodd.org"  // Peter Todd
+                "testnet-seed.bitcoin.jonasschnelli.ch", // Jonas Schnelli
+                "testnet-seed.bluematt.me",              // Matt Corallo
+                "testnet-seed.bitcoin.petertodd.org",    // Peter Todd
+                "testnet-seed.bitcoin.schildbach.de",    // Andreas Schildbach
         };
         addrSeeds = null;
         bip32HeaderPub = 0x043587CF;
@@ -89,7 +94,7 @@ public class TestNet3Params extends AbstractBitcoinNetParams {
     @Override
     public void checkDifficultyTransitions(final StoredBlock storedPrev, final Block nextBlock,
         final BlockStore blockStore) throws VerificationException, BlockStoreException {
-        if (!isDifficultyTransitionPoint(storedPrev) && nextBlock.getTime().after(testnetDiffDate)) {
+        if (!isDifficultyTransitionPoint(storedPrev.getHeight()) && nextBlock.getTime().after(testnetDiffDate)) {
             Block prev = storedPrev.getHeader();
 
             // After 15th February 2012 the rules on the testnet change to avoid people running up the difficulty
@@ -116,5 +121,18 @@ public class TestNet3Params extends AbstractBitcoinNetParams {
         } else {
             super.checkDifficultyTransitions(storedPrev, nextBlock, blockStore);
         }
+    }
+
+    // TODO: implement BIP-9 instead
+    @Override
+    public EnumSet<Script.VerifyFlag> getTransactionVerificationFlags(
+        final Block block,
+        final Transaction transaction,
+        final VersionTally tally,
+        final Integer height)
+    {
+        final EnumSet<Script.VerifyFlag> flags = super.getTransactionVerificationFlags(block, transaction, tally, height);
+        if (height >= SEGWIT_ENFORCE_HEIGHT) flags.add(Script.VerifyFlag.SEGWIT);
+        return flags;
     }
 }

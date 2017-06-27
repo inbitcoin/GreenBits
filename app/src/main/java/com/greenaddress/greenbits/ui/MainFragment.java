@@ -6,9 +6,9 @@ import android.os.Bundle;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.util.Base64;
 import android.util.Log;
@@ -22,18 +22,18 @@ import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.greenaddress.greenbits.FormatMemo;
+import com.greenaddress.greenapi.JSONMap;
 import com.greenaddress.greenbits.GaService;
 
 import org.bitcoin.protocols.payments.Protos;
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Monetary;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.protocols.payments.PaymentSession;
-import org.bitcoinj.utils.MonetaryFormat;
 
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Observer;
@@ -41,7 +41,7 @@ import java.util.Observer;
 public class MainFragment extends SubaccountFragment {
     private static final String TAG = MainFragment.class.getSimpleName();
 
-    private MaterialDialog mUnconfirmedDialog = null;
+    private MaterialDialog mUnconfirmedDialog;
     private List<TransactionItem> mTxItems;
     private Map<Sha256Hash, List<Sha256Hash> > replacedTxs;
     private int mSubaccount;
@@ -51,74 +51,56 @@ public class MainFragment extends SubaccountFragment {
     private CheckTxsMemo mCheckTxsMemo = null;
     private SwipeRefreshLayout mSwipeRefreshLayout;
 
+    private Boolean mIsExchanger = false;
+
     private void updateBalance() {
         Log.d(TAG, "Updating balance");
         if (isZombie())
             return;
 
         final GaService service = getGAService();
-        final Monetary monetary = service.getCoinBalance(mSubaccount);
-        if (service.getLoginData() == null || monetary == null)
+        final Coin balance = service.getCoinBalance(mSubaccount);
+        if (service.getLoginData() == null || balance == null)
             return;
 
-        final String btcUnit = (String) service.getUserConfig("unit");
-        final MonetaryFormat bitcoinFormat = CurrencyMapper.mapBtcUnitToFormat(btcUnit).noCode();
-        final TextView balanceBitcoinIcon = UI.find(mView, R.id.mainBalanceBitcoinIcon);
-        final TextView bitcoinScale = UI.find(mView, R.id.mainBitcoinScaleText);
-        bitcoinScale.setText(Html.fromHtml(CurrencyMapper.mapBtcUnitToPrefix(btcUnit)));
-        if (btcUnit == null || btcUnit.equals("bits")) {
-            balanceBitcoinIcon.setText("");
-            bitcoinScale.setText("bits ");
-        } else {
-            balanceBitcoinIcon.setText(R.string.fa_btc_space);
-        }
+        final TextView balanceUnit = UI.find(mView, R.id.mainBalanceUnit);
+        final TextView balanceText = UI.find(mView, R.id.mainBalanceText);
+        UI.setCoinText(service, balanceUnit, balanceText, balance);
 
-        final String btcBalance = bitcoinFormat.format(monetary).toString();
-        final String btcVerifiedBalance;
         final Coin verifiedBalance = service.getSPVVerifiedBalance(mSubaccount);
-        if (verifiedBalance != null)
-            btcVerifiedBalance = bitcoinFormat.format(verifiedBalance).toString();
-        else
-            btcVerifiedBalance = bitcoinFormat.format(Coin.valueOf(0)).toString();
-
-        final String fiatBalance =
-                MonetaryFormat.FIAT.minDecimals(2).noCode().format(
-                        service.getFiatBalance(mSubaccount))
-                        .toString();
-        final String fiatCurrency = service.getFiatCurrency();
-        final String converted = CurrencyMapper.map(fiatCurrency);
 
         // Hide balance question mark if we know our balance is verified
         // (or we are in watch only mode and so have no SPV to verify it with)
+        final boolean verified = balance.equals(verifiedBalance) || !service.isSPVEnabled();
         final TextView balanceQuestionMark = UI.find(mView, R.id.mainBalanceQuestionMark);
-        final boolean verified = btcBalance.equals(btcVerifiedBalance) ||
-                                 !service.isSPVEnabled();
         UI.hideIf(verified, balanceQuestionMark);
 
-        final TextView balanceText = UI.find(mView, R.id.mainBalanceText);
         final TextView balanceFiatText = UI.find(mView, R.id.mainLocalBalanceText);
         final FontAwesomeTextView balanceFiatIcon = UI.find(mView, R.id.mainLocalBalanceIcon);
-        UI.setAmountText(balanceText, btcBalance);
 
-        final int nChars = balanceText.getText().length() + balanceQuestionMark.getText().length() + bitcoinScale.getText().length() + balanceBitcoinIcon.getText().length();
+        final int nChars = balanceText.getText().length() + balanceQuestionMark.getText().length() + balanceUnit.getText().length();
         final int size = Math.min(50 - nChars, 34);
         balanceText.setTextSize(TypedValue.COMPLEX_UNIT_SP, size);
-        bitcoinScale.setTextSize(TypedValue.COMPLEX_UNIT_SP, size);
-        balanceBitcoinIcon.setTextSize(TypedValue.COMPLEX_UNIT_SP, size);
+        balanceUnit.setTextSize(TypedValue.COMPLEX_UNIT_SP, size);
 
-        UI.setAmountText(balanceFiatText, fiatBalance);
+        UI.setAmountText(balanceFiatText, service.getFiatBalance(mSubaccount));
 
-        if (converted != null) {
-            balanceFiatIcon.setText(Html.fromHtml(converted + " "));
-            balanceFiatIcon.setAwesomeTypeface();
-            balanceFiatIcon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
-        } else {
-            balanceFiatIcon.setText(fiatCurrency);
-            balanceFiatIcon.setDefaultTypeface();
-            balanceFiatIcon.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        if (!GaService.IS_ELEMENTS)
+            AmountFields.changeFiatIcon(balanceFiatIcon, service.getFiatCurrency());
+        else {
+            balanceUnit.setText(service.getAssetSymbol() + ' ');
+            balanceText.setText(service.getAssetFormat().format(balance));
+
+            if (!mIsExchanger) {
+                // No fiat values in elements multiasset
+                UI.hide(UI.find(mView, R.id.mainLocalBalance));
+                // Currently no SPV either
+                UI.hide(balanceQuestionMark);
+            }
         }
+
         if (service.showBalanceInTitle())
-            UI.hide(bitcoinScale, balanceText, balanceBitcoinIcon);
+            UI.hide(balanceText, balanceUnit);
     }
 
     @Override
@@ -133,7 +115,13 @@ public class MainFragment extends SubaccountFragment {
         // commented follow line because I've a suspect that cause infinite show dialog
         //popupWaitDialog(R.string.loading_transactions);
 
-        mView = inflater.inflate(R.layout.fragment_main, container, false);
+        if (savedInstanceState != null)
+            mIsExchanger = savedInstanceState.getBoolean("isExchanger", false);
+
+        if (mIsExchanger)
+            mView = inflater.inflate(R.layout.fragment_exchanger_txs, container, false);
+        else
+            mView = inflater.inflate(R.layout.fragment_main, container, false);
         final RecyclerView txView = UI.find(mView, R.id.mainTransactionList);
         txView.setHasFixedSize(true);
 
@@ -147,13 +135,18 @@ public class MainFragment extends SubaccountFragment {
 
         mSubaccount = service.getCurrentSubAccount();
 
-        final TextView firstP = UI.find(mView, R.id.mainFirstParagraphText);
-        final TextView secondP = UI.find(mView, R.id.mainSecondParagraphText);
-        final TextView thirdP = UI.find(mView, R.id.mainThirdParagraphText);
+        if (!mIsExchanger) {
+            final TextView firstP = UI.find(mView, R.id.mainFirstParagraphText);
+            final TextView secondP = UI.find(mView, R.id.mainSecondParagraphText);
+            final TextView thirdP = UI.find(mView, R.id.mainThirdParagraphText);
 
-        firstP.setMovementMethod(LinkMovementMethod.getInstance());
-        secondP.setMovementMethod(LinkMovementMethod.getInstance());
-        thirdP.setMovementMethod(LinkMovementMethod.getInstance());
+            if (GaService.IS_ELEMENTS)
+                UI.hide(firstP); // Don't show a Bitcoin message for elements
+            else
+                firstP.setMovementMethod(LinkMovementMethod.getInstance());
+            secondP.setMovementMethod(LinkMovementMethod.getInstance());
+            thirdP.setMovementMethod(LinkMovementMethod.getInstance());
+        }
 
         final TextView balanceText = UI.find(mView, R.id.mainBalanceText);
         final TextView balanceQuestionMark = UI.find(mView, R.id.mainBalanceQuestionMark);
@@ -178,16 +171,18 @@ public class MainFragment extends SubaccountFragment {
             reloadTransactions(false, true);
         }
 
-        mSwipeRefreshLayout = UI.find(mView, R.id.mainTransactionListSwipe);
-        mSwipeRefreshLayout.setColorSchemeColors(ContextCompat.getColor(getContext(), R.color.accent));
-        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                Log.d(TAG, "onRefresh -> " + TAG);
-                // user action to force reload balance and tx list
-                onBalanceUpdated();
-            }
-        });
+        if (!mIsExchanger) {
+            mSwipeRefreshLayout = UI.find(mView, R.id.mainTransactionListSwipe);
+            mSwipeRefreshLayout.setColorSchemeColors(ContextCompat.getColor(getContext(), R.color.accent));
+            mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+                @Override
+                public void onRefresh() {
+                    Log.d(TAG, "onRefresh -> " + TAG);
+                    // user action to force reload balance and tx list
+                    onBalanceUpdated();
+                }
+            });
+        }
 
         registerReceiver();
         return mView;
@@ -265,9 +260,10 @@ public class MainFragment extends SubaccountFragment {
         txView.getAdapter().notifyDataSetChanged();
     }
 
-    private void showTxView(boolean doShow) {
-        UI.showIf(doShow, (View) UI.find(mView, R.id.mainTransactionListSwipe));
-        UI.hideIf(doShow, (View) UI.find(mView, R.id.mainEmptyTransText));
+    private void showTxView(final boolean doShow) {
+        UI.showIf(doShow, UI.find(mView, R.id.mainTransactionListSwipe));
+        if (!mIsExchanger)
+            UI.hideIf(doShow, UI.find(mView, R.id.mainEmptyTransText));
     }
 
     private void reloadTransactions(final boolean newAdapter, final boolean showWaitDialog) {
@@ -292,7 +288,7 @@ public class MainFragment extends SubaccountFragment {
 
         if (mTxItems == null || newAdapter) {
             mTxItems = new ArrayList<>();
-            txView.setAdapter(new ListTransactionsAdapter(activity, service, mTxItems));
+            txView.setAdapter(new ListTransactionsAdapter(activity, service, mTxItems, mIsExchanger));
             // FIXME, more efficient to use swap
             // txView.swapAdapter(lta, false);
         }
@@ -300,10 +296,12 @@ public class MainFragment extends SubaccountFragment {
         if (replacedTxs == null || newAdapter)
             replacedTxs = new HashMap<>();
 
+
+
         Futures.addCallback(service.getMyTransactions(mSubaccount),
-            new FutureCallback<Map<?, ?>>() {
+            new FutureCallback<Map<String, Object>>() {
             @Override
-            public void onSuccess(final Map<?, ?> result) {
+            public void onSuccess(final Map<String, Object> result) {
                 final List txList = (List) result.get("list");
                 final int currentBlock = ((Integer) result.get("cur_block"));
 
@@ -324,43 +322,57 @@ public class MainFragment extends SubaccountFragment {
                             mCheckTxsMemo.cancel(true);
                         mCheckTxsMemo = new CheckTxsMemo();
 
-                        showTxView(txList.size() > 0);
+                        showTxView(!txList.isEmpty());
 
-                        final Sha256Hash oldTop = mTxItems.size() > 0 ? mTxItems.get(0).txHash : null;
+                        final Sha256Hash oldTop = !mTxItems.isEmpty() ? mTxItems.get(0).txHash : null;
                         mTxItems.clear();
                         replacedTxs.clear();
 
-                        for (Object tx : txList) {
+                        for (final Object tx : txList) {
                             try {
-                                Map<String, Object> txJSON = (Map) tx;
-                                ArrayList<String> replacedList = (ArrayList) txJSON.get("replaced_by");
+                                final JSONMap txJSON = (JSONMap) tx;
+                                final ArrayList<String> replacedList = txJSON.get("replaced_by");
 
                                 if (replacedList == null) {
                                     mTxItems.add(new TransactionItem(service, txJSON, currentBlock));
                                     continue;
                                 }
 
-                                for (String replacedBy : replacedList) {
+                                for (final String replacedBy : replacedList) {
                                     final Sha256Hash replacedHash = Sha256Hash.wrap(replacedBy);
                                     if (!replacedTxs.containsKey(replacedHash))
                                         replacedTxs.put(replacedHash, new ArrayList<Sha256Hash>());
-                                    final Sha256Hash newTxHash = Sha256Hash.wrap((String) txJSON.get("txhash"));
-                                    replacedTxs.get(replacedHash).add(newTxHash);
+                                    replacedTxs.get(replacedHash).add(txJSON.getHash("txhash"));
                                 }
                             } catch (final ParseException e) {
                                 e.printStackTrace();
                             }
                         }
 
-                        for (TransactionItem txItem : mTxItems) {
+                        final Iterator<TransactionItem> iterator = mTxItems.iterator();
+                        while (iterator.hasNext()) {
+                            final TransactionItem txItem = iterator.next();
+                            final boolean isExchangerAddress = service.cfg().getBoolean("exchanger_address_" + txItem.receivedOn, false);
+                            if (isExchangerAddress && txItem.memo == null) {
+                                txItem.memo = Exchanger.TAG_EXCHANGER_TX_MEMO;
+                                CB.after(service.changeMemo(txItem.txHash, Exchanger.TAG_EXCHANGER_TX_MEMO),
+                                        new CB.Toast<Boolean>(activity) {
+                                            @Override
+                                            public void onSuccess(final Boolean result) {
+                                            }
+                                        });
+                            } else if (mIsExchanger && (txItem.memo == null || !txItem.memo.contains(Exchanger.TAG_EXCHANGER_TX_MEMO))) {
+                                // FIXME should be better to filter list with api query
+                                iterator.remove();
+                            }
                             if (replacedTxs.containsKey(txItem.txHash))
-                                for (Sha256Hash replaced : replacedTxs.get(txItem.txHash))
+                                for (final Sha256Hash replaced : replacedTxs.get(txItem.txHash))
                                     txItem.replacedHashes.add(replaced);
                         }
 
                         txView.getAdapter().notifyDataSetChanged();
 
-                        final Sha256Hash newTop = mTxItems.size() > 0 ? mTxItems.get(0).txHash : null;
+                        final Sha256Hash newTop = !mTxItems.isEmpty() ? mTxItems.get(0).txHash : null;
                         if (oldTop != null && newTop != null && !oldTop.equals(newTop)) {
                             // A new tx has arrived; scroll to the top to show it
                             txView.smoothScrollToPosition(0);
@@ -474,5 +486,15 @@ public class MainFragment extends SubaccountFragment {
                 txView.getAdapter().notifyDataSetChanged();
             }
         }
+    }
+
+    public void setIsExchanger(final boolean isExchanger) {
+        mIsExchanger = isExchanger;
+    }
+
+    @Override
+    public void onSaveInstanceState(final Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean("isExchanger", mIsExchanger);
     }
 }

@@ -634,22 +634,6 @@ public class ECKey implements EncryptableItem {
         return sign(input, null);
     }
 
-    public byte[] signSchnorr(Sha256Hash input) {
-        try {
-            return NativeSecp256k1.signSchnorr(input.getBytes(), priv.toByteArray());
-        } catch (NativeSecp256k1Util.AssertFailException e) {
-            throw new RuntimeException();
-        }
-    }
-
-    public byte[] ecdh(byte[] pubkey) {
-        try {
-            return NativeSecp256k1.createECDHSecret(priv.toByteArray(), pubkey);
-        } catch (NativeSecp256k1Util.AssertFailException e) {
-            throw new RuntimeException();
-        }
-    }
-
     /**
      * If this global variable is set to true, sign() creates a dummy signature and verify() always returns true.
      * This is intended to help accelerate unit tests that do a lot of signing/verifying, which in the debugger
@@ -1235,10 +1219,7 @@ public class ECKey implements EncryptableItem {
 
     @Override
     public int hashCode() {
-        // Public keys are random already so we can just use a part of them as the hashcode. Read from the start to
-        // avoid picking up the type code (compressed vs uncompressed) which is tacked on the end.
-        byte[] bits = getPubKey();
-        return Ints.fromBytes(bits[0], bits[1], bits[2], bits[3]);
+        return pub.hashCode();
     }
 
     @Override
@@ -1275,6 +1256,9 @@ public class ECKey implements EncryptableItem {
                 helper.add("priv WIF", getPrivateKeyAsWiF(params));
             } catch (IllegalStateException e) {
                 // TODO: Make hasPrivKey() work for deterministic keys and fix this.
+            } catch (Exception e) {
+                final String message = e.getMessage();
+                helper.add("priv EXCEPTION", e.getClass().getName() + (message != null ? ": " + message : ""));
             }
         }
         if (creationTimeSeconds > 0)

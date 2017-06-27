@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.text.Html;
 import android.text.TextUtils;
@@ -18,7 +19,6 @@ import com.greenaddress.greenbits.GaService;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.ExchangeRate;
 import org.bitcoinj.utils.Fiat;
-import org.bitcoinj.utils.MonetaryFormat;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -29,79 +29,65 @@ public class ListTransactionsAdapter extends
     private final static int REQUEST_TX_DETAILS = 4;
 
     private final List<TransactionItem> mTxItems;
-    private final String mBtcUnit;
     private final Activity mActivity;
     private final GaService mService;
+    private final boolean mIsExchanger;
 
     public ListTransactionsAdapter(final Activity activity, final GaService service,
-                                   final List<TransactionItem> txItems) {
+                                   final List<TransactionItem> txItems, final boolean isExchanger) {
         mTxItems = txItems;
-        mBtcUnit = (String) service.getUserConfig("unit");
         mActivity = activity;
         mService = service;
+        mIsExchanger = isExchanger;
     }
 
     @Override
     public ViewHolder onCreateViewHolder(final ViewGroup parent, final int viewType) {
-        return new ViewHolder(LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.list_element_transaction, parent, false));
+        if (mIsExchanger)
+            return new ViewHolder(LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.list_element_transaction_exchanger, parent, false));
+        else
+            return new ViewHolder(LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.list_element_transaction, parent, false));
     }
 
     @Override
     public void onBindViewHolder(final ViewHolder holder, final int position) {
         final TransactionItem txItem = mTxItems.get(position);
-
-
         final Coin coin = Coin.valueOf(txItem.amount);
-        final MonetaryFormat bitcoinFormat = CurrencyMapper.mapBtcUnitToFormat(mBtcUnit);
-        holder.bitcoinScale.setText(Html.fromHtml(CurrencyMapper.mapBtcUnitToPrefix(mBtcUnit)));
-        if (mBtcUnit == null || mBtcUnit.equals("bits")) {
-            holder.bitcoinIcon.setText("");
-            holder.bitcoinScale.setText("bits ");
-        } else {
-            holder.bitcoinIcon.setText(R.string.fa_btc_space);
-        }
+        UI.setCoinText(mService, holder.unitText, holder.textValue, coin);
 
-        final String btcBalance = bitcoinFormat.noCode().format(coin).toString();
-        UI.setAmountText(holder.textValue, btcBalance);
-
-        // Show actual fiat value
-        float exchangeRate = mService.getFiatRate();
-        final Fiat exchangeFiat = Fiat.valueOf("???", new BigDecimal(exchangeRate).movePointRight(Fiat.SMALLEST_UNIT_EXPONENT)
-                .toBigInteger().longValue());
-
-        try {
-            final ExchangeRate rate = new ExchangeRate(exchangeFiat);
-            Fiat fiatValue = rate.coinToFiat(coin);
-            // strip extra decimals (over 2 places) because that's what the old JS client does
-            fiatValue = fiatValue.subtract(fiatValue.divideAndRemainder((long) Math.pow(10, Fiat.SMALLEST_UNIT_EXPONENT - 2))[1]);
-            UI.setAmountText(holder.fiatValue, fiatValue.toPlainString());
-
-            final String currency = mService.getFiatCurrency();
-            final String converted = CurrencyMapper.map(currency);
-            if (converted != null) {
-                holder.fiatIcon.setText(Html.fromHtml(converted + " "));
-                holder.fiatIcon.setAwesomeTypeface();
-            } else {
-                holder.fiatIcon.setText(currency);
-                holder.fiatIcon.setDefaultTypeface();
+        UI.hide(holder.fiatView);
+        if (!GaService.IS_ELEMENTS) {
+            try {
+                // Show actual fiat value
+                Fiat fiatValue = mService.getFiatRate().coinToFiat(coin);
+                // strip extra decimals (over 2 places) because that's what the old JS client does
+                fiatValue = fiatValue.subtract(fiatValue.divideAndRemainder((long) Math.pow(10, Fiat.SMALLEST_UNIT_EXPONENT - 2))[1]);
+                UI.setAmountText(holder.fiatValue, fiatValue.toPlainString());
+                AmountFields.changeFiatIcon(holder.fiatIcon, mService.getFiatCurrency());
+                UI.show(holder.fiatView);
+            } catch (final ArithmeticException | IllegalArgumentException e) {
+                UI.hide(holder.fiatView);
             }
-            UI.show(holder.fiatView);
-        } catch (final ArithmeticException | IllegalArgumentException e) {
-            UI.hide(holder.fiatView);
         }
 
         // Hide question mark if we know this tx is verified
         // (or we are in watch only mode and so have no SPV to verify it with)
         final boolean verified = txItem.spvVerified || txItem.isSpent ||
-                                 txItem.type.equals(TransactionItem.TYPE.OUT) ||
+                                 txItem.type == TransactionItem.TYPE.OUT ||
                                  !mService.isSPVEnabled();
         UI.hideIf(verified, holder.textValueQuestionMark);
+
+        if (GaService.IS_ELEMENTS) {
+            holder.textValue.setText(mService.getAssetFormat().format(coin));
+            UI.hide(holder.textValueQuestionMark);
+        }
 
         final Resources res = mActivity.getResources();
 
         if (txItem.doubleSpentBy == null) {
-            holder.textWhen.setTextColor(res.getColor(R.color.tertiaryTextColor));
+            holder.textWhen.setTextColor(ContextCompat.getColor(mActivity, R.color.tertiaryTextColor));
             holder.textWhen.setText(TimeAgo.fromNow(txItem.date.getTime(), mActivity));
         } else {
             switch (txItem.doubleSpentBy) {
@@ -121,9 +107,9 @@ public class ListTransactionsAdapter extends
 
         UI.showIf(txItem.replaceable, holder.textReplaceable);
 
-        final boolean humanCpty = txItem.type.equals(TransactionItem.TYPE.OUT)
-                && txItem.counterparty != null && txItem.counterparty.length() > 0
-                && !GaService.isValidAddress(txItem.counterparty);
+        final boolean humanCpty = txItem.type == TransactionItem.TYPE.OUT &&
+                txItem.counterparty != null && !txItem.counterparty.isEmpty() &&
+                !GaService.isValidAddress(txItem.counterparty);
 
         final String message;
         if (TextUtils.isEmpty(txItem.memo)) {
@@ -132,7 +118,9 @@ public class ListTransactionsAdapter extends
             else
                 message = getTypeString(txItem.type);
         } else {
-            if (humanCpty && !txItem.counterparty.contains("inbitcoin"))
+            if (txItem.memo.contains(Exchanger.TAG_EXCHANGER_TX_MEMO))
+                message = mActivity.getString(R.string.txExchangerMemo);
+            else if (humanCpty && !txItem.counterparty.contains("inbitcoin"))
                 message = String.format("%s %s", txItem.counterparty, txItem.memo);
             else
                 message = txItem.memo;
@@ -145,7 +133,7 @@ public class ListTransactionsAdapter extends
         }
 
         final int color = txItem.amount > 0 ? R.color.superLightGreen : R.color.superLightPink;
-        holder.mainLayout.setBackgroundColor(res.getColor(color));
+        holder.mainLayout.setBackgroundColor(ContextCompat.getColor(mActivity, color));
 
         if (txItem.hasEnoughConfirmations()) {
             final int glyph = txItem.amount > 0 ? R.string.fa_chevron_circle_down : R.string.fa_chevron_up;
@@ -191,11 +179,10 @@ public class ListTransactionsAdapter extends
         public final TextView textValue;
         public final TextView textWhen;
         public final TextView textReplaceable;
-        public final TextView bitcoinIcon;
+        public final TextView unitText;
         public final TextView textWho;
         public final TextView paymentProcessorInfo;
         public final TextView inOutIcon;
-        public final TextView bitcoinScale;
         public final TextView textValueQuestionMark;
         public final LinearLayout mainLayout;
         public final TextView fiatValue;
@@ -214,8 +201,10 @@ public class ListTransactionsAdapter extends
             paymentProcessorInfo = UI.find(v, R.id.paymentProcessor);
             inOutIcon = UI.find(v, R.id.listInOutIcon);
             mainLayout = UI.find(v, R.id.list_item_layout);
-            bitcoinIcon = UI.find(v, R.id.listBitcoinIcon);
-            bitcoinScale = UI.find(v, R.id.listBitcoinScaleText);
+            // TODO: For multiasset, enable unitText
+            //if (GaService.IS_ELEMENTS)
+            //    unitText = UI.find(v, R.id.listBitcoinUnitText);
+            unitText = null;
             listNumberConfirmation = UI.find(v, R.id.listNumberConfirmation);
             fiatValue = UI.find(v, R.id.fiatValue);
             fiatView = UI.find(v, R.id.fiatView);

@@ -6,6 +6,7 @@
 #include "../include/wally_bip38.h"
 #include "../include/wally_bip39.h"
 #include "../include/wally_crypto.h"
+#include "../include/wally_elements.h"
 #include <limits.h>
 
 static int check_result(JNIEnv *jenv, int result)
@@ -30,6 +31,12 @@ static int int_cast(JNIEnv *jenv, size_t value) {
     if (value > INT_MAX)
         SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Invalid length");
     return (int)value;
+}
+
+static uint32_t uint32_cast(JNIEnv *jenv, jlong value) {
+    if (value < 0 || value > UINT_MAX)
+        SWIG_JavaThrowException(jenv, SWIG_JavaIndexOutOfBoundsException, "Invalid uint32_t");
+    return (uint32_t)value;
 }
 
 /* Use a static class to hold our opaque pointers */
@@ -129,13 +136,11 @@ static jbyteArray create_array(JNIEnv *jenv, const unsigned char* p, size_t len)
 %typemap(out) int %{
 %}
 
-/* Output parameters indicating how many bytes were written are converted
- * into return values. */
+/* Output parameters indicating how many bytes were written/sizes are
+ * converted into return values. */
 %typemap(in,noblock=1,numinputs=0) size_t *written(size_t sz) {
     sz = 0; $1 = ($1_ltype)&sz;
 }
-
-/* Integer values are also returned as size_t's */
 %typemap(in,noblock=1,numinputs=0) size_t *output(size_t sz) {
     sz = 0; $1 = ($1_ltype)&sz;
 }
@@ -155,39 +160,87 @@ static jbyteArray create_array(JNIEnv *jenv, const unsigned char* p, size_t len)
         $result = NULL;
 }
 
-/* Treat uint32 arrays like strings of ints
- * If we need to support other array types in the future, this should
- * be converted into a macro.
- */
-%typemap(jni)     (uint32_t *STRING, size_t LENGTH) "jintArray"
-%typemap(jtype)   (uint32_t *STRING, size_t LENGTH) "int[]"
-%typemap(jstype)  (uint32_t *STRING, size_t LENGTH) "int[]"
-%typemap(javain)  (uint32_t *STRING, size_t LENGTH) "$javainput"
-%typemap(freearg) (uint32_t *STRING, size_t LENGTH) ""
-%typemap(in)      (uint32_t *STRING, size_t LENGTH) {
-    $1 = $input ? (uint32_t *) JCALL2(GetIntArrayElements, jenv, $input, 0) : 0;
-    $2 = $input ? (size_t) JCALL1(GetArrayLength, jenv, $input) : 0;
-}
-%typemap(argout)  (uint32_t *STRING, size_t LENGTH) {
-  if ($input) JCALL3(ReleaseIntArrayElements, jenv, $input, (jint *)$1, 0);
+/* uint32_t input arguments are taken as longs and cast with range checking */
+%typemap(in) uint32_t {
+    $1 = uint32_cast(jenv, $input);
 }
 
-/* Array handling */
+/* uint62_t input arguments are taken as longs and cast unchecked. This means
+ * callers need to take care with treating negative values correctly */
+%typemap(in) uint64_t {
+    $1 = (uint64_t)($input);
+}
+
+/* Treat uint32_t/uint64_t arrays like strings of ints */
+%define %java_int_array(INTTYPE, JNITYPE, JTYPE, GETFN, RELEASEFN)
+%typemap(jni)     (INTTYPE *STRING, size_t LENGTH) "JNITYPE"
+%typemap(jtype)   (INTTYPE *STRING, size_t LENGTH) "JTYPE[]"
+%typemap(jstype)  (INTTYPE *STRING, size_t LENGTH) "JTYPE[]"
+%typemap(javain)  (INTTYPE *STRING, size_t LENGTH) "$javainput"
+%typemap(freearg) (INTTYPE *STRING, size_t LENGTH) ""
+%typemap(in)      (INTTYPE *STRING, size_t LENGTH) {
+    $1 = $input ? (INTTYPE *) JCALL2(GETFN, jenv, $input, 0) : 0;
+    $2 = $input ? (size_t) JCALL1(GetArrayLength, jenv, $input) : 0;
+}
+%typemap(argout)  (INTTYPE *STRING, size_t LENGTH) {
+  if ($input) JCALL3(RELEASEFN, jenv, $input, (j##JTYPE *)$1, 0);
+}
+%enddef
+
+%java_int_array(uint32_t, jintArray, int, GetIntArrayElements, ReleaseIntArrayElements)
+%java_int_array(uint64_t, jlongArray, long, GetLongArrayElements, ReleaseLongArrayElements)
+
+/* Input buffers with lengths are passed as arrays */
+%apply(char *STRING, size_t LENGTH) { (const unsigned char *abf, size_t abf_len) };
+%apply(char *STRING, size_t LENGTH) { (const unsigned char *asset, size_t asset_len) };
 %apply(char *STRING, size_t LENGTH) { (const unsigned char *bytes_in, size_t len_in) };
 %apply(char *STRING, size_t LENGTH) { (const unsigned char *chain_code, size_t chain_code_len) };
+%apply(char *STRING, size_t LENGTH) { (const unsigned char *commitment, size_t commitment_len) };
+%apply(char *STRING, size_t LENGTH) { (const unsigned char *generator, size_t generator_len) };
 %apply(char *STRING, size_t LENGTH) { (const unsigned char *hash160, size_t hash160_len) };
 %apply(char *STRING, size_t LENGTH) { (const unsigned char *iv, size_t iv_len) };
 %apply(char *STRING, size_t LENGTH) { (const unsigned char *key, size_t key_len) };
+%apply(char *STRING, size_t LENGTH) { (const unsigned char *output_abf, size_t output_abf_len) };
+%apply(char *STRING, size_t LENGTH) { (const unsigned char *output_asset, size_t output_asset_len) };
+%apply(char *STRING, size_t LENGTH) { (const unsigned char *output_generator, size_t output_generator_len) };
 %apply(char *STRING, size_t LENGTH) { (const unsigned char *pass, size_t pass_len) };
 %apply(char *STRING, size_t LENGTH) { (const unsigned char *parent160, size_t parent160_len) };
 %apply(char *STRING, size_t LENGTH) { (const unsigned char *priv_key, size_t priv_key_len) };
+%apply(char *STRING, size_t LENGTH) { (const unsigned char *proof, size_t proof_len) };
 %apply(char *STRING, size_t LENGTH) { (const unsigned char *pub_key, size_t pub_key_len) };
 %apply(char *STRING, size_t LENGTH) { (const unsigned char *salt, size_t salt_len) };
 %apply(char *STRING, size_t LENGTH) { (const unsigned char *sig_in, size_t sig_in_len) };
+
+/* Output buffers */
 %apply(char *STRING, size_t LENGTH) { (unsigned char *bytes_out, size_t len) };
 %apply(char *STRING, size_t LENGTH) { (unsigned char *bytes_in_out, size_t len) };
 %apply(char *STRING, size_t LENGTH) { (unsigned char *salt_in_out, size_t salt_len) };
+%apply(char *STRING, size_t LENGTH) { (const unsigned char *vbf, size_t vbf_len) };
+
+/* Output buffers */
+%apply(char *STRING, size_t LENGTH) { (unsigned char *asset_out, size_t asset_out_len) };
+%apply(char *STRING, size_t LENGTH) { (unsigned char *abf_out, size_t abf_out_len) };
+%apply(char *STRING, size_t LENGTH) { (unsigned char *bytes_out, size_t len) };
+%apply(char *STRING, size_t LENGTH) { (unsigned char *bytes_in_out, size_t len) };
+%apply(char *STRING, size_t LENGTH) { (unsigned char *salt_in_out, size_t salt_len) };
+%apply(char *STRING, size_t LENGTH) { (unsigned char *vbf_out, size_t vbf_out_len) }; /* FIXME: Needed? */
+
 %apply(uint32_t *STRING, size_t LENGTH) { (const uint32_t *child_num_in, size_t child_num_len) }
+%apply(uint64_t *STRING, size_t LENGTH) { (const uint64_t *values, size_t values_len) }
+
+%typemap(in, numinputs=0) uint64_t *value_out (uint64_t val) {
+   val = 0; $1 = ($1_ltype)&val;
+}
+%typemap(argout) uint64_t* value_out{
+   $result = (jlong)*$1;
+}
+
+%typemap(in, numinputs=0) uint64_t *value_out (uint64_t val) {
+   val = 0; $1 = ($1_ltype)&val;
+}
+%typemap(argout) uint64_t* value_out{
+   $result = (jlong)*$1;
+}
 
 /* Opaque types are converted to/from an internal object holder class */
 %define %java_opaque_struct(NAME, ID)
@@ -207,9 +260,6 @@ static jbyteArray create_array(JNIEnv *jenv, const unsigned char* p, size_t len)
 %typemap(jni) const struct NAME * "jobject"
 %enddef
 
-/* Tell SWIG what uint32_t means */
-typedef unsigned int uint32_t;
-
 /* Change a functions return type to match its output type mapping */
 %define %return_decls(FUNC, JTYPE, JNITYPE)
 %typemap(jstype) int FUNC "JTYPE"
@@ -224,6 +274,9 @@ typedef unsigned int uint32_t;
 %define %returns_size_t(FUNC)
 %return_decls(FUNC, int, jint)
 %enddef
+%define %returns_uint64(FUNC)
+%return_decls(FUNC, long, jlong)
+%enddef
 %define %returns_string(FUNC)
 %return_decls(FUNC, String, jstring)
 %enddef
@@ -233,18 +286,22 @@ typedef unsigned int uint32_t;
 %define %returns_array_(FUNC, ARRAYARG, LENARG, LEN)
 %return_decls(FUNC, byte[], jbyteArray)
 %exception FUNC {
+    int skip = 0;
+    jresult = NULL;
     if (!jarg ## ARRAYARG) {
         arg ## LENARG = LEN;
         arg ## ARRAYARG = malloc_or_throw(jenv, LEN);
         if (!arg ## ARRAYARG)
-            return $null;
+            skip = 1; /* Exception set by malloc_or_throw */
     }
-    $action
-    if (check_result(jenv, result) == WALLY_OK && !jarg ## ARRAYARG)
-        jresult = create_array(jenv, arg ## ARRAYARG, LEN);
-    if (!jarg ## ARRAYARG) {
-        wally_bzero(arg ## ARRAYARG, LEN);
-        free(arg ## ARRAYARG);
+    if (!skip) {
+        $action
+        if (check_result(jenv, result) == WALLY_OK && !jarg ## ARRAYARG)
+           jresult = create_array(jenv, arg ## ARRAYARG, LEN);
+        if (!jarg ## ARRAYARG) {
+            wally_bzero(arg ## ARRAYARG, LEN);
+            free(arg ## ARRAYARG);
+        }
     }
 }
 %enddef
@@ -315,9 +372,18 @@ typedef unsigned int uint32_t;
 %returns_array_(wally_pbkdf2_hmac_sha512, 7, 8, PBKDF2_HMAC_SHA512_LEN);
 %returns_void__(wally_secp_randomize);
 
+%returns_array_(wally_asset_generator_from_bytes, 5, 6, ASSET_GENERATOR_LEN);
+%returns_array_(wally_asset_final_vbf, 8, 9, ASSET_TAG_LEN);
+%returns_array_(wally_asset_value_commitment, 6, 7, ASSET_COMMITMENT_LEN);
+%returns_size_t(wally_asset_rangeproof);
+%returns_size_t(wally_asset_surjectionproof_size);
+%returns_size_t(wally_asset_surjectionproof);
+%returns_uint64(wally_asset_unblind);
+
 %include "../include/wally_core.h"
 %include "../include/wally_bip32.h"
 %include "bip32_int.h"
 %include "../include/wally_bip38.h"
 %include "../include/wally_bip39.h"
 %include "../include/wally_crypto.h"
+%include "../include/wally_elements.h"

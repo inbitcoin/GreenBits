@@ -16,7 +16,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -95,20 +94,18 @@ public class PinActivity extends LoginActivity implements Observer {
 
         mPinLoginButton.setProgress(50);
         mPinText.setEnabled(false);
-
-        final InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(mPinText.getWindowToken(), 0);
+        hideKeyboardFrom(mPinText);
 
         setUpLogin(UI.getText(mPinText), new Runnable() {
              public void run() {
+                 UI.clear(mPinText);
                  // restore all menu entry on login error
                  setMenuItemVisible(mMenu, R.id.action_qr, true);
                  setMenuItemVisible(mMenu, R.id.network_preferences, true);
                  setMenuItemVisible(mMenu, R.id.watchonly_preference, true);
 
-                 mPinText.setText("");
                  mPinLoginButton.setProgress(0);
-                 mPinText.setEnabled(true);
+                 UI.enable(mPinText);
                  UI.show(mPinError);
                  final int counter = mService.cfg("pin").getInt("counter", 1);
                  mPinError.setText(getString(R.string.attemptsLeft, MAX_ATTEMPTS - counter));
@@ -149,6 +146,7 @@ public class PinActivity extends LoginActivity implements Observer {
                 final SharedPreferences prefs = mService.cfg("pin");
                 final int counter = prefs.getInt("counter", 0) + 1;
 
+                final Throwable error;
                 if (t instanceof GAException ||
                     Throwables.getRootCause(t) instanceof LoginFailed) {
                     final SharedPreferences.Editor editor = prefs.edit();
@@ -162,13 +160,19 @@ public class PinActivity extends LoginActivity implements Observer {
                         editor.clear();
                     }
                     editor.apply();
+                    error = null;
                 }
-                else
-                    message = t.getMessage();
+                else {
+                    error = t;
+                    message = null;
+                }
 
                 PinActivity.this.runOnUiThread(new Runnable() {
                     public void run() {
-                        PinActivity.this.toast(message);
+                        if (error != null)
+                            PinActivity.this.toast(error);
+                        else
+                            PinActivity.this.toast(message);
 
                         if (counter >= MAX_ATTEMPTS) {
                             startActivity(new Intent(PinActivity.this, FirstScreenActivity.class));
@@ -251,8 +255,8 @@ public class PinActivity extends LoginActivity implements Observer {
 
     @TargetApi(Build.VERSION_CODES.M)
     private Cipher getAESCipher() throws NoSuchAlgorithmException, NoSuchPaddingException {
-        final String name = KeyProperties.KEY_ALGORITHM_AES + "/" +
-                            KeyProperties.BLOCK_MODE_CBC + "/" +
+        final String name = KeyProperties.KEY_ALGORITHM_AES + '/' +
+                            KeyProperties.BLOCK_MODE_CBC + '/' +
                             KeyProperties.ENCRYPTION_PADDING_PKCS7;
         return Cipher.getInstance(name);
     }

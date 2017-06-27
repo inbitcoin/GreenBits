@@ -3,10 +3,12 @@ package com.greenaddress.greenbits.wallets;
 import com.greenaddress.greenapi.HDKey;
 import com.greenaddress.greenapi.HWWallet;
 import com.greenaddress.greenapi.Network;
+import com.greenaddress.greenapi.Output;
 import com.greenaddress.greenapi.PreparedTransaction;
 import com.satoshilabs.trezor.Trezor;
 
 import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Transaction;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.params.MainNetParams;
 
@@ -52,6 +54,13 @@ public class TrezorHWWallet extends HWWallet {
     public List<byte[]> signTransaction(final PreparedTransaction ptx) {
         final boolean isMainnet = Network.NETWORK.getId().equals(MainNetParams.ID_MAINNET);
         return trezor.MessageSignTx(ptx, isMainnet ? "Bitcoin": "Testnet");
+    }
+
+    @Override
+    public List<byte[]> signTransaction(final Transaction tx, final PreparedTransaction ptx, final List<Output> prevOuts) {
+        ptx.mDecoded = tx;  // TODO: remove from PreparedTransaction
+        ptx.mPrevOutputs = prevOuts;  // TODO: remove this argument since it's part of ptx
+        return signTransaction(ptx);
     }
 
     @Override

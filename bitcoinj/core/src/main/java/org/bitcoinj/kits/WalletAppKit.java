@@ -19,7 +19,6 @@ package org.bitcoinj.kits;
 
 import com.google.common.collect.*;
 import com.google.common.util.concurrent.*;
-import com.subgraph.orchid.*;
 import org.bitcoinj.core.listeners.*;
 import org.bitcoinj.core.*;
 import org.bitcoinj.net.discovery.*;
@@ -78,7 +77,6 @@ public class WalletAppKit extends AbstractIdleService {
     protected boolean autoStop = true;
     protected InputStream checkpoints;
     protected boolean blockingStartup = true;
-    protected boolean useTor = false;   // Perhaps in future we can change this to true.
     protected String userAgent, version;
     protected WalletProtobufSerializer.WalletFactory walletFactory;
     @Nullable protected DeterministicSeed restoreFromSeed;
@@ -146,7 +144,8 @@ public class WalletAppKit extends AbstractIdleService {
 
     /**
      * If set, the file is expected to contain a checkpoints file calculated with BuildCheckpoints. It makes initial
-     * block sync faster for new users - please refer to the documentation on the bitcoinj website for further details.
+     * block sync faster for new users - please refer to the documentation on the bitcoinj website
+     * (https://bitcoinj.github.io/speeding-up-chain-sync) for further details.
      */
     public WalletAppKit setCheckpoints(InputStream checkpoints) {
         if (this.checkpoints != null)
@@ -178,11 +177,10 @@ public class WalletAppKit extends AbstractIdleService {
     }
 
     /**
-     * If called, then an embedded Tor client library will be used to connect to the P2P network. The user does not need
-     * any additional software for this: it's all pure Java. As of April 2014 <b>this mode is experimental</b>.
+     * Sets a wallet factory which will be used when the kit creates a new wallet.
      */
-    public WalletAppKit useTor() {
-        this.useTor = true;
+    public WalletAppKit setWalletFactory(WalletProtobufSerializer.WalletFactory walletFactory) {
+        this.walletFactory = walletFactory;
         return this;
     }
 
@@ -317,7 +315,7 @@ public class WalletAppKit extends AbstractIdleService {
                 for (PeerAddress addr : peerAddresses) vPeerGroup.addAddress(addr);
                 vPeerGroup.setMaxConnections(peerAddresses.length);
                 peerAddresses = null;
-            } else if (!params.getId().equals(NetworkParameters.ID_REGTEST) && !useTor) {
+            } else if (!params.getId().equals(NetworkParameters.ID_REGTEST)) {
                 vPeerGroup.addPeerDiscovery(discovery != null ? discovery : new DnsDiscovery(params));
             }
             vChain.addWallet(vWallet);
@@ -456,13 +454,7 @@ public class WalletAppKit extends AbstractIdleService {
 
 
     protected PeerGroup createPeerGroup() throws TimeoutException {
-        if (useTor) {
-            TorClient torClient = new TorClient();
-            torClient.getConfig().setDataDirectory(directory);
-            return PeerGroup.newWithTor(params, vChain, torClient);
-        }
-        else
-            return new PeerGroup(params, vChain);
+        return new PeerGroup(params, vChain);
     }
 
     private void installShutdownHook() {

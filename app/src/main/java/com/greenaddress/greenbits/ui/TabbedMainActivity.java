@@ -57,7 +57,6 @@ import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.crypto.TransactionSignature;
-import org.bitcoinj.utils.MonetaryFormat;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -90,19 +89,24 @@ public class TabbedMainActivity extends GaActivity implements Observer {
             REQUEST_BITCOIN_URL_LOGIN = 2,
             REQUEST_SETTINGS = 3,
             REQUEST_TX_DETAILS = 4,
-            REQUEST_SEND_QR_SCAN_NO_LOGIN = 5,
-            REQUEST_SEND_QR_SCAN_VENDOR = 6,
-            REQUEST_CLEAR_ACTIVITY = 7,
-            REQUEST_VISIU = 8,
-            REQUEST_BITID_URL_LOGIN = 9;
+            REQUEST_SEND_QR_SCAN_EXCHANGER = 5,
+            REQUEST_SEND_QR_SCAN_NO_LOGIN = 6,
+            REQUEST_SEND_QR_SCAN_VENDOR = 7,
+            REQUEST_CLEAR_ACTIVITY = 8,
+            REQUEST_VISIU = 9,
+            REQUEST_BITID_URL_LOGIN = 10;
     public static final String REQUEST_RELOAD = "request_reload";
     private ViewPager mViewPager;
     private Menu mMenu;
     private Boolean mInternalQr = false;
     private Snackbar snackbar;
     private Activity mActivity;
-    private MaterialDialog mSegwitDialog = null;
+    private String mSendAmount = null;
+    private MaterialDialog mSegwitDialog;
     private final Runnable mSegwitCB = new Runnable() { public void run() { mSegwitDialog = null; } };
+    private MaterialDialog mSubaccountDialog;
+    private final Runnable mSubaccountCB = new Runnable() { public void run() { mDialogCB.run(); mSubaccountDialog = null; } };
+    private final Runnable mDialogCB = new Runnable() { public void run() { setBlockWaitDialog(false); } };
 
     // workaround to manage only the create/onresume when is not connected
     private Boolean firstRun = true;
@@ -113,9 +117,8 @@ public class TabbedMainActivity extends GaActivity implements Observer {
             runOnUiThread(new Runnable() { public void run() { onTwoFactorConfigChange(); } });
         }
     };
-    private final Runnable mDialogCB = new Runnable() { public void run() { setBlockWaitDialog(false); } };
 
-    private boolean isBitcoinScheme(final Intent intent) {
+    static boolean isBitcoinScheme(final Intent intent) {
         final Uri uri = intent.getData();
         return uri != null && uri.getScheme() != null && uri.getScheme().equals("bitcoin");
     }
@@ -131,7 +134,7 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         mActivity = this;
 
         mInternalQr = intent.getBooleanExtra("internal_qr", false);
-
+        mSendAmount = intent.getStringExtra("sendAmount");
         final int flags = getIntent().getFlags();
         if ((flags & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) {
             Log.d(TAG, "onCreate arrives from history, clear data and category");
@@ -199,36 +202,33 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         }
     }
 
+    private String formatValuePostfix(final Coin value) {
+        final String formatted = UI.setCoinText(mService, null, null, value);
+        return String.format("%s %s", formatted, mService.getBitcoinUnit());
+    }
+
     private void setAccountTitle(final int subAccount) {
-        String suffix = "";
+        final boolean doLookup = subAccount != 0 && mService.haveSubaccounts();
+        final Map<String, ?> details;
+        details = doLookup ? mService.findSubaccount(subAccount) : null;
+        final String accountName;
+        if (details == null)
+            accountName = getResources().getString(R.string.main_account);
+        else
+            accountName = (String) details.get("name");
 
-        if (mService.showBalanceInTitle()) {
-            final Coin rawBalance = mService.getCoinBalance(subAccount);
-            if (rawBalance != null) {
-                // We have a balance, i.e. our login callbacks have finished.
-                // This check is only needed until login returns balances atomically.
-                final String btcUnit = (String) mService.getUserConfig("unit");
-                final MonetaryFormat bitcoinFormat = CurrencyMapper.mapBtcUnitToFormat(btcUnit);
-
-                final String btcBalance = bitcoinFormat.noCode().format(rawBalance).toString();
-                suffix = String.format("%s %s", UI.setAmountText(null, btcBalance), bitcoinFormat.code());
-            }
-        } else if (mService.haveSubaccounts()) {
-            final Map<String, ?> m = mService.findSubaccount(subAccount);
-            if (m == null)
-                suffix = getResources().getString(R.string.main_account);
-            else
-                suffix = (String) m.get("name");
+        if (!mService.showBalanceInTitle()) {
+            setTitle(accountName);
+            return;
         }
-        if (!suffix.isEmpty())
-            suffix = " " + suffix;
-        setTitle(String.format("%s%s", getResources().getText(R.string.app_name), suffix));
+        Coin balance = mService.getCoinBalance(subAccount);
+        if (balance == null)
+            balance = Coin.ZERO;
+        setTitle(formatValuePostfix(balance) + " (" + accountName + ')');
     }
 
     private void setBlockWaitDialog(final boolean doBlock) {
-        final SectionsPagerAdapter adapter;
-        adapter = (SectionsPagerAdapter) mViewPager.getAdapter();
-        adapter.setBlockWaitDialog(doBlock);
+        getPagerAdapter().setBlockWaitDialog(doBlock);
     }
 
     private void configureSubaccountsFooter(final int subAccount) {
@@ -269,16 +269,16 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                 }
 
                 final AccountItemAdapter adapter = new AccountItemAdapter(names, pointers, mService);
-                final MaterialDialog dialog = new MaterialDialog.Builder(TabbedMainActivity.this)
+                mSubaccountDialog = new MaterialDialog.Builder(TabbedMainActivity.this)
                         .title(R.string.footerAccount)
                         .adapter(adapter, null)
                         .show();
-                UI.setDialogCloseHandler(dialog, mDialogCB);
+                UI.setDialogCloseHandler(mSubaccountDialog, mSubaccountCB);
 
                 adapter.setCallback(new AccountItemAdapter.OnAccountSelected() {
                     @Override
                     public void onAccountSelected(final int account) {
-                        dialog.dismiss();
+                        mSubaccountDialog.dismiss();
                         final int pointer = pointers.get(account);
                         if (pointer == mService.getCurrentSubAccount())
                             return;
@@ -338,9 +338,9 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                 if (Build.VERSION.SDK_INT > 16) {
                     final Parcelable[] rawMessages;
                     rawMessages = getIntent().getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
-                    for (Parcelable parcel : rawMessages) {
+                    for (final Parcelable parcel : rawMessages) {
                         final NdefMessage ndefMsg = (NdefMessage) parcel;
-                        for (NdefRecord record : ndefMsg.getRecords())
+                        for (final NdefRecord record : ndefMsg.getRecords())
                             if (record.getTnf() == NdefRecord.TNF_WELL_KNOWN &&
                                     Arrays.equals(record.getType(), NdefRecord.RTD_URI)) {
                                 mViewPager.setTag(R.id.tag_bitcoin_uri, record.toUri());
@@ -352,13 +352,18 @@ public class TabbedMainActivity extends GaActivity implements Observer {
             if (mInternalQr) {
                 mViewPager.setTag(R.id.internal_qr, "internal_qr");
             }
+            if (mSendAmount != null) {
+                mViewPager.setTag(R.id.tag_amount, mSendAmount);
+            }
+            mInternalQr = false;
+            mSendAmount = null;
         }
 
         // set adapter and tabs only after all setTag in ViewPager container
         mViewPager.setAdapter(sectionsPagerAdapter);
         mViewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
             @Override
-            public void onPageSelected(int index) {
+            public void onPageSelected(final int index) {
                 sectionsPagerAdapter.onViewPageSelected(index);
             }
         });
@@ -425,6 +430,10 @@ public class TabbedMainActivity extends GaActivity implements Observer {
     public void onPauseWithService() {
         mService.deleteTwoFactorObserver(mTwoFactorObserver);
         mService.deleteConnectionObserver(this);
+        if (mSubaccountDialog != null)
+            mSubaccountDialog.dismiss();
+        if (mSegwitDialog != null)
+            mSegwitDialog.dismiss();
     }
 
     private final static int BIP38_FLAGS = (NetworkParameters.fromID(NetworkParameters.ID_MAINNET).equals(Network.NETWORK)
@@ -520,13 +529,12 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                         if (keyNonBip38 != null) {
                             UI.hide(passwordPrompt, passwordEdit);
                             txNonBip38 = getSweepTx(sweepResult);
-                            final MonetaryFormat format;
-                            format = CurrencyMapper.mapBtcUnitToFormat( (String) mService.getUserConfig("unit"));
                             Coin outputsValue = Coin.ZERO;
                             for (final TransactionOutput output : txNonBip38.getOutputs())
                                 outputsValue = outputsValue.add(output.getValue());
+                            final String valueStr = formatValuePostfix(outputsValue);
                             mainText.setText(Html.fromHtml("Are you sure you want to sweep <b>all</b> ("
-                                    + format.postfixCode().format(outputsValue) + ") funds from the address below?"));
+                                    + valueStr + ") funds from the address below?"));
                             address = keyNonBip38.toAddress(Network.NETWORK).toString();
                         } else {
                             passwordPrompt.setText(R.string.sweep_bip38_passphrase_prompt);
@@ -742,6 +750,14 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         final int id = mService.isWatchOnly() ? R.menu.watchonly : R.menu.main;
         getMenuInflater().inflate(R.menu.camera_menu, menu);
         getMenuInflater().inflate(id, menu);
+
+        setMenuItemVisible(menu, R.id.action_network,
+                           !GaService.IS_ELEMENTS && mService.isSPVEnabled());
+        setMenuItemVisible(menu, R.id.action_sweep, !GaService.IS_ELEMENTS);
+
+        final boolean isExchanger = mService.cfg().getBoolean("show_exchanger_menu", false);
+        setMenuItemVisible(menu, R.id.action_exchanger, isExchanger);
+
         mMenu = menu;
 
         // get advanced_options flag and show/hide menu items
@@ -762,6 +778,9 @@ public class TabbedMainActivity extends GaActivity implements Observer {
             case R.id.action_settings:
                 startActivityForResult(new Intent(caller, SettingsActivity.class), REQUEST_SETTINGS);
                 return true;
+            case R.id.action_exchanger:
+                startActivity(new Intent(caller, MainExchanger.class));
+                return true;
             case R.id.action_sweep:
                 final Intent scanner = new Intent(caller, ScanActivity.class);
                 //New Marshmallow permissions paradigm
@@ -778,6 +797,9 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                 return true;
             case R.id.network_unavailable:
                 return true;
+            case R.id.action_share:
+                getPagerAdapter().onOptionsItemSelected(item);
+                return true;
             case R.id.action_logout:
                 mService.disconnect(false);
                 finish();
@@ -793,7 +815,6 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                 startActivity(intent);
                 overridePendingTransition(R.anim.slide_from_right, R.anim.fade_out);
                 return true;
-
         }
         return super.onOptionsItemSelected(item);
     }
@@ -816,7 +837,7 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         setMenuItemVisible(mMenu, R.id.network_unavailable, !state.isLoggedIn());
     }
 
-    private void handlePermissionResult(final int[] granted, int action, int msgId) {
+    private void handlePermissionResult(final int[] granted, final int action, final int msgId) {
         if (granted[0] == PackageManager.PERMISSION_GRANTED)
             startActivityForResult(new Intent(this, ScanActivity.class), action);
         else
@@ -928,13 +949,17 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                 }).build().show();
     }
 
+    SectionsPagerAdapter getPagerAdapter() {
+        return (SectionsPagerAdapter) mViewPager.getAdapter();
+    }
+
     /**
      * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
      * one of the sections/tabs/pages.
      */
     public class SectionsPagerAdapter extends FragmentPagerAdapter {
         private final SubaccountFragment[] mFragments = new SubaccountFragment[3];
-        private int mSelectedPage = -1;
+        public int mSelectedPage = -1;
         private int mInitialSelectedPage = -1;
         private boolean mInitialPage = true;
 
@@ -954,7 +979,7 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         }
 
         @Override
-        public Object instantiateItem(ViewGroup container, int index) {
+        public Object instantiateItem(final ViewGroup container, final int index) {
             Log.d(TAG, "SectionsPagerAdapter -> instantiateItem " + index);
 
             mFragments[index] = (SubaccountFragment) super.instantiateItem(container, index);
@@ -970,7 +995,7 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         }
 
         @Override
-        public void destroyItem(ViewGroup container, int index, Object object) {
+        public void destroyItem(final ViewGroup container, final int index, final Object object) {
             Log.d(TAG, "SectionsPagerAdapter -> destroyItem " + index);
             if (index >=0 && index <=2 && mFragments[index] != null) {
                 // Make sure the fragment is not kept alive and does not
@@ -1021,9 +1046,15 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         }
 
         public void setBlockWaitDialog(final boolean doBlock) {
-            for (SubaccountFragment fragment : mFragments)
+            for (final SubaccountFragment fragment : mFragments)
                 if (fragment != null)
                     fragment.setBlockWaitDialog(doBlock);
+        }
+
+        public void onOptionsItemSelected(final MenuItem item) {
+            if (item.getItemId() == R.id.action_share)
+                if (mSelectedPage == 0 && mFragments[0] != null)
+                    mFragments[0].onShareClicked();
         }
     }
 }

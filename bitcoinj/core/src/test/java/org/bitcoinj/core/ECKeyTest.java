@@ -42,7 +42,6 @@ import org.spongycastle.crypto.params.KeyParameter;
 
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.security.SecureRandom;
 import java.security.SignatureException;
 import java.util.Arrays;
 import java.util.List;
@@ -65,11 +64,7 @@ public class ECKeyTest {
 
     @Before
     public void setUp() throws Exception {
-        SecureRandom secureRandom = new SecureRandom();
-
-        byte[] salt = new byte[KeyCrypterScrypt.SALT_LENGTH];
-        secureRandom.nextBytes(salt);
-        Protos.ScryptParameters.Builder scryptParametersBuilder = Protos.ScryptParameters.newBuilder().setSalt(ByteString.copyFrom(salt));
+        Protos.ScryptParameters.Builder scryptParametersBuilder = Protos.ScryptParameters.newBuilder().setSalt(ByteString.copyFrom(KeyCrypterScrypt.randomSalt()));
         ScryptParameters scryptParameters = scryptParametersBuilder.build();
         keyCrypter = new KeyCrypterScrypt(scryptParameters);
 
@@ -458,5 +453,15 @@ public class ECKeyTest {
         if (bytes == null) return false;
         for (byte b : bytes) if (b != 0) return true;
         return false;
+    }
+
+    @Test
+    public void testPublicKeysAreEqual() {
+        ECKey key = new ECKey();
+        ECKey pubKey1 = ECKey.fromPublicOnly(key.getPubKeyPoint());
+        assertTrue(pubKey1.isCompressed());
+        ECKey pubKey2 = pubKey1.decompress();
+        assertEquals(pubKey1, pubKey2);
+        assertEquals(pubKey1.hashCode(), pubKey2.hashCode());
     }
 }

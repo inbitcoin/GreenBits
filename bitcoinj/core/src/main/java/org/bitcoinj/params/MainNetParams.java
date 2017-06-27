@@ -21,8 +21,6 @@ import org.bitcoinj.core.*;
 import org.bitcoinj.net.discovery.*;
 
 import java.net.*;
-import java.util.Arrays;
-import java.util.Collections;
 
 import static com.google.common.base.Preconditions.*;
 
@@ -42,7 +40,9 @@ public class MainNetParams extends AbstractBitcoinNetParams {
         dumpedPrivateKeyHeader = 128;
         addressHeader = 0;
         p2shHeader = 5;
-        acceptableAddressCodes = new int[] { addressHeader, p2shHeader };
+        p2wpkhHeader = 6;
+        p2wshHeader = 10;
+        acceptableAddressCodes = new int[] { addressHeader, p2shHeader, p2wpkhHeader, p2wshHeader };
         port = 8333;
         packetMagic = 0xf9beb4d9L;
         bip32HeaderPub = 0x0488B21E; //The 4 byte header that serializes in base58 to "xpub".
@@ -73,15 +73,20 @@ public class MainNetParams extends AbstractBitcoinNetParams {
         checkpoints.put(200000, Sha256Hash.wrap("000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebf"));
 
         dnsSeeds = new String[] {
-                "seed.bitcoin.sipa.be",        // Pieter Wuille
-                "dnsseed.bluematt.me",         // Matt Corallo
-                "dnsseed.bitcoin.dashjr.org",  // Luke Dashjr
-                "seed.bitcoinstats.com",       // Chris Decker
-                "bitseed.xf2.org",             // Jeff Garzik
-                "bitcoin.jonasschnelli.ch",    // Jonas Schnelli
+                "seed.bitcoin.sipa.be",         // Pieter Wuille
+                "dnsseed.bluematt.me",          // Matt Corallo
+                "dnsseed.bitcoin.dashjr.org",   // Luke Dashjr
+                "seed.bitcoinstats.com",        // Chris Decker
+                "seed.bitnodes.io",             // Addy Yeow
+                "bitseed.xf2.org",              // Jeff Garzik
+                "seed.bitcoin.jonasschnelli.ch" // Jonas Schnelli
         };
-        Collections.shuffle(Arrays.asList(dnsSeeds));
         httpSeeds = new HttpDiscovery.Details[] {
+                // Andreas Schildbach
+                new HttpDiscovery.Details(
+                        ECKey.fromPublicOnly(Utils.HEX.decode("0238746c59d46d5408bf8b1d0af5740fe1a6e1703fcb56b2953f0b965c740d256f")),
+                        URI.create("http://httpseed.bitcoin.schildbach.de/peers")
+                )
         };
 
         addrSeeds = new int[] {

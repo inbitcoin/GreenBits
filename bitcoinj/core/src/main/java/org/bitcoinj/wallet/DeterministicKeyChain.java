@@ -1,7 +1,6 @@
 /*
- * Copyright 2014 The bitcoinj developers.
- * Copyright 2015 Andreas Schildbach
- *
+ * Copyright by the original author or authors.
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -93,6 +92,8 @@ import static com.google.common.collect.Lists.newLinkedList;
  * keys, you can request 33 keys before more keys will be calculated and the Bloom filter rebuilt and rebroadcast.
  * But even when you are requesting the 33rd key, you will still be looking 100 keys ahead.
  * </p>
+ * 
+ * @author Andreas Schildbach
  */
 @SuppressWarnings("PublicStaticCollectionField")
 public class DeterministicKeyChain implements EncryptableKeyChain {
@@ -319,8 +320,8 @@ public class DeterministicKeyChain implements EncryptableKeyChain {
         checkArgument(watchingKey.getPath().size() == getAccountPath().size(), "You can only watch an account key currently");
         basicKeyChain = new BasicKeyChain();
         this.seed = null;
-        rootKey = null;
-        addToBasicChain(watchingKey);
+        this.rootKey = null;
+        basicKeyChain.importKey(watchingKey);
         hierarchy = new DeterministicHierarchy(watchingKey);
         initializeHierarchyUnencrypted(watchingKey);
     }
@@ -360,10 +361,10 @@ public class DeterministicKeyChain implements EncryptableKeyChain {
         if (!seed.isEncrypted()) {
             rootKey = HDKeyDerivation.createMasterPrivateKey(checkNotNull(seed.getSeedBytes()));
             rootKey.setCreationTimeSeconds(seed.getCreationTimeSeconds());
-            addToBasicChain(rootKey);
+            basicKeyChain.importKey(rootKey);
             hierarchy = new DeterministicHierarchy(rootKey);
             for (int i = 1; i <= getAccountPath().size(); i++) {
-                addToBasicChain(hierarchy.get(getAccountPath().subList(0, i), false, true));
+                basicKeyChain.importKey(hierarchy.get(getAccountPath().subList(0, i), false, true));
             }
             initializeHierarchyUnencrypted(rootKey);
         }
@@ -437,8 +438,8 @@ public class DeterministicKeyChain implements EncryptableKeyChain {
     private void initializeHierarchyUnencrypted(DeterministicKey baseKey) {
         externalParentKey = hierarchy.deriveChild(getAccountPath(), false, false, ChildNumber.ZERO);
         internalParentKey = hierarchy.deriveChild(getAccountPath(), false, false, ChildNumber.ONE);
-        addToBasicChain(externalParentKey);
-        addToBasicChain(internalParentKey);
+        basicKeyChain.importKey(externalParentKey);
+        basicKeyChain.importKey(internalParentKey);
     }
 
     /** Returns a freshly derived key that has not been returned by this method before. */
@@ -488,7 +489,7 @@ public class DeterministicKeyChain implements EncryptableKeyChain {
             // and calculate the full lookahead zone there, so network requests will always use the right amount.
             List<DeterministicKey> lookahead = maybeLookAhead(parentKey, index, 0, 0);
             basicKeyChain.importKeys(lookahead);
-            List<DeterministicKey> keys = new ArrayList<DeterministicKey>(numberOfKeys);
+            List<DeterministicKey> keys = new ArrayList<>(numberOfKeys);
             for (int i = 0; i < numberOfKeys; i++) {
                 ImmutableList<ChildNumber> path = HDUtils.append(parentKey.getPath(), new ChildNumber(index - numberOfKeys + i, false));
                 DeterministicKey k = hierarchy.get(path, false, false);
@@ -512,10 +513,6 @@ public class DeterministicKeyChain implements EncryptableKeyChain {
         byte[] actual = k.getPubKey();
         if (!Arrays.equals(rederived, actual))
             throw new IllegalStateException(String.format(Locale.US, "Bit-flip check failed: %s vs %s", Arrays.toString(rederived), Arrays.toString(actual)));
-    }
-
-    private void addToBasicChain(DeterministicKey key) {
-        basicKeyChain.importKeys(ImmutableList.of(key));
     }
 
     /**
@@ -1156,12 +1153,12 @@ public class DeterministicKeyChain implements EncryptableKeyChain {
         final int needed = issued + lookaheadSize + lookaheadThreshold - numChildren;
 
         if (needed <= lookaheadThreshold)
-            return new ArrayList<DeterministicKey>();
+            return new ArrayList<>();
 
         log.info("{} keys needed for {} = {} issued + {} lookahead size + {} lookahead threshold - {} num children",
                 needed, parent.getPathAsString(), issued, lookaheadSize, lookaheadThreshold, numChildren);
 
-        List<DeterministicKey> result  = new ArrayList<DeterministicKey>(needed);
+        List<DeterministicKey> result  = new ArrayList<>(needed);
         final Stopwatch watch = Stopwatch.createStarted();
         int nextChild = numChildren;
         for (int i = 0; i < needed; i++) {
@@ -1218,18 +1215,18 @@ public class DeterministicKeyChain implements EncryptableKeyChain {
     }
 
     // For internal usage only
-    /* package */ List<ECKey> getKeys(boolean includeLookahead) {
+    /* package */ List<ECKey> getKeys(boolean includeLookahead, boolean includeParents) {
         List<ECKey> keys = basicKeyChain.getKeys();
         if (!includeLookahead) {
             int treeSize = internalParentKey.getPath().size();
-            List<ECKey> issuedKeys = new LinkedList<ECKey>();
+            List<ECKey> issuedKeys = new LinkedList<>();
             for (ECKey key : keys) {
                 DeterministicKey detkey = (DeterministicKey) key;
                 DeterministicKey parent = detkey.getParent();
-                if (parent == null) continue;
-                if (detkey.getPath().size() <= treeSize) continue;
-                if (parent.equals(internalParentKey) && detkey.getChildNumber().i() >= issuedInternalKeys) continue;
-                if (parent.equals(externalParentKey) && detkey.getChildNumber().i() >= issuedExternalKeys) continue;
+                if (!includeParents && parent == null) continue;
+                if (!includeParents && detkey.getPath().size() <= treeSize) continue;
+                if (internalParentKey.equals(parent) && detkey.getChildNumber().i() >= issuedInternalKeys) continue;
+                if (externalParentKey.equals(parent) && detkey.getChildNumber().i() >= issuedExternalKeys) continue;
                 issuedKeys.add(detkey);
             }
             return issuedKeys;
@@ -1241,7 +1238,7 @@ public class DeterministicKeyChain implements EncryptableKeyChain {
      * Returns only the external keys that have been issued by this chain, lookahead not included.
      */
     public List<ECKey> getIssuedReceiveKeys() {
-        final List<ECKey> keys = new ArrayList<ECKey>(getKeys(false));
+        final List<ECKey> keys = new ArrayList<>(getKeys(false, false));
         for (Iterator<ECKey> i = keys.iterator(); i.hasNext();) {
             DeterministicKey parent = ((DeterministicKey) i.next()).getParent();
             if (parent == null || !externalParentKey.equals(parent))
@@ -1255,7 +1252,7 @@ public class DeterministicKeyChain implements EncryptableKeyChain {
      */
     public List<DeterministicKey> getLeafKeys() {
         ImmutableList.Builder<DeterministicKey> keys = ImmutableList.builder();
-        for (ECKey key : getKeys(true)) {
+        for (ECKey key : getKeys(true, false)) {
             DeterministicKey dKey = (DeterministicKey) key;
             if (dKey.getPath().size() == getAccountPath().size() + 2) {
                 keys.add(dKey);
@@ -1336,9 +1333,9 @@ public class DeterministicKeyChain implements EncryptableKeyChain {
         return builder.toString();
     }
 
-    protected void formatAddresses(boolean includePrivateKeys, NetworkParameters params, StringBuilder builder2) {
-        for (ECKey key : getKeys(false))
-            key.formatKeyWithAddress(includePrivateKeys, builder2, params);
+    protected void formatAddresses(boolean includePrivateKeys, NetworkParameters params, StringBuilder builder) {
+        for (ECKey key : getKeys(false, true))
+            key.formatKeyWithAddress(includePrivateKeys, builder, params);
     }
 
     /** The number of signatures required to spend coins received by this keychain. */

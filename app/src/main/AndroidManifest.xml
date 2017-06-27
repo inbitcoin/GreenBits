@@ -73,7 +73,7 @@
         <activity
             android:name=".TabbedMainActivity"
             android:theme="@style/AppTheme.NoActionBar"
-            android:windowSoftInputMode="adjustPan|stateAlwaysHidden"
+            android:windowSoftInputMode="adjustResize|stateAlwaysHidden"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
@@ -187,6 +187,35 @@
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="stateAlwaysHidden"
             android:label="@string/verify_paperwallet" />
+
+        <activity android:name=".MainExchanger"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/exchanger"
+            android:theme="@style/AppThemeMark"
+            android:parentActivityName=".TabbedMainActivity" >
+            <!-- The meta-data element is needed for versions lower than 4.1 -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".TabbedMainActivity" />
+        </activity>
+        <activity android:name=".SellActivity"
+            android:label="@string/exchangerSellTitle"
+            android:theme="@style/AppThemeMark"
+            android:parentActivityName=".MainExchanger" >
+            <!-- The meta-data element is needed for versions lower than 4.1 -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainExchanger" />
+        </activity>
+        <activity android:name=".BuyActivity"
+            android:label="@string/exchangerBuyTitle"
+            android:theme="@style/AppThemeMark"
+            android:parentActivityName=".MainExchanger" >
+            <!-- The meta-data element is needed for versions lower than 4.1 -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainExchanger" />
+        </activity>
 
     </application>
 

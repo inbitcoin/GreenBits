@@ -38,13 +38,11 @@ public class TransactionOutput extends ChildMessage {
     private static final Logger log = LoggerFactory.getLogger(TransactionOutput.class);
 
     // The output's value is kept as a native type in order to save class instances.
-    private long value;
+    protected long value;
 
     // A transaction output has a script used for authenticating that the redeemer is allowed to spend
     // this output.
-    private byte[] scriptBytes;
-
-    private byte[] commitment, rangeProof, nonceCommitment;
+    public byte[] scriptBytes;
 
     // The script bytes are parsed and turned into a Script on demand.
     private Script scriptPubKey;
@@ -56,7 +54,7 @@ public class TransactionOutput extends ChildMessage {
     private boolean availableForSpending;
     @Nullable private TransactionInput spentBy;
 
-    private int scriptLen;
+    protected int scriptLen;
 
     /**
      * Deserializes a transaction output message. This is usually part of a transaction message.
@@ -66,15 +64,6 @@ public class TransactionOutput extends ChildMessage {
         super(params, payload, offset);
         setParent(parent);
         availableForSpending = true;
-    }
-
-    public TransactionOutput(NetworkParameters params, @Nullable Transaction parent, byte[] commitment, byte[] rangeProof, byte[] nonceCommitment, Address addr) {
-        super(params);
-        setParent(parent);
-        this.commitment = commitment;
-        this.rangeProof = rangeProof;
-        this.nonceCommitment = nonceCommitment;
-        this.scriptBytes = ScriptBuilder.createOutputScript(addr).getProgram();
     }
 
     /**
@@ -168,15 +157,7 @@ public class TransactionOutput extends ChildMessage {
 
     @Override
     protected void parse() throws ProtocolException {
-        if (params.getId().equals(NetworkParameters.ID_ALPHANET)) {
-            commitment = readBytes(33);
-            int rangeProofLen = (int) readVarInt();
-            rangeProof = readBytes(rangeProofLen);
-            int nonceCommitmentLen = (int) readVarInt();
-            nonceCommitment = readBytes(nonceCommitmentLen);
-        } else {
-            value = readInt64();
-        }
+        value = readInt64();
         scriptLen = (int) readVarInt();
         length = cursor - offset + scriptLen;
         scriptBytes = readBytes(scriptLen);
@@ -185,50 +166,8 @@ public class TransactionOutput extends ChildMessage {
     @Override
     protected void bitcoinSerializeToStream(OutputStream stream) throws IOException {
         checkNotNull(scriptBytes);
-
-        if (params.getId() == NetworkParameters.ID_ALPHANET) {
-            stream.write(this.commitment);
-
-            stream.write(new VarInt(this.rangeProof.length).encode());
-            stream.write(this.rangeProof);
-            stream.write(new VarInt(this.nonceCommitment.length).encode());
-            stream.write(this.nonceCommitment);
-        } else {
-            Utils.int64ToByteStreamLE(value, stream);
-        }
-
+        Utils.int64ToByteStreamLE(value, stream);
         // TODO: Move script serialization into the Script class, where it belongs.
-        stream.write(new VarInt(scriptBytes.length).encode());
-        stream.write(scriptBytes);
-    }
-
-    public void bitcoinSerializeForCTSigning(OutputStream stream) throws IOException {
-        checkNotNull(scriptBytes);
-        stream.write(this.commitment);
-
-        byte[] rangeProofLen = new VarInt(this.rangeProof.length).encode();
-        byte[] nonceCommitmentLen = new VarInt(this.nonceCommitment.length).encode();
-        byte[] toHash = new byte[
-                rangeProofLen.length +
-                this.rangeProof.length +
-                nonceCommitmentLen.length +
-                this.nonceCommitment.length
-        ];
-        int offset = 0;
-        for (int i = 0; i < rangeProofLen.length; ++i) {
-            toHash[offset++] = rangeProofLen[i];
-        }
-        for (int i = 0; i < this.rangeProof.length; ++i) {
-            toHash[offset++] = this.rangeProof[i];
-        }
-        for (int i = 0; i < nonceCommitmentLen.length; ++i) {
-            toHash[offset++] = nonceCommitmentLen[i];
-        }
-        for (int i = 0; i < this.nonceCommitment.length; ++i) {
-            toHash[offset++] = this.nonceCommitment[i];
-        }
-        stream.write(Sha256Hash.twiceOf(toHash).getBytes());
-
         stream.write(new VarInt(scriptBytes.length).encode());
         stream.write(scriptBytes);
     }
@@ -392,7 +331,7 @@ public class TransactionOutput extends ChildMessage {
             }
         } catch (ScriptException e) {
             // Just means we didn't understand the output of this transaction: ignore it.
-            log.debug("Could not parse tx output script: {}", e.toString());
+            log.debug("Could not parse tx {} output script: {}", parent != null ? parent.getHash() : "(no parent)", e.toString());
             return false;
         }
     }
@@ -487,29 +426,5 @@ public class TransactionOutput extends ChildMessage {
     @Override
     public int hashCode() {
         return Objects.hashCode(value, parent, Arrays.hashCode(scriptBytes));
-    }
-
-    public byte[] getCommitment() {
-        return commitment;
-    }
-
-    public byte[] getRangeProof() {
-        return rangeProof;
-    }
-
-    public byte[] getNonceCommitment() {
-        return nonceCommitment;
-    }
-
-    public void setCommitment(byte[] commitment) {
-        this.commitment = commitment;
-    }
-
-    public void setRangeProof(byte[] rangeProof) {
-        this.rangeProof = rangeProof;
-    }
-
-    public void setNonceCommitment(byte[] nonceCommitment) {
-        this.nonceCommitment = nonceCommitment;
     }
 }

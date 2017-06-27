@@ -19,6 +19,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.greenaddress.greenapi.JSONMap;
 import com.greenaddress.greenapi.Network;
 import com.greenaddress.greenapi.PreparedTransaction;
 import com.greenaddress.greenbits.GaService;
@@ -34,7 +35,6 @@ import org.bitcoinj.core.BloomFilter;
 import org.bitcoinj.core.CheckpointManager;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.FilteredBlock;
-import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Peer;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
@@ -47,6 +47,7 @@ import org.bitcoinj.core.listeners.DownloadProgressTracker;
 import org.bitcoinj.core.listeners.TransactionReceivedInBlockListener;
 import org.bitcoinj.net.BlockingClientManager;
 import org.bitcoinj.net.discovery.DnsDiscovery;
+import org.bitcoinj.params.RegTestParams;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
 import org.bitcoinj.store.SPVBlockStore;
@@ -78,11 +79,11 @@ public class SPV {
 
     private final Map<TransactionOutPoint, Coin> mCountedUtxoValues = new HashMap<>();
 
-    private final String VERIFIED = "verified_utxo_";
-    private final String SPENDABLE = "verified_utxo_spendable_value_";
+    private final static String VERIFIED = "verified_utxo_";
+    private final static String SPENDABLE = "verified_utxo_spendable_value_";
 
-    class AccountInfo extends Pair<Integer, Integer> {
-        public AccountInfo(Integer subAccount, final Integer pointer) { super(subAccount, pointer); }
+    static class AccountInfo extends Pair<Integer, Integer> {
+        public AccountInfo(final Integer subAccount, final Integer pointer) { super(subAccount, pointer); }
         public Integer getSubAccount() { return first; }
         public Integer getPointer() { return second; }
     }
@@ -115,11 +116,12 @@ public class SPV {
     }
 
     private <T> String Var(final String name, final T value) {
-        return name + " => " + value.toString() + " ";
+        return name + " => " + value.toString() + ' ';
     }
 
     public boolean isEnabled() {
-        return !mService.isWatchOnly() && mService.cfg("SPV").getBoolean("enabled", true);
+        return !mService.isWatchOnly() && mService.cfg("SPV").getBoolean("enabled", true) &&
+            !GaService.IS_ELEMENTS;
     }
 
     public void setEnabledAsync(final boolean enabled) {
@@ -209,7 +211,7 @@ public class SPV {
         return mVerifiedCoinBalances.get(subAccount);
     }
 
-    public boolean isUnspentOutpoint(final Sha256Hash txHash) {
+    private boolean isUnspentOutpoint(final Sha256Hash txHash) {
         return mUnspentOutpoints.containsKey(txHash);
     }
 
@@ -220,36 +222,37 @@ public class SPV {
     public ListenableFuture<Void> updateUnspentOutputs() {
         final boolean currentlyEnabled = isEnabled();
         Log.d(TAG, "updateUnspentOutputs: " + Var("currentlyEnabled", currentlyEnabled));
-        if (currentlyEnabled)
-            return Futures.transform(mService.getAllUnspentOutputs(0, null), new Function<ArrayList, Void>() {
-                @Override
-                public Void apply(final ArrayList outputs) {
-                    updateUnspentOutputs(outputs);
-                    return null;
-                }
-            }, mService.getExecutor());
-        return Futures.immediateFuture(null);
+        if (!currentlyEnabled)
+            return Futures.immediateFuture(null);
+
+        final boolean filterAsset = true; // TODO: Elements doesn't support SPV yet
+        return Futures.transform(mService.getAllUnspentOutputs(0, null, filterAsset),
+                                 new Function<List<JSONMap>, Void>() {
+            @Override
+            public Void apply(final List<JSONMap> utxos) {
+                updateUnspentOutputs(utxos);
+                return null;
+            }
+        }, mService.getExecutor());
     }
 
-    private void updateUnspentOutputs(final ArrayList outputs) {
+    private void updateUnspentOutputs(final List<JSONMap> utxos) {
         final Set<TransactionOutPoint> newUtxos = new HashSet<>();
         boolean recalculateBloom = false;
 
-        Log.d(TAG, Var("number of outputs", outputs.size()));
-        for (final Map<?, ?> utxo : (ArrayList<Map<?, ?>>) outputs) {
-            final String txHashHex = (String) utxo.get("txhash");
-            final Integer blockHeight = (Integer) utxo.get("block_height");
-            final Integer prevIndex = ((Integer) utxo.get("pt_idx"));
-            final Integer subaccount = ((Integer) utxo.get("subaccount"));
-            final Integer pointer = ((Integer) utxo.get("pointer"));
-            final Sha256Hash txHash = Sha256Hash.wrap(txHashHex);
+        Log.d(TAG, Var("number of utxos", utxos.size()));
+        for (final JSONMap utxo : utxos) {
+            final Integer prevIndex = utxo.getInt("pt_idx");
+            final Integer subaccount = utxo.getInt("subaccount");
+            final Integer pointer = utxo.getInt("pointer");
+            final Sha256Hash txHash = utxo.getHash("txhash");
 
             if (isVerified(txHash)) {
                 addToUtxo(txHash, prevIndex, subaccount, pointer);
                 addUtxoToValues(txHash, false /* updateVerified */);
             } else {
                 recalculateBloom = true;
-                addToBloomFilter(blockHeight, txHash, prevIndex, subaccount, pointer);
+                addToBloomFilter(utxo.getInt("block_height"), txHash, prevIndex, subaccount, pointer);
             }
             newUtxos.add(createOutPoint(prevIndex, txHash));
         }
@@ -301,7 +304,7 @@ public class SPV {
         final List<Integer> changedSubaccounts = new ArrayList<>();
         boolean missing = false;
         for (final Integer outpoint : mUnspentOutpoints.get(txHash)) {
-            final String key = txHashHex + ":" + outpoint;
+            final String key = txHashHex + ':' + outpoint;
             final long value = mService.cfgIn(SPENDABLE).getLong(key, -1);
             if (value == -1) {
                 missing = true;
@@ -341,7 +344,7 @@ public class SPV {
                     futuresList.add(Futures.transform(verifyFn, new Function<Boolean, Boolean>() {
                         @Override
                         public Boolean apply(final Boolean input) {
-                            final String key = txHashHex + ":" + outpoint;
+                            final String key = txHashHex + ':' + outpoint;
                             if (!input)
                                 Log.e(TAG, "txHash " + key + " not spendable!");
                             else {
@@ -467,7 +470,7 @@ public class SPV {
         return Futures.transform(changeFn, new Function<List<Boolean>, Coin>() {
             @Override
             public Coin apply(final List<Boolean> input) {
-                return Verifier.verify(mCountedUtxoValues, ptx, recipientAddr, amount, input);
+                return Verifier.verify(mService, mCountedUtxoValues, ptx, recipientAddr, amount, input);
             }
         });
     }
@@ -539,13 +542,13 @@ public class SPV {
                         }
 
                         @Override
-                        protected void startDownload(int blocks) {
+                        protected void startDownload(final int blocks) {
                             Log.d(TAG, "startDownload");
                             updateNotification(100, 0);
                         }
 
                         @Override
-                        protected void progress(double percent, int blocksSoFar, Date date) {
+                        protected void progress(final double percent, final int blocksSoFar, final Date date) {
                             //Log.d(TAG, "progress: " + Var("percent", percent));
                             mNotificationBuilder.setContentText("Sync in progress...");
                             updateNotification(100, (int) percent);
@@ -618,7 +621,7 @@ public class SPV {
         }
     }
 
-    final TransactionReceivedInBlockListener mTxListner = new TransactionReceivedInBlockListener() {
+    private final TransactionReceivedInBlockListener mTxListner = new TransactionReceivedInBlockListener() {
         @Override
         public void receiveFromBlock(final Transaction tx, final StoredBlock block, final BlockChain.NewBlockType blockType, final int relativityOffset) throws VerificationException {
             getService().notifyObservers(tx.getHash());
@@ -655,7 +658,7 @@ public class SPV {
                 Log.d(TAG, "Creating block store");
                 mBlockStore = new SPVBlockStore(Network.NETWORK, mService.getSPVChainFile());
                 final StoredBlock storedBlock = mBlockStore.getChainHead(); // detect corruptions as early as possible
-                if (storedBlock.getHeight() == 0 && !Network.NETWORK.equals(NetworkParameters.fromID(NetworkParameters.ID_REGTEST))) {
+                if (storedBlock.getHeight() == 0 && Network.NETWORK != RegTestParams.get()) {
                     InputStream is = null;
                     try {
                         is = mService.getAssets().open("checkpoints");
@@ -724,7 +727,7 @@ public class SPV {
         mExecutor.execute(new Runnable() { public void run() { stopSync(); } });
     }
 
-    public void stopSync() {
+    private void stopSync() {
         synchronized (mStateLock) {
             Log.d(TAG, "stopSync: " + Var("isEnabled", isEnabled()));
 
@@ -812,7 +815,7 @@ public class SPV {
         });
     }
 
-    public void reset(final boolean deleteAllData, final boolean deleteUnspent) {
+    private void reset(final boolean deleteAllData, final boolean deleteUnspent) {
         synchronized (mStateLock) {
             Log.d(TAG, "reset: " + Var("deleteAllData", deleteAllData) +
                   Var("deleteUnspent", deleteUnspent));

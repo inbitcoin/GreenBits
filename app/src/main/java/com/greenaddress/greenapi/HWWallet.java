@@ -15,12 +15,8 @@ public abstract class HWWallet extends ISigningWallet {
     @Override
     public boolean requiresPrevoutRawTxs() { return true; }
 
-    @Override
-    public DeterministicKey getMyPublicKey(final int subAccount, final Integer pointer) {
-        DeterministicKey k = getMyPublicKey(subAccount);
-        // Currently only regular transactions are supported
-        k = HDKey.deriveChildKey(k, HDKey.BRANCH_REGULAR);
-        return HDKey.deriveChildKey(k, pointer);
+    public DeterministicKey getSubAccountPublicKey(final int subAccount) {
+        return getMyKey(subAccount).getPubKey();
     }
 
     @Override
@@ -50,8 +46,7 @@ public abstract class HWWallet extends ISigningWallet {
         return new String[]{signature.r.toString(), signature.s.toString(), String.valueOf(recId)};
     }
 
-    @Override
-    protected HWWallet getMyKey(final int subAccount) {
+    private HWWallet getMyKey(final int subAccount) {
         ISigningWallet parent = this;
         if (subAccount != 0)
             parent = parent.derive(ISigningWallet.HARDENED | 3)
@@ -59,7 +54,12 @@ public abstract class HWWallet extends ISigningWallet {
         return (HWWallet) parent;
     }
 
-    protected Object[] getChallengeArguments(boolean isTrezor) {
+    public byte[] getLocalEncryptionPassword() {
+        final byte[] pubkey = this.derive(PASSWORD_PATH).getPubKey().getPubKey();
+        return CryptoHelper.pbkdf2_hmac_sha512(pubkey, PASSWORD_SALT);
+    }
+
+    protected Object[] getChallengeArguments(final boolean isTrezor) {
         final byte[] id = getPubKey().toAddress(Network.NETWORK).getHash160();
         final Address addr = new Address(Network.NETWORK, id);
         return new Object[]{ "login.get_trezor_challenge", addr.toString(), !isTrezor };

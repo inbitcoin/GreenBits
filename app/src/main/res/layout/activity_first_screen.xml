@@ -1,5 +1,4 @@
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -48,7 +47,7 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentStart="false"
         android:text="@string/madeBy"
-        android:textColor="@color/whiteSecondary"/>
+        android:textColor="@color/whiteSecondary" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -73,7 +72,7 @@
 
         <View
             android:layout_width="fill_parent"
-            android:layout_height="10dp"/>
+            android:layout_height="10dp" />
 
         <TextView
             android:visibility="gone"
@@ -81,7 +80,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:text="@string/greenaddress_headline"
-            android:textColor="@color/whiteSecondary"/>
+            android:textColor="@color/whiteSecondary" />
 
 
         <LinearLayout
@@ -100,11 +99,11 @@
                 android:background="@color/hide"
                 style="@style/myButton"
                 android:text="@string/firstLogInText"
-                android:textColor="@color/accent"/>
+                android:textColor="@color/accent" />
 
             <View
                 android:layout_width="16dp"
-                android:layout_height="fill_parent"/>
+                android:layout_height="fill_parent" />
 
             <Button
                 android:id="@+id/firstSignUpButton"
@@ -113,7 +112,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:text="@string/firstSignUpText"
-                android:textColor="@color/white"/>
+                android:textColor="@color/white" />
 
         </LinearLayout>
 

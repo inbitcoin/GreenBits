@@ -1,4 +1,6 @@
 /*
+ * Copyright by the original author or authors.
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,6 +26,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.ByteString;
 import org.bitcoin.paymentchannel.Protos;
+import org.spongycastle.crypto.params.KeyParameter;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.BlockingQueue;
@@ -36,7 +39,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class ChannelTestUtils {
     public static class RecordingServerConnection implements PaymentChannelServer.ServerConnection {
-        public BlockingQueue<Object> q = new LinkedBlockingQueue<Object>();
+        public BlockingQueue<Object> q = new LinkedBlockingQueue<>();
 
         @Override
         public void sendToClient(Protos.TwoWayChannelMessage msg) {
@@ -59,6 +62,12 @@ public class ChannelTestUtils {
             return Futures.immediateFuture(ByteString.copyFromUtf8(by.toPlainString()));
         }
 
+        @Nullable
+        @Override
+        public ListenableFuture<KeyParameter> getUserKey() {
+            return null;
+        }
+
         public Protos.TwoWayChannelMessage getNextMsg() throws InterruptedException {
             return (Protos.TwoWayChannelMessage) q.take();
         }
@@ -76,7 +85,7 @@ public class ChannelTestUtils {
     }
 
     public static class RecordingClientConnection implements PaymentChannelClient.ClientConnection {
-        public BlockingQueue<Object> q = new LinkedBlockingQueue<Object>();
+        public BlockingQueue<Object> q = new LinkedBlockingQueue<>();
         static final int IGNORE_EXPIRE = -1;
         private final int maxExpireTime;
 

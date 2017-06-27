@@ -61,7 +61,7 @@ public class FirstScreenActivity extends LoginActivity {
             public Object call() {
                 transportFactory = new LedgerTransportTEEProxyFactory(getApplicationContext());
                 final LedgerTransportTEEProxy teeTransport = (LedgerTransportTEEProxy) transportFactory.getTransport();
-                byte[] nvm = teeTransport.loadNVM(NVM_PATH);
+                final byte[] nvm = teeTransport.loadNVM(NVM_PATH);
                 teeTransport.setDebug(BuildConfig.DEBUG);
                 if (nvm != null) {
                     teeTransport.setNVM(nvm);
@@ -207,8 +207,8 @@ public class FirstScreenActivity extends LoginActivity {
                     try {
                         masterPublicKey = dongle.getWalletPublicKey("");
                         loginPublicKey = dongle.getWalletPublicKey("18241'");
-                        Log.d(TAG, "TEE derived MPK " + Dump.dump(masterPublicKey.getPublicKey()) + " " + Dump.dump(masterPublicKey.getChainCode()));
-                        Log.d(TAG, "TEE derived LPK " + Dump.dump(loginPublicKey.getPublicKey()) + " " + Dump.dump(loginPublicKey.getChainCode()));
+                        Log.d(TAG, "TEE derived MPK " + Dump.dump(masterPublicKey.getPublicKey()) + ' ' + Dump.dump(masterPublicKey.getChainCode()));
+                        Log.d(TAG, "TEE derived LPK " + Dump.dump(loginPublicKey.getPublicKey()) + ' ' + Dump.dump(loginPublicKey.getChainCode()));
                     } catch (final Exception e) {
                         FirstScreenActivity.this.toast("Trustlet login failed");
                         tuiCall = false;

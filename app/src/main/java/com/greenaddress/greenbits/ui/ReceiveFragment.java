@@ -18,61 +18,81 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.blockstream.libwally.Wally;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.greenaddress.greenapi.ConfidentialAddress;
+import com.greenaddress.greenapi.JSONMap;
 import com.greenaddress.greenapi.Network;
+import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.QrBitmap;
+
+import java.util.concurrent.Callable;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.uri.BitcoinURI;
-import org.bitcoinj.utils.MonetaryFormat;
+
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Observer;
 
 import nordpol.android.OnDiscoveredTagListener;
 import nordpol.android.TagDispatcher;
 
 
-public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredTagListener, AmountFields.OnConversionFinishListener {
+public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredTagListener, AmountFields.OnConversionFinishListener, Exchanger.OnCalculateCommissionFinishListener {
     private static final String TAG = ReceiveFragment.class.getSimpleName();
 
-    private FutureCallback<QrBitmap> mNewAddressCallback = null;
-    private QrBitmap mQrCodeBitmap = null;
-    private int mSubaccount = 0;
-    private Dialog mQrCodeDialog = null;
-    private TagDispatcher mTagDispatcher = null;
-    private TextView mAddressText = null;
-    private ImageView mAddressImage = null;
-    private TextView mCopyIcon = null;
+    private FutureCallback<QrBitmap> mNewAddressCallback;
+    private FutureCallback<Void> mNewAddressFinished;
+    private QrBitmap mQrCodeBitmap;
+    private int mSubaccount;
+    private Dialog mQrCodeDialog;
+    private TagDispatcher mTagDispatcher;
+    private TextView mAddressText;
+    private ImageView mAddressImage;
     private TextView mShareIcon = null;
+    private TextView mCopyIcon;
     private LinearLayout mReceiveAddressLayout = null;
     private final Runnable mDialogCB = new Runnable() { public void run() { mQrCodeDialog = null; } };
 
     private EditText mAmountEdit;
     private EditText mAmountFiatEdit;
+    private TextView mAmountFiatWithCommission;
     private String mCurrentAddress = "";
-    private Coin mCurrentAmount = null;
+    private Coin mCurrentAmount;
     private BitmapWorkerTask mBitmapWorkerTask;
-    private AmountFields mAmountFields = null;
+    private AmountFields mAmountFields;
+
+    private Exchanger mExchanger;
+    private boolean mIsExchanger;
+    private Button mShowQrCode;
+    private Observer mNewTxObserver;
 
     @Override
     public void onResume() {
         super.onResume();
+        Log.d(TAG, "onResume -> " + TAG);
+
+        if (mIsExchanger && getGAService() != null)
+            attachObservers();
+
         if (mAmountFields != null)
             mAmountFields.setIsPausing(false);
-        Log.d(TAG, "onResume -> " + TAG);
     }
 
     @Override
@@ -87,6 +107,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         }
         if (mTagDispatcher != null)
             mTagDispatcher.disableExclusiveNfc();
+        detachObservers();
     }
 
     @Override
@@ -97,8 +118,6 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         if (isZombieNoView())
             return null;
 
-        popupWaitDialog(R.string.generating_address);
-
         final GaActivity gaActivity = getGaActivity();
 
         mTagDispatcher = TagDispatcher.get(gaActivity, this);
@@ -106,7 +125,13 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
 
         mSubaccount = getGAService().getCurrentSubAccount();
 
-        mView = inflater.inflate(R.layout.fragment_receive, container, false);
+        if (savedInstanceState != null)
+            mIsExchanger = savedInstanceState.getBoolean("isExchanger", false);
+
+        if (mIsExchanger)
+            mView = inflater.inflate(R.layout.fragment_buy, container, false);
+        else
+            mView = inflater.inflate(R.layout.fragment_receive, container, false);
 
         mAmountFields = new AmountFields(getGAService(), getContext(), mView, this);
         if (savedInstanceState != null) {
@@ -168,11 +193,54 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         newAddressIcon.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View v) {
-                getNewAddress();
+                generateNewAddress();
             }
         });
         mAmountEdit = UI.find(mView, R.id.sendAmountEditText);
         mAmountFiatEdit = UI.find(mView, R.id.sendAmountFiatEditText);
+
+        if (mIsExchanger) {
+            setPageSelected(true);
+            mAmountFiatWithCommission = UI.find(mView, R.id.amountFiatWithCommission);
+            mExchanger = new Exchanger(getContext(), getGAService(), mView, true, this);
+            mShowQrCode = UI.find(mView, R.id.showQrCode);
+            mShowQrCode.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(final View view) {
+                    final String amountStr = UI.getText(mAmountFiatWithCommission);
+                    final float amount = Float.valueOf(amountStr);
+                    if (amount > mExchanger.getFiatInBill()) {
+                        UI.toast(getGaActivity(), R.string.noEnoughMoneyInPocket, Toast.LENGTH_LONG);
+                        return;
+                    }
+                    final String amountBtc = mAmountEdit.getText().toString();
+                    if (amountBtc.isEmpty() || Float.valueOf(amountBtc) <= 0) {
+                        UI.toast(getGaActivity(), R.string.invalidAmount, Toast.LENGTH_LONG);
+                        return;
+                    }
+                    generateNewAddress(false, new FutureCallback<Void>() {
+                        @Override
+                        public void onSuccess(final Void aVoid) {
+                            String exchangerAddress = mCurrentAddress;
+                            if (GaService.IS_ELEMENTS) {
+                                final String currentBtcAddress = mCurrentAddress.replace("bitcoin:", "").split("\\?")[0];
+                                exchangerAddress = ConfidentialAddress.fromBase58(Network.NETWORK, currentBtcAddress).getBitcoinAddress().toString();
+                            }
+                            getGAService().cfg().edit().putBoolean("exchanger_address_" + exchangerAddress, true).apply();
+                            final BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), mQrCodeBitmap.getQRCode());
+                            bitmapDrawable.setFilterBitmap(false);
+                            mAddressImage.setImageDrawable(bitmapDrawable);
+                            onAddressImageClicked(bitmapDrawable);
+                        }
+
+                        @Override
+                        public void onFailure(final Throwable t) {
+                            t.printStackTrace();
+                        }
+                    });
+                }
+            });
+        }
 
         registerReceiver();
         return mView;
@@ -180,6 +248,18 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
 
     @Override
     public void conversionFinish() {
+        if (mIsExchanger && mExchanger != null) {
+            mExchanger.conversionFinish();
+        } else {
+            if (mBitmapWorkerTask != null)
+                mBitmapWorkerTask.cancel(true);
+            mBitmapWorkerTask = new BitmapWorkerTask();
+            mBitmapWorkerTask.execute();
+        }
+    }
+
+    @Override
+    public void calculateCommissionFinish() {
         if (mBitmapWorkerTask != null)
             mBitmapWorkerTask.cancel(true);
         mBitmapWorkerTask = new BitmapWorkerTask();
@@ -189,18 +269,16 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
     class BitmapWorkerTask extends AsyncTask<Object, Object, Bitmap> {
 
         @Override
-        protected Bitmap doInBackground(Object... integers) {
+        protected Bitmap doInBackground(final Object... integers) {
             final String amount = UI.getText(mAmountEdit);
             mCurrentAmount = null;
             if (amount.isEmpty())
                 return mQrCodeBitmap == null ? null : resetBitmap(mCurrentAddress);
 
             try {
-                final String btcUnit = (String) getGAService().getUserConfig("unit");
-                final MonetaryFormat bitcoinFormat = CurrencyMapper.mapBtcUnitToFormat(btcUnit);
+                mCurrentAmount = UI.parseCoinValue(getGAService(), amount);
 
                 final Address address = Address.fromBase58(Network.NETWORK, mCurrentAddress);
-                mCurrentAmount = bitcoinFormat.parse(amount);
                 final String qrCodeText = BitcoinURI.convertToBitcoinURI(address, mCurrentAmount, null, null);
                 return resetBitmap(qrCodeText);
             } catch (final ArithmeticException | IllegalArgumentException e) {
@@ -231,31 +309,49 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         }
     }
 
-    private void getNewAddress() {
+    private void generateNewAddress() {
+        generateNewAddress(true, null);
+    }
+
+    private void generateNewAddress(final boolean clear, final FutureCallback<Void> onDone) {
         Log.d(TAG, "Generating new address for subaccount " + mSubaccount);
         if (isZombie())
             return;
-        mAmountEdit.setText("");
-        mAmountFiatEdit.setText("");
+
+        Long amount = null;
+        if (clear)
+            UI.clear(mAmountEdit, mAmountFiatEdit);
+        if (mIsExchanger && GaService.IS_ELEMENTS) {
+            // TODO: non-fiat / non-assets values
+            if (mAmountEdit.getText().toString().isEmpty())
+                return;
+            amount = (long) (Float.valueOf(mAmountEdit.getText().toString()).floatValue() * 100);
+        }
         mCurrentAddress = "";
-        popupWaitDialog(R.string.generating_address);
         UI.disable(mCopyIcon);
         UI.disable(mShareIcon);
-        destroyCurrentAddress();
-        Futures.addCallback(getGAService().getNewAddressBitmap(mSubaccount),
+        destroyCurrentAddress(clear);
+        mNewAddressFinished = onDone;
+        final Callable waitFn = new Callable<Void>() {
+            @Override
+            public Void call() {
+                popupWaitDialog(R.string.generating_address);
+                return null;
+            }
+        };
+        Futures.addCallback(getGAService().getNewAddressBitmap(mSubaccount, waitFn, amount),
                             mNewAddressCallback, getGAService().getExecutor());
     }
 
-    private void destroyCurrentAddress() {
+    private void destroyCurrentAddress(final boolean clear) {
         Log.d(TAG, "Destroying address for subaccount " + mSubaccount);
         if (isZombie())
             return;
-        mAmountEdit.setText("");
-        mAmountFiatEdit.setText("");
         mCurrentAddress = "";
-        mAddressText.setText("");
+        if (clear)
+            UI.clear(mAmountEdit, mAmountFiatEdit, mAddressText);
         mAddressImage.setImageBitmap(null);
-        mReceiveAddressLayout.setVisibility(View.GONE);
+        UI.hide(mReceiveAddressLayout);
     }
 
     private void onCopyClicked() {
@@ -266,7 +362,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         final ClipData data = ClipData.newPlainText("data", mQrCodeBitmap.getData());
         cm.setPrimaryClip(data);
         final String text = gaActivity.getString(R.string.toastOnCopyAddress) +
-                            " " + gaActivity.getString(R.string.warnOnPaste);
+                ' ' + gaActivity.getString(R.string.warnOnPaste);
         gaActivity.toast(text);
     }
 
@@ -274,7 +370,19 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         if (mQrCodeDialog != null)
             mQrCodeDialog.dismiss();
 
-        final View v = getActivity().getLayoutInflater().inflate(R.layout.dialog_qrcode, null, false);
+        final View v;
+        if (mIsExchanger) {
+            v = getActivity().getLayoutInflater().inflate(R.layout.dialog_qrcode_exchanger, null, false);
+            final Button cancelBtn = UI.find(v, R.id.cancelBtn);
+            cancelBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(final View view) {
+                    mQrCodeDialog.dismiss();
+                }
+            });
+        } else {
+            v = getActivity().getLayoutInflater().inflate(R.layout.dialog_qrcode, null, false);
+        }
 
         final ImageView qrCode = UI.find(v, R.id.qrInDialogImageView);
         qrCode.setLayoutParams(UI.getScreenLayout(getActivity(), 0.8));
@@ -339,8 +447,25 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         mAddressImage.setImageDrawable(bd);
 
         final String qrData = result.getData();
-        mAddressText.setText(String.format("%s\n%s", qrData.substring(0, 18),
-                             qrData.substring(18)));
+        if (GaService.IS_ELEMENTS) {
+            mAddressText.setText(String.format("%s\n" +
+                            "%s\n%s\n" +
+                            "%s\n%s\n" +
+                            "%s\n%s",
+                    qrData.substring(0, 12),
+                    qrData.substring(12, 24),
+                    qrData.substring(24, 36),
+                    qrData.substring(36, 48),
+                    qrData.substring(48, 60),
+                    qrData.substring(60, 72),
+                    qrData.substring(72)
+            ));
+            mAddressText.setLines(7);
+            mAddressText.setMaxLines(7);
+        } else {
+            mAddressText.setText(String.format("%s\n%s", qrData.substring(0, 18),
+                                 qrData.substring(18)));
+        }
         mCurrentAddress = result.getData();
 
         mAddressImage.setOnClickListener(new View.OnClickListener() {
@@ -353,7 +478,10 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         hideWaitDialog();
         UI.enable(mCopyIcon);
         UI.enable(mShareIcon);
-        mReceiveAddressLayout.setVisibility(View.VISIBLE);
+        UI.show(mReceiveAddressLayout);
+
+        if (mNewAddressFinished != null)
+            mNewAddressFinished.onSuccess(null);
     }
 
     @Override
@@ -365,50 +493,41 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
     public void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate -> " + TAG);
-        setHasOptionsMenu(true);
-    }
-
-    @Override
-    public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.receive, menu);
     }
 
     @Override
     protected void onSubaccountChanged(final int newSubAccount) {
         mSubaccount = newSubAccount;
         if (IsPageSelected())
-            getNewAddress();
+            generateNewAddress();
         else
-            destroyCurrentAddress();
+            destroyCurrentAddress(true);
     }
 
     private String getAddressUri() {
-        final Address address = Address.fromBase58(Network.NETWORK, mCurrentAddress);
-        return BitcoinURI.convertToBitcoinURI(address, mCurrentAmount, null, null);
+        final String addr;
+        if (GaService.IS_ELEMENTS)
+            addr = ConfidentialAddress.fromBase58(Network.NETWORK, mCurrentAddress).toString();
+        else
+            addr = Address.fromBase58(Network.NETWORK, mCurrentAddress).toString();
+        return BitcoinURI.convertToBitcoinURI(Network.NETWORK, addr, mCurrentAmount, null, null);
     }
 
     @Override
-    public boolean onOptionsItemSelected(final MenuItem item) {
+    public void onShareClicked() {
+        if (mQrCodeBitmap == null || mQrCodeBitmap.getData().isEmpty())
+            return;
 
-        if (item.getItemId() == R.id.action_share) {
-            if (mQrCodeBitmap != null && !mQrCodeBitmap.getData().isEmpty()) {
-                // SHARE intent
-                UI.shareQrcodeAddress(getGaActivity(), mQrCodeBitmap.getQRCode(), getAddressUri());
-            }
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
+        UI.shareQrcodeAddress(getGaActivity(), mQrCodeBitmap.getQRCode(), getAddressUri());
     }
 
     public void setPageSelected(final boolean isSelected) {
         final boolean needToRegenerate = isSelected && !IsPageSelected();
         super.setPageSelected(isSelected);
         if (needToRegenerate)
-            getNewAddress();
+            generateNewAddress();
         else if (!isSelected)
-            destroyCurrentAddress();
+            destroyCurrentAddress(true);
     }
 
     @Override
@@ -427,6 +546,8 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         }
         if (mAmountFields != null)
             mAmountFields.setIsPausing(false);
+        if (mIsExchanger)
+            mExchanger.conversionFinish();
     }
 
     @Override
@@ -437,5 +558,77 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         outState.putString("currentAddress", mCurrentAddress);
         if (mAmountFields != null)
             outState.putBoolean("pausing", mAmountFields.isPausing());
+        outState.putBoolean("isExchanger", mIsExchanger);
+    }
+
+    public void setIsExchanger(final boolean isExchanger) {
+        mIsExchanger = isExchanger;
+    }
+
+    @Override
+    public void attachObservers() {
+        if (mNewTxObserver == null) {
+            mNewTxObserver = makeUiObserver(new Runnable() { public void run() { onNewTx(); } });
+            getGAService().addNewTxObserver(mNewTxObserver);
+        }
+        super.attachObservers();
+    }
+
+    @Override
+    public void detachObservers() {
+        super.detachObservers();
+        if (mNewTxObserver!= null) {
+            getGAService().deleteNewTxObserver(mNewTxObserver);
+            mNewTxObserver = null;
+        }
+    }
+
+    private void onNewTx() {
+        final GaService service = getGAService();
+        Futures.addCallback(service.getMyTransactions(mSubaccount),
+                new FutureCallback<Map<String, Object>>() {
+                    @Override
+                    public void onSuccess(final Map<String, Object> result) {
+                        final List txList = (List) result.get("list");
+                        final int currentBlock = ((Integer) result.get("cur_block"));
+                        for (final Object tx : txList) {
+                            try {
+                                final JSONMap txJSON = (JSONMap) tx;
+                                final ArrayList<String> replacedList = txJSON.get("replaced_by");
+
+                                if (replacedList == null) {
+                                    final TransactionItem txItem = new TransactionItem(service, txJSON, currentBlock);
+                                    final boolean matches;
+                                    if (!GaService.IS_ELEMENTS)
+                                        matches = txItem.receivedOn != null && txItem.receivedOn.equals(mCurrentAddress);
+                                    else {
+                                        final int subaccount = txItem.receivedOnEp.getInt("subaccount", 0);
+                                        final int pointer = txItem.receivedOnEp.getInt("pubkey_pointer");
+                                        final String receivedOn = ConfidentialAddress.fromP2SHHash(
+                                            Network.NETWORK,
+                                            Wally.hash160(service.createOutScript(subaccount, pointer)),
+                                            service.getBlindingPubKey(subaccount, pointer)
+                                        ).toString();
+                                        final String currentBtcAddress = mCurrentAddress.replace("bitcoin:", "").split("\\?")[0];
+                                        matches = receivedOn.equals(currentBtcAddress);
+                                    }
+                                    if (matches) {
+                                        final float amountFiat = Float.valueOf(mExchanger.getAmountWithCommission());
+                                        mExchanger.buyBtc(amountFiat);
+                                        getGaActivity().toast(R.string.transactionCompleted);
+                                        getGaActivity().finish();
+                                    }
+                                }
+                            } catch (final ParseException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(final Throwable throwable) {
+                        throwable.printStackTrace();
+                    }
+                });
     }
 }

@@ -3,15 +3,21 @@ package com.greenaddress.greenbits.ui;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.inputmethod.InputMethodManager;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
+import com.dd.CircularProgressButton;
 import com.google.common.util.concurrent.Futures;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.GreenAddressApplication;
@@ -34,10 +40,10 @@ public abstract class GaActivity extends AppCompatActivity {
     // mService is available to all derived classes as soon as
     // onCreateWithService() is called. Once assigned it does not
     // change so may be read from background threads.
-    private boolean mResumed = false;
-    protected GaService mService = null;
+    private boolean mResumed;
+    protected GaService mService;
 
-    protected GreenAddressApplication getGAApp() {
+    private GreenAddressApplication getGAApp() {
         return (GreenAddressApplication) getApplication();
     }
 
@@ -136,6 +142,49 @@ public abstract class GaActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    // Utility methods
+
+    void finishOnUiThread() {
+        runOnUiThread(new Runnable() {
+            public void run() {
+                GaActivity.this.finish();
+            }
+        });
+    }
+
+    protected void setMenuItemVisible(final Menu m, final int id, final boolean visible) {
+        if (m == null)
+            return;
+        runOnUiThread(new Runnable() {
+            public void run() {
+                final MenuItem item = m.findItem(id);
+                if (item != null)
+                    item.setVisible(visible);
+            }
+        });
+    }
+
+    protected void hideKeyboardFrom(final View v) {
+        final View toHideFrom = v == null ? getCurrentFocus() : v;
+        if (toHideFrom != null) {
+            final InputMethodManager imm;
+            imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(toHideFrom.getWindowToken(), 0);
+        }
+    }
+
+    public void toast(final Throwable t) { UI.toast(this, t, null); }
+    public void toast(final int id) { UI.toast(this, id, Toast.LENGTH_LONG); }
+    public void toast(final int id, final Button reenable) { UI.toast(this, getString(id), reenable); }
+    public void toast(final int id, final CircularProgressButton reenable) { UI.toast(this, getString(id), reenable); }
+    public void toast(final String s) { UI.toast(this, s, Toast.LENGTH_LONG); }
+    public void shortToast(final int id) { UI.toast(this, id, Toast.LENGTH_SHORT); }
+
+
+    public Boolean isPublicKey(String pubkey) {
+        return !(pubkey.length() < 26 || pubkey.length() > 35 || !pubkey.matches("^[0-9a-zA-Z]+$"));
+    }
+
     @Override
     protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
         switch (requestCode) {
@@ -214,35 +263,4 @@ public abstract class GaActivity extends AppCompatActivity {
         }
     }
 
-    // Utility methods
-
-    void finishOnUiThread() {
-        runOnUiThread(new Runnable() {
-            public void run() {
-                GaActivity.this.finish();
-            }
-        });
-    }
-
-    protected void setMenuItemVisible(final Menu m, final int id, final boolean visible) {
-        if (m == null)
-            return;
-        runOnUiThread(new Runnable() {
-            public void run() {
-                final MenuItem item = m.findItem(id);
-                if (item != null)
-                    item.setVisible(visible);
-            }
-        });
-    }
-
-    public void toast(final Throwable t) { UI.toast(this, t, null); }
-    public void toast(final int id) { UI.toast(this, id, Toast.LENGTH_LONG); }
-    public void toast(final String s) { UI.toast(this, s, Toast.LENGTH_LONG); }
-    public void shortToast(final int id) { UI.toast(this, id, Toast.LENGTH_SHORT); }
-    public void shortToast(final String s) { UI.toast(this, s, Toast.LENGTH_SHORT); }
-
-    public Boolean isPublicKey(String pubkey) {
-        return !(pubkey.length() < 26 || pubkey.length() > 35 || !pubkey.matches("^[0-9a-zA-Z]+$"));
-    }
 }

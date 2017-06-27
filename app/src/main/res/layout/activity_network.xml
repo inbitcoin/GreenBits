@@ -39,11 +39,11 @@
 		android:layout_margin="@dimen/activity_content_margin"
 		android:background="@color/white">
 
-		<fragment android:name="com.greenaddress.greenbits.ui.monitor.PeerListFragment"
-            android:layout_width="match_parent"
-            android:id="@+id/peer_list_fragment"
-            android:layout_height="match_parent"
-            />
+		<fragment
+			android:name="com.greenaddress.greenbits.ui.monitor.PeerListFragment"
+			android:layout_width="match_parent"
+			android:id="@+id/peer_list_fragment"
+			android:layout_height="match_parent" />
 	</LinearLayout>
 
 </android.support.design.widget.CoordinatorLayout>
