@@ -349,11 +349,37 @@ public class SendFragment extends SubaccountFragment {
             UI.disable(mMaxButton); // FIXME: Sweeping not available in elements
             UI.hide(mMaxButton, mMaxLabel, mInstantConfirmationCheckbox);
         } else {
+
+            // warning dialog about max amount
+            final Dialog maxDialog = UI.popup(getGaActivity(), R.string.warning)
+                    .cancelable(false)
+                    .content(R.string.warningMaxAmount)
+                    .onPositive(new MaterialDialog.SingleButtonCallback() {
+                        @Override
+                        public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                            final Boolean isChecked = mMaxButton.isChecked();
+                            UI.disableIf(isChecked, mAmountEdit, mAmountFiatEdit);
+                            mAmountEdit.setText(getString(R.string.send_max_amount));
+                        }
+                    })
+                    .onNegative(new MaterialDialog.SingleButtonCallback() {
+                        @Override
+                        public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                            mMaxButton.setChecked(!mMaxButton.isChecked());
+                            dialog.cancel();
+                        }
+                    }).build();
             mMaxButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
                 @Override
-                public void onCheckedChanged(final CompoundButton v, final boolean isChecked) {
+                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                    final Boolean isChecked = mMaxButton.isChecked();
                     UI.disableIf(isChecked, mAmountEdit, mAmountFiatEdit);
-                    mAmountEdit.setText(isChecked ? R.string.send_max_amount : R.string.empty);
+                    if (!isChecked) {
+                        mAmountEdit.setText("");
+                        return;
+                    }
+                    UI.showDialog(maxDialog);
                 }
             });
         }
