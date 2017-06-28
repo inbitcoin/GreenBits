@@ -157,7 +157,7 @@
     </LinearLayout>
 
     <com.dd.CircularProgressButton
-        android:id="@+id/sendBtc"
+        android:id="@+id/sendSendButton"
         style="@style/myButtonCircle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -166,4 +166,58 @@
         app:cpb_colorIndicator="@color/accent"
         app:cpb_selectorIdle="@drawable/buttonprogressselector"
         android:textColor="@color/white" />
+
+
+    <!-- workaround: hidden items to mix vendor and send fragment -->
+    <LinearLayout
+        android:visibility="gone"
+        android:orientation="vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/sendMaxLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <Switch
+            android:id="@+id/sendMaxButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <com.greenaddress.greenbits.ui.FontAwesomeTextView
+            android:id="@+id/sendScanIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <com.greenaddress.greenbits.ui.ClipboardEditText
+            android:id="@+id/sendToEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <com.greenaddress.greenbits.ui.FontAwesomeTextView
+            android:id="@+id/sendToNoteIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <CheckBox
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/instantConfirmationCheckBox" />
+
+        <TextView
+            android:id="@+id/sendSubAccountBalance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <com.greenaddress.greenbits.ui.FontAwesomeTextView
+            android:id="@+id/sendSubAccountBalanceUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <EditText
+            android:id="@+id/sendToNoteText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
 </LinearLayout>

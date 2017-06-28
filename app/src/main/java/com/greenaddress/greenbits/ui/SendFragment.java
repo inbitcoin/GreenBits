@@ -1,5 +1,6 @@
 package com.greenaddress.greenbits.ui;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -91,11 +92,21 @@ public class SendFragment extends SubaccountFragment {
     private Map<?, ?> mPayreqData;
     private boolean mFromIntentURI;
 
+    // vendor
+    private FontFitEditText amountFieldFiat;
+    private FontFitEditText amountFieldFiatWithoutCommission;
+    private TextView addressView;
+    private Integer commission = 10; //TODO
+    private String address;
+    private String fiat_amount;
+
+
 
     private int mSubaccount;
     private AmountFields mAmountFields;
 
     private boolean mIsExchanger;
+    private boolean mIsVendor;
     private Exchanger mExchanger;
 
     private void processBitcoinURI(final BitcoinURI URI) {
@@ -238,10 +249,18 @@ public class SendFragment extends SubaccountFragment {
         final GaService service = getGAService();
         final GaActivity gaActivity = getGaActivity();
 
-        if (savedInstanceState != null)
+        if (savedInstanceState != null) {
             mIsExchanger = savedInstanceState.getBoolean("isExchanger", false);
+            mIsVendor = savedInstanceState.getBoolean("isVendor", false);
+        }
 
-        final int viewId = mIsExchanger ? R.layout.fragment_exchanger_sell : R.layout.fragment_send;
+        final int viewId;
+        if (mIsExchanger)
+            viewId = R.layout.fragment_exchanger_sell;
+        else if(mIsVendor)
+            viewId = R.layout.fragment_vendor_summary;
+        else
+            viewId = R.layout.fragment_send;
         mView = inflater.inflate(viewId, container, false);
 
         if (mIsExchanger)
@@ -264,6 +283,25 @@ public class SendFragment extends SubaccountFragment {
         mNoteText = UI.find(mView, R.id.sendToNoteText);
         mNoteIcon = UI.find(mView, R.id.sendToNoteIcon);
         mInstantConfirmationCheckbox = UI.find(mView, R.id.instantConfirmationCheckBox);
+
+        if (mIsVendor) {
+            address = this.getArguments().getString("address");
+            fiat_amount = this.getArguments().getString("fiat_amount");
+
+            new AmountFields(getGAService(), getContext(), mView, null);
+            amountFieldFiat = UI.find(mView, R.id.sendAmountFiatEditText);
+            amountFieldFiatWithoutCommission = UI.find(mView, R.id.sendAmountFiatEditTextWithoutCommission);
+            addressView = UI.find(mView, R.id.btcAddress);
+
+            String addressTwoLines = String.format("%s\n%s", address.substring(0, 18), address.substring(18));
+            addressView.setText(addressTwoLines);  // TODO sanitize address
+
+            amountFieldFiatWithoutCommission.setText(fiat_amount);
+
+            final Double amount = Double.valueOf(fiat_amount);
+            final Double amountWithCommission = amount * 0.90; // TODO
+            amountFieldFiat.setText(amountWithCommission.toString());
+        }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             // pre-Material Design the label was already a part of the switch
@@ -335,7 +373,7 @@ public class SendFragment extends SubaccountFragment {
                     gaActivity.toast(R.string.err_send_not_connected_will_resume);
                     return;
                 }
-                final String recipient = UI.getText(mRecipientEdit);
+                final String recipient = mIsVendor ? address : UI.getText(mRecipientEdit);
 
                 if (recipient.isEmpty()) {
                     gaActivity.toast(R.string.err_send_need_recipient);
@@ -405,7 +443,7 @@ public class SendFragment extends SubaccountFragment {
                                     }
         );
 
-        if (!mIsExchanger) {
+        if (!mIsExchanger && !mIsVendor) {
             mClearAllFields.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -508,6 +546,7 @@ public class SendFragment extends SubaccountFragment {
         if (mAmountFields != null)
             outState.putBoolean("pausing", mAmountFields.isPausing());
         outState.putBoolean("isExchanger", mIsExchanger);
+        outState.putBoolean("isVendor", mIsVendor);
     }
 
     public void onDestroyView() {
@@ -632,7 +671,12 @@ public class SendFragment extends SubaccountFragment {
         final GaActivity gaActivity = getGaActivity();
 
         final JSONMap privateData = new JSONMap();
-        final String memo = UI.getText(mNoteText);
+        String memo = UI.getText(mNoteText);
+        if (mIsVendor) {
+            final String currency = getGAService().getFiatCurrency();
+            memo = String.format("%s %s +%s%% via %s",
+                    currency, fiat_amount, commission, getGAService().getString(R.string.app_name));
+        }
         if (!memo.isEmpty())
             privateData.mData.put("memo", memo);
 
@@ -894,15 +938,26 @@ public class SendFragment extends SubaccountFragment {
 
                 resetAllFields();
 
-                if (!mIsExchanger) {
+                if (!mIsExchanger && !mIsVendor) {
                     final ViewPager viewPager = UI.find(gaActivity, R.id.container);
                     viewPager.setCurrentItem(1);
                 } else {
                     gaActivity.toast(R.string.transactionCompleted);
-                    gaActivity.finish();
+                    if (mIsVendor)
+                        goBack();
+                    else
+                        gaActivity.finish();
                 }
             }
         });
+    }
+
+    private void goBack() {
+        Intent intent = new Intent();
+        intent.putExtra("FROM_SUB_FRAGMENT", "ok");
+        getTargetFragment().onActivityResult(getTargetRequestCode(), Activity.RESULT_OK, intent);
+
+        getFragmentManager().popBackStack();
     }
 
     private static double extractRate(final Map feeEstimates, final Integer blockNum) {
@@ -1333,6 +1388,10 @@ public class SendFragment extends SubaccountFragment {
             }
         });
         return 0;
+    }
+
+    public void setIsVendor(final boolean isVendor) {
+        mIsVendor = isVendor;
     }
 
     public void setIsExchanger(final boolean isExchanger) {

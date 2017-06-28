@@ -217,14 +217,16 @@ public class VendorFragmentMain extends SubaccountFragment {
 
         // show summary fragment
         final FragmentTransaction transaction = gaActivity.getSupportFragmentManager().beginTransaction();
-        final VendorFragmentSummary vendorFragmentSummary = new VendorFragmentSummary();
+        final SendFragment vendorFragment = new SendFragment();
+        vendorFragment.setIsVendor(true);
+        vendorFragment.setPageSelected(true);
         final Bundle bundle = new Bundle();
         bundle.putString("address", result);
         bundle.putString("fiat_amount", amountFieldFiat.getText().toString());
-        vendorFragmentSummary.setTargetFragment(this, FRAGMENT_CODE);
-        vendorFragmentSummary.setArguments(bundle);
+        vendorFragment.setTargetFragment(this, FRAGMENT_CODE);
+        vendorFragment.setArguments(bundle);
         transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_left, R.anim.enter_from_left, R.anim.exit_to_right);
-        transaction.replace(R.id.fragment_container, vendorFragmentSummary);
+        transaction.replace(R.id.fragment_container, vendorFragment);
         transaction.addToBackStack("summary");
         transaction.commitAllowingStateLoss();
     }
