@@ -36,10 +36,12 @@ import com.greenaddress.greenbits.QrBitmap;
 import com.greenaddress.greenbits.ui.CB;
 import com.greenaddress.greenbits.ui.PinSaveActivity;
 import com.greenaddress.greenbits.ui.R;
+import com.greenaddress.greenbits.ui.SetEmailActivity;
 import com.greenaddress.greenbits.ui.UI;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class GeneralPreferenceFragment extends GAPreferenceFragment
     implements Preference.OnPreferenceClickListener {
@@ -146,6 +148,48 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         } else {
             getPreferenceScreen().removePreference(resetPin);
         }
+
+        // -- handle email address
+        final Preference email = find("email");
+        final Map<?, ?> twoFactorConfig = mService.getTwoFactorConfig();
+        if (twoFactorConfig != null) {
+            final String email_addr = (String) twoFactorConfig.get("email_addr");
+            if (email_addr != null) {
+                email.setSummary(email_addr);
+            }
+        }
+        email.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+            @Override
+            public boolean onPreferenceClick(final Preference preference) {
+//                final Intent savePin = PinSaveActivity.createIntent(getActivity(), mnemonic);
+//                startActivityForResult(savePin, PINSAVE);
+
+                // R.layout.dialog_set_email
+
+//                final View v = getActivity().getLayoutInflater().inflate(R.layout.activity_two_factor_3_provide_details, null, false);
+//                final EditText inputEmail = UI.find(v, R.id.input_email);
+//                final MaterialDialog dialog = UI.popup(getActivity(), R.string.EmailAddress)
+//                        .customView(v, true)
+//                        .onPositive(new MaterialDialog.SingleButtonCallback() {
+//                            @Override
+//                            public void onClick(final MaterialDialog dlg, final DialogAction which) {
+//                                final String email_addr = UI.getText(inputEmail);
+//                                Log.d(TAG, "Positive " + email_addr);
+//                            }
+//                        }).build();
+//                UI.showDialog(dialog, true);
+
+                final Intent intent = new Intent(getActivity(), SetEmailActivity.class);
+                // intent.putExtra("method", "email");
+                final int REQUEST_ENABLE_2FA = 0;
+                startActivityForResult(intent, REQUEST_ENABLE_2FA);
+
+
+                return false;
+            }
+        });
+
+        // TODO ? Add email update to mTwoFactorConfigObservable? And what abut destruction?
 
         // -- handle currency and bitcoin denomination
         final ListPreference fiatCurrency = find("fiat_key");

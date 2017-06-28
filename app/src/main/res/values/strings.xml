@@ -161,6 +161,7 @@
     <string name="twoFacProvideAuthCodeDescription">You need to provide existing two factor authentication code. This is to prevent malicious users from changing your 2FA settings without your consent.</string>
     <string name="recoveryAndNotifications">Recovery and Notifications</string>
     <string name="emailAddress">email address</string>
+    <string name="EmailAddress">Email address</string>
     <string name="phoneNumber">phone number</string>
     <string name="newAddress">New</string>
     <string name="copyAddress">Copy</string>

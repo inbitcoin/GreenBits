@@ -5,6 +5,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -128,6 +129,7 @@ public class TwoFactorActivity extends GaActivity {
                 UI.disable(mContinueButton);
                 final Map<String, String> twoFacData = make2FAData("proxy", proxyCode);
                 CB.after(mService.initEnableTwoFac(mMethod, details, twoFacData),
+                // CB.after(mService.setEmail(details, twoFacData),
                          new CB.Toast<Boolean>(TwoFactorActivity.this, mContinueButton) {
                     @Override
                     public void onSuccess(final Boolean result) {
