@@ -5,6 +5,7 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -38,6 +39,7 @@ import com.greenaddress.greenapi.ConfidentialAddress;
 import com.greenaddress.greenapi.CryptoHelper;
 import com.greenaddress.greenapi.ElementsTransaction;
 import com.greenaddress.greenapi.ElementsTransactionOutput;
+import com.greenaddress.greenapi.GAException;
 import com.greenaddress.greenapi.GATx;
 import com.greenaddress.greenapi.JSONMap;
 import com.greenaddress.greenapi.Network;
@@ -103,6 +105,7 @@ public class SendFragment extends SubaccountFragment {
 
 
     private int mSubaccount;
+    private int mTwoFactorAttemptsRemaining;
     private AmountFields mAmountFields;
 
     private boolean mIsExchanger;
@@ -552,10 +555,8 @@ public class SendFragment extends SubaccountFragment {
     public void onDestroyView() {
         super.onDestroyView();
         Log.d(TAG, "onDestroyView -> " + TAG);
-        if (mSummary != null)
-            mSummary.dismiss();
-        if (mTwoFactor != null)
-            mTwoFactor.dismiss();
+        mSummary = UI.dismiss(getActivity(), mSummary);
+        mTwoFactor = UI.dismiss(getActivity(), mTwoFactor);
     }
 
     @Override
@@ -703,61 +704,62 @@ public class SendFragment extends SubaccountFragment {
                     onTransactionPrepared(ptx, recipient, amount, privateData);
                 }
             });
-        } else {
-            final boolean sendAll = mMaxButton.isChecked();
-            final boolean validAddress = GaService.isValidAddress(recipient);
-            final boolean validAmount = sendAll || amount.isGreaterThan(Coin.ZERO);
-
-            int messageId = 0;
-            if (!validAddress && !validAmount)
-                messageId = R.string.invalidAmountAndAddress;
-            else if (!validAddress)
-                messageId = R.string.invalidAddress;
-            else if (!validAmount)
-                messageId = R.string.invalidAmount;
-
-            if (messageId != 0) {
-                mSendButton.setProgress(0);
-                gaActivity.toast(messageId);
-                return;
-            }
-
-            mSendButton.setProgress(50);
-            final int numConfs;
-            if (isInstant)
-                numConfs = 6; // Instant requires at least 6 confs
-            else if (Network.NETWORK == MainNetParams.get())
-                numConfs = 1; // Require 1 conf before spending on mainnet
-            else
-                numConfs = 0; // Allow 0 conf for networks with no real-world value
-
-            // For 2of2 accounts we first try to spend older coins to avoid
-            // having to re-deposit them. If that fails (and always for 2of3
-            // accounts) we try to use the minimum number of utxos instead.
-            final boolean is2Of3 = service.findSubaccountByType(mSubaccount, "2of3") != null;
-            final boolean minimizeInputs = is2Of3;
-            final boolean filterAsset = true;
-
-            CB.after(service.getAllUnspentOutputs(numConfs, mSubaccount, filterAsset),
-                     new CB.Toast<List<JSONMap>>(gaActivity, mSendButton) {
-                @Override
-                public void onSuccess(final List<JSONMap> utxos) {
-                    int ret = R.string.insufficientFundsText;
-                    if (!utxos.isEmpty()) {
-                        GATx.sortUtxos(utxos, minimizeInputs);
-                        ret = createRawTransaction(utxos, recipient, amount, privateData, sendAll);
-                        if (ret == R.string.insufficientFundsText && !minimizeInputs) {
-                            // Not enough money using nlocktime outputs first:
-                            // Try again using the largest values first
-                            GATx.sortUtxos(utxos, true);
-                            ret = createRawTransaction(utxos, recipient, amount, privateData, sendAll);
-                        }
-                    }
-                    if (ret != 0)
-                        gaActivity.toast(ret, mSendButton);
-                }
-            });
+            return;
         }
+
+        final boolean sendAll = mMaxButton.isChecked();
+        final boolean validAddress = GaService.isValidAddress(recipient);
+        final boolean validAmount = sendAll || amount.isGreaterThan(Coin.ZERO);
+
+        int messageId = 0;
+        if (!validAddress && !validAmount)
+            messageId = R.string.invalidAmountAndAddress;
+        else if (!validAddress)
+            messageId = R.string.invalidAddress;
+        else if (!validAmount)
+            messageId = R.string.invalidAmount;
+
+        if (messageId != 0) {
+            mSendButton.setProgress(0);
+            gaActivity.toast(messageId);
+            return;
+        }
+
+        mSendButton.setProgress(50);
+        final int numConfs;
+        if (isInstant)
+            numConfs = 6; // Instant requires at least 6 confs
+        else if (Network.NETWORK == MainNetParams.get())
+            numConfs = 1; // Require 1 conf before spending on mainnet
+        else
+            numConfs = 0; // Allow 0 conf for networks with no real-world value
+
+        // For 2of2 accounts we first try to spend older coins to avoid
+        // having to re-deposit them. If that fails (and always for 2of3
+        // accounts) we try to use the minimum number of utxos instead.
+        final boolean is2Of3 = service.findSubaccountByType(mSubaccount, "2of3") != null;
+        final boolean minimizeInputs = is2Of3;
+        final boolean filterAsset = true;
+
+        CB.after(service.getAllUnspentOutputs(numConfs, mSubaccount, filterAsset),
+                 new CB.Toast<List<JSONMap>>(gaActivity, mSendButton) {
+            @Override
+            public void onSuccess(final List<JSONMap> utxos) {
+                int ret = R.string.insufficientFundsText;
+                if (!utxos.isEmpty()) {
+                    GATx.sortUtxos(utxos, minimizeInputs);
+                    ret = createRawTransaction(utxos, recipient, amount, privateData, sendAll);
+                    if (ret == R.string.insufficientFundsText && !minimizeInputs && utxos.size() > 1) {
+                        // Not enough money using nlocktime outputs first:
+                        // Try again using the largest values first
+                        GATx.sortUtxos(utxos, true);
+                        ret = createRawTransaction(utxos, recipient, amount, privateData, sendAll);
+                    }
+                }
+                if (ret != 0)
+                    gaActivity.toast(ret, mSendButton);
+            }
+        });
     }
 
     private void onTransactionPrepared(final PreparedTransaction ptx,
@@ -770,7 +772,7 @@ public class SendFragment extends SubaccountFragment {
         CB.after(service.validateTx(ptx, recipient, verifyAmount), new CB.Toast<Coin>(gaActivity, mSendButton) {
             @Override
             public void onSuccess(final Coin fee) {
-                final Map<?, ?> twoFacConfig = service.getTwoFactorConfig();
+                final boolean haveTwoFactor = service.hasAnyTwoFactor();
                 // can be non-UI because validation talks to USB if hw wallet is used
                 gaActivity.runOnUiThread(new Runnable() {
                     public void run() {
@@ -784,11 +786,9 @@ public class SendFragment extends SubaccountFragment {
                             sendAmount = amount;
                             sendFee = fee;
                         }
-                        final boolean skipChoice = !ptx.mRequiresTwoFactor ||
-                                                    twoFacConfig == null || !((Boolean) twoFacConfig.get("any"));
+                        final boolean skipChoice = !ptx.mRequiresTwoFactor || !haveTwoFactor;
                         mTwoFactor = UI.popupTwoFactorChoice(gaActivity, service, skipChoice,
                                                              new CB.Runnable1T<String>() {
-                            @Override
                             public void run(final String method) {
                                 onTransactionValidated(ptx, null, recipient, sendAmount, method,
                                                        sendFee, privateData, null);
@@ -806,11 +806,32 @@ public class SendFragment extends SubaccountFragment {
                                         final Transaction signedRawTx,
                                         final String recipient, final Coin amount,
                                         final String method, final Coin fee,
-                                        final JSONMap privateData,
-                                        final Map<String, Object> underLimits) {
+                                        final JSONMap privateData, final JSONMap underLimits) {
         Log.i(TAG, "onTransactionValidated( params " + method + ' ' + fee + ' ' + amount + ' ' + recipient + ')');
         final GaService service = getGAService();
         final GaActivity gaActivity = getGaActivity();
+
+        final Map<String, Object> twoFacData;
+
+        if (method == null)
+            twoFacData = null;
+        else if (method.equals("limit")) {
+            twoFacData = new HashMap<>();
+            twoFacData.put("try_under_limits_spend", underLimits.mData);
+        } else {
+            twoFacData = new HashMap<>();
+            twoFacData.put("method", method);
+            if (!method.equals("gauth")) {
+                if (underLimits != null)
+                    for (final String key : underLimits.mData.keySet())
+                        twoFacData.put("send_raw_tx_" + key, underLimits.get(key));
+                if (GaService.IS_ELEMENTS) {
+                    underLimits.mData.remove("ephemeral_privkeys");
+                    underLimits.mData.remove("blinding_pubkeys");
+                }
+                service.requestTwoFacCode(method, ptx == null ? "send_raw_tx" : "send_tx", underLimits.mData);
+            }
+        }
 
         final View v = gaActivity.getLayoutInflater().inflate(R.layout.dialog_new_transaction, null, false);
 
@@ -818,7 +839,6 @@ public class SendFragment extends SubaccountFragment {
         UI.setCoinText(service, v, R.id.newTxFeeUnit, R.id.newTxFeeText, fee);
 
         final TextView recipientText = UI.find(v, R.id.newTxRecipientText);
-        final TextView twoFAText = UI.find(v, R.id.newTx2FATypeText);
         final EditText newTx2FACodeText = UI.find(v, R.id.newTx2FACodeText);
 
         if (mPayreqData != null)
@@ -829,33 +849,22 @@ public class SendFragment extends SubaccountFragment {
                                   recipient.substring(12, 24),
                                   recipient.substring(24)));
 
-        UI.showIf(method != null && !method.equals("limit"), twoFAText, newTx2FACodeText);
-
-        final Map<String, Object> twoFacData;
-
-        if (method == null)
-            twoFacData = null;
-        else if (method.equals("limit")) {
-            twoFacData = new HashMap<>();
-            twoFacData.put("try_under_limits_spend", underLimits);
-        } else {
-            twoFacData = new HashMap<>();
-            twoFacData.put("method", method);
+        if (method != null && !method.equals("limit")) {
+            final TextView twoFAText = UI.find(v, R.id.newTx2FATypeText);
+            UI.show(twoFAText, newTx2FACodeText);
             twoFAText.setText(String.format("2FA %s code", method));
-            if (!method.equals("gauth")) {
-                if (underLimits != null)
-                    for (final String key : underLimits.keySet())
-                        twoFacData.put("send_raw_tx_" + key, underLimits.get(key));
-                if (GaService.IS_ELEMENTS) {
-                    underLimits.remove("ephemeral_privkeys");
-                    underLimits.remove("blinding_pubkeys");
-                }
-                service.requestTwoFacCode(method, ptx == null ? "send_raw_tx" : "send_tx", underLimits);
-            }
         }
 
+        mTwoFactorAttemptsRemaining = 3;
         mSummary = UI.popup(gaActivity, R.string.newTxTitle, R.string.send, R.string.cancel)
                 .customView(v, true)
+                .autoDismiss(false)
+                .onNegative(new MaterialDialog.SingleButtonCallback() {
+                    @Override
+                    public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                        UI.dismiss(null, SendFragment.this.mSummary);
+                    }
+                })
                 .onPositive(new MaterialDialog.SingleButtonCallback() {
                     @Override
                     public void onClick(final MaterialDialog dialog, final DialogAction which) {
@@ -863,45 +872,52 @@ public class SendFragment extends SubaccountFragment {
                         if (twoFacData != null && !method.equals("limit"))
                             twoFacData.put("code", UI.getText(newTx2FACodeText));
 
-                        if (signedRawTx != null) {
-                            final ListenableFuture<Map<String,Object>> sendFuture;
-                            sendFuture = service.sendRawTransaction(signedRawTx, twoFacData, privateData, false);
-                            Futures.addCallback(sendFuture, new CB.Toast<Map<String,Object>>(gaActivity, mSendButton) {
-                                @Override
-                                public void onSuccess(final Map result) {
-                                    if (GaService.IS_ELEMENTS && twoFacData != null && method.equals("limit")) {
-                                        // FIXME: Store limits for non-elements w/configurable m/u/bits units
-                                        service.cfg().edit().putString(
-                                            "twoFacLimits",
-                                            UI.formatCoinValue(
-                                                service, Coin.valueOf(((Number) result.get("new_limit")).longValue())
-                                            )
-                                        ).apply();
-                                    }
-                                    onTransactionSent();
+                        final ListenableFuture<Void> sendFn;
+                        if (signedRawTx != null)
+                            sendFn = service.sendRawTransaction(signedRawTx, twoFacData, privateData);
+                        else
+                            sendFn = service.signAndSendTransaction(ptx, twoFacData);
+
+                        Futures.addCallback(sendFn, new CB.Toast<Void>(gaActivity, mSendButton) {
+                            @Override
+                            public void onSuccess(final Void dummy) {
+                                // FIXME txhash
+                                if (mMerchantInvoiceData != null) {
+                                    final String invoiceInfo = mMerchantInvoiceData[0];
+                                    final String paymentProcessor = mMerchantInvoiceData[1];
+                                    final String merchantName;
+                                    if (mMerchantInvoiceData.length == 3)
+                                        merchantName = mMerchantInvoiceData[2];
+                                    else
+                                        merchantName = null;
+                                    final GaService service = getGAService();
+                                    //service.saveMerchantInvoiceData(txhash, merchantName, invoiceInfo, paymentProcessor);
                                 }
-                            }, service.getExecutor());
-                        } else {
-                            final ListenableFuture<String> sendFuture = service.signAndSendTransaction(ptx, twoFacData);
-                            Futures.addCallback(sendFuture, new CB.Toast<String>(gaActivity, mSendButton) {
-                                @Override
-                                public void onSuccess(final String result) {
-                                    // TODO check result zidagar
-                                    if (mMerchantInvoiceData != null) {
-                                        final String invoiceInfo = mMerchantInvoiceData[0];
-                                        final String paymentProcessor = mMerchantInvoiceData[1];
-                                        final String merchantName;
-                                        if (mMerchantInvoiceData.length == 3)
-                                            merchantName = mMerchantInvoiceData[2];
-                                        else
-                                            merchantName = null;
-                                        final GaService service = getGAService();
-                                        service.saveMerchantInvoiceData(result, merchantName, invoiceInfo, paymentProcessor);
+                                UI.dismiss(SendFragment.this.getActivity(), SendFragment.this.mSummary);
+                                onTransactionSent();
+                            }
+
+                            @Override
+                            public void onFailure(final Throwable t) {
+                                final SendFragment fragment = SendFragment.this;
+                                final Activity activity = fragment.getActivity();
+                                if (t instanceof GAException) {
+                                    final GAException e = (GAException) t;
+                                    if (e.mUri.equals(GAException.AUTH)) {
+                                        final int n = --fragment.mTwoFactorAttemptsRemaining;
+                                        if (n > 0) {
+                                            final Resources r = fragment.getResources();
+                                            final String msg = r.getQuantityString(R.plurals.attempts_remaining, n, n);
+                                            UI.toast(activity, e.mMessage + "\n(" + msg + ')', mSendButton);
+                                            return; // Allow re-trying
+                                        }
                                     }
-                                    onTransactionSent();
                                 }
-                            }, service.getExecutor());
-                        }
+                                UI.toast(activity, t, mSendButton);
+                                 // Out of 2FA attempts, or another exception; give up
+                                UI.dismiss(activity, fragment.mSummary);
+                            }
+                        }, service.getExecutor());
                     }
                 }).build();
         UI.mapEnterToPositive(mSummary, R.id.newTx2FACodeText);
@@ -960,87 +976,6 @@ public class SendFragment extends SubaccountFragment {
         getFragmentManager().popBackStack();
     }
 
-    private static double extractRate(final Map feeEstimates, final Integer blockNum) {
-        final Map estimate = (Map) feeEstimates.get(Integer.toString(blockNum));
-        return Double.parseDouble(estimate.get("feerate").toString());
-    }
-
-    // FIXME: Duplicated in TransactionActivity.java
-    // Return the best estimate of the fee rate in satoshi/1000 bytes
-    private static Coin getFeeEstimate(final GaService service, final boolean isInstant) {
-        final Map<String, Object> feeEstimates = service.getFeeEstimates();
-        Double bestInstant = null;
-
-        // Iterate the estimates from shortest to longest confirmation time
-        final SortedSet<Integer> keys = new TreeSet<>();
-        for (final String block : feeEstimates.keySet())
-            keys.add(Integer.parseInt(block));
-
-        for (final Integer blockNum : keys) {
-            if (!isInstant && blockNum < 6)
-                continue; // Non-instant: Use 6 confirmation rate and later only
-
-            double rate = extractRate(feeEstimates, blockNum);
-            if (rate <= 0.0)
-                continue; // No estimate available: Try next confirmation rate
-
-            if (isInstant) {
-                // For instant, increase the rate to increase the likelyhood of confirmation.
-                // We use the lowest value of:
-                // a) 1.1 * the 1st or 2nd block fee rate
-                // b) 2.0 * the first rate later than 2 blocks
-                if (blockNum <= 2) {
-                    if (bestInstant == null)
-                       bestInstant = rate * 1.1; // Save earliest fast confirmation rate
-                    continue; // Continue to find the first non-fast rate
-                } else
-                    rate *= 2.0;
-            }
-
-            if (bestInstant != null && bestInstant < rate)
-                rate = bestInstant; // Use the lowest instant rate found
-
-            return Coin.valueOf((long) (rate * 1000 * 1000 * 100));
-        }
-
-        if (bestInstant != null) {
-            // No non-fast confirmation rate, return the fast confirmation rate
-            return Coin.valueOf((long) (bestInstant * 1000 * 1000 * 100));
-        }
-
-        // We don't have a usable fee rate estimate, use a default.
-        if (GaService.IS_ELEMENTS)
-            return Coin.valueOf(1);
-        if (Network.NETWORK == MainNetParams.get())
-            return Coin.valueOf((isInstant ? 200 : 120) * 1000);
-        return Coin.valueOf((isInstant ? 75 : 60) * 1000);
-    }
-
-
-    private Coin addUtxo(final Transaction tx,
-                         final List<JSONMap> utxos, final List<JSONMap> used) {
-        return addUtxo(tx, utxos, used, null, null, null, null);
-    }
-
-    private Coin addUtxo(final Transaction tx,
-                         final List<JSONMap> utxos, final List<JSONMap> used,
-                         final List<Long> inValues, final List<byte[]> inAssetIds,
-                         final List<byte[]> inAbfs, final List<byte[]> inVbfs) {
-        final JSONMap utxo = utxos.get(0);
-        final GaService service = getGAService();
-        utxos.remove(0);
-        if (utxo.getBool("confidential")) {
-            inAssetIds.add(utxo.getBytes("assetId"));
-            inAbfs.add(utxo.getBytes("abf"));
-            inVbfs.add(utxo.getBytes("vbf"));
-        }
-        used.add(utxo);
-        GATx.addInput(service, tx, utxo);
-        if (inValues != null)
-            inValues.add(utxo.getLong("value"));
-        return utxo.getCoin("value");
-    }
-
     private int createRawTransaction(final List<JSONMap> utxos, final String recipient,
                                      final Coin amount, final JSONMap privateData,
                                      final boolean sendAll) {
@@ -1050,8 +985,8 @@ public class SendFragment extends SubaccountFragment {
 
         final GaActivity gaActivity = getGaActivity();
         final GaService service = getGAService();
-        final List<JSONMap> used = new ArrayList<>();
-        final Coin feeRate = getFeeEstimate(service, privateData.getBool("instant"));
+        final List<JSONMap> usedUtxos = new ArrayList<>();
+        final Coin feeRate = GATx.getFeeEstimate(service, privateData.getBool("instant"));
 
         final Transaction tx = new Transaction(Network.NETWORK);
         tx.addOutput(amount, Address.fromBase58(Network.NETWORK, recipient));
@@ -1063,7 +998,7 @@ public class SendFragment extends SubaccountFragment {
 
         // First add inputs until we cover the amount to send
         while ((sendAll || total.isLessThan(amount)) && !utxos.isEmpty())
-            total = total.add(addUtxo(tx, utxos, used));
+            total = total.add(GATx.addUtxo(service, tx, utxos, usedUtxos));
 
         // Then add inputs until we cover amount + fee/change
         while (true) {
@@ -1076,7 +1011,7 @@ public class SendFragment extends SubaccountFragment {
                 if (utxos.isEmpty())
                     return R.string.insufficientFundsText; // None left, fail
 
-                total = total.add(addUtxo(tx, utxos, used));
+                total = total.add(GATx.addUtxo(service, tx, utxos, usedUtxos));
                 continue;
             }
 
@@ -1095,7 +1030,7 @@ public class SendFragment extends SubaccountFragment {
         if (changeOutput != null) {
             // Set the value of the change output
             changeOutput.first.setValue(total.subtract(amount).subtract(fee));
-            randomizedChange = GATx.randomizeChange(tx);
+            randomizedChange = GATx.randomizeChangeOutput(tx);
         }
 
         final Coin actualAmount;
@@ -1105,63 +1040,27 @@ public class SendFragment extends SubaccountFragment {
             actualAmount = total.subtract(fee);
             if (!actualAmount.isGreaterThan(Coin.ZERO))
                 return R.string.insufficientFundsText;
-            tx.getOutputs().get(0).setValue(actualAmount);
+            tx.getOutput(randomizedChange ? 1 : 0).setValue(actualAmount);
         }
 
         tx.setLockTime(service.getCurrentBlock()); // Prevent fee sniping
 
-        // Fetch previous outputs
-        final List<Output> prevOuts = GATx.createPrevouts(service, used);
-        final PreparedTransaction ptx = new PreparedTransaction(
-                changeOutput == null ? null : changeOutput.second,
-                mSubaccount, tx, service.findSubaccountByType(mSubaccount, "2of3")
-        );
-        ptx.mPrevoutRawTxs = new HashMap<>();
-        for (final Transaction prevTx : GATx.getPreviousTransactions(service, tx))
-            ptx.mPrevoutRawTxs.put(Wally.hex_from_bytes(prevTx.getHash().getBytes()), prevTx);
+        final PreparedTransaction ptx;
+        ptx = GATx.signTransaction(service, tx, usedUtxos, mSubaccount, changeOutput);
 
-        final boolean isSegwitEnabled = service.isSegwitEnabled();
+        final int changeIndex = changeOutput == null ? -1 : (randomizedChange ? 0 : 1);
+        final JSONMap underLimits = GATx.makeLimitsData(amount.add(fee), fee, changeIndex);
 
-        // Sign the tx
-        final List<byte[]> signatures = service.signTransaction(tx, ptx, prevOuts);
-        for (int i = 0; i < signatures.size(); ++i) {
-            final byte[] sig = signatures.get(i);
-            // FIXME: Massive duplication with TransactionActivity
-            final JSONMap utxo = used.get(i);
-            final int scriptType = utxo.getInt("script_type");
-            final byte[] outscript = GATx.createOutScript(service, utxo);
-            final List<byte[]> userSigs = ImmutableList.of(new byte[]{0}, sig);
-            final byte[] inscript = GATx.createInScript(userSigs, outscript, scriptType);
-
-            tx.getInput(i).setScriptSig(new Script(inscript));
-            if (isSegwitEnabled && scriptType == GATx.P2SH_P2WSH_FORTIFIED_OUT) {
-                // Replace the witness data with just the user signature:
-                // the server will recreate the witness data to include the
-                // dummy OP_CHECKMULTISIG push, user + server sigs and script.
-                final TransactionWitness witness = new TransactionWitness(1);
-                witness.setPush(0, sig);
-                tx.setWitness(i, witness);
-            }
-        }
-
-        final Map<?, ?> twoFacConfig = service.getTwoFactorConfig();
+        final boolean skipChoice = service.isUnderLimit(underLimits.getCoin("amount"));
         final Coin sendFee = fee;
-
-        final Map underLimits = new HashMap();
-        underLimits.put("asset", "BTC");
-        underLimits.put("amount", amount.add(sendFee).getValue());
-        underLimits.put("fee", sendFee.getValue());
-        underLimits.put("change_idx", changeOutput == null ? -1 : (randomizedChange ? 0 : 1));
-
         gaActivity.runOnUiThread(new Runnable() {
             public void run() {
                 mSendButton.setProgress(0);
-                final boolean skipChoice = /* FIXME: !ptx.mRequiresTwoFactor || */
-                                            twoFacConfig == null || !((Boolean) twoFacConfig.get("any"));
                 mTwoFactor = UI.popupTwoFactorChoice(gaActivity, service, skipChoice,
                                                      new CB.Runnable1T<String>() {
-                    @Override
-                    public void run(final String method) {
+                    public void run(String method) {
+                        if (skipChoice && service.hasAnyTwoFactor())
+                            method = "limit";
                         onTransactionValidated(null, tx, recipient, actualAmount,
                                                method, sendFee, privateData, underLimits);
                     }
@@ -1173,7 +1072,7 @@ public class SendFragment extends SubaccountFragment {
         return 0;
     }
 
-    private void arraycpy(final byte[] dest, final int i, final byte[] src) {
+    private static void arraycpy(final byte[] dest, final int i, final byte[] src) {
         System.arraycopy(src, 0, dest, src.length * i, src.length);
     }
 
@@ -1184,8 +1083,8 @@ public class SendFragment extends SubaccountFragment {
         final GaService service = getGAService();
         final GaActivity gaActivity = getGaActivity();
 
-        final List<JSONMap> used = new ArrayList<>();
-        final Coin feeRate = getFeeEstimate(service, privateData.getBool("instant"));
+        final List<JSONMap> usedUtxos = new ArrayList<>();
+        final Coin feeRate = GATx.getFeeEstimate(service, privateData.getBool("instant"));
 
         final ElementsTransaction tx = new ElementsTransaction(Network.NETWORK);
 
@@ -1208,7 +1107,7 @@ public class SendFragment extends SubaccountFragment {
 
         // First add inputs until we cover the amount to send
         while (total.isLessThan(amount) && !utxos.isEmpty())
-            total = total.add(addUtxo(tx, utxos, used, inValues, inAssetIds, inAbfs, inVbfs));
+            total = total.add(GATx.addUtxo(service, tx, utxos, usedUtxos, inValues, inAssetIds, inAbfs, inVbfs));
 
         // Then add inputs until we cover amount + fee/change
         while (true) {
@@ -1220,7 +1119,7 @@ public class SendFragment extends SubaccountFragment {
                 // Need more inputs to cover amount + fee/change
                 if (utxos.isEmpty())
                     return R.string.insufficientFundsText; // None left, fail
-                total = total.add(addUtxo(tx, utxos, used, inValues, inAssetIds, inAbfs, inVbfs));
+                total = total.add(GATx.addUtxo(service, tx, utxos, usedUtxos, inValues, inAssetIds, inAbfs, inVbfs));
                 continue;
             }
 
@@ -1249,7 +1148,7 @@ public class SendFragment extends SubaccountFragment {
             // Set the value of the change output
             ((ElementsTransactionOutput)changeOutput).setUnblindedValue(total.subtract(amount).subtract(fee).getValue());
             // TODO: randomize change
-            // GATx.randomizeChange(tx);
+            // GATx.randomizeChangeOutput(tx);
         }
 
         feeOutput.setValue(fee);
@@ -1257,10 +1156,7 @@ public class SendFragment extends SubaccountFragment {
         // FIXME: tx.setLockTime(latestBlock); // Prevent fee sniping
 
         // Fetch previous outputs
-        final List<Output> prevOuts = GATx.createPrevouts(service, used);
-
-        final Map<?, ?> twoFacConfig = service.getTwoFactorConfig();
-        final Coin sendFee = fee;
+        final List<Output> prevOuts = GATx.createPrevouts(service, usedUtxos);
 
         final int numInputs = tx.getInputs().size();
         final int numOutputs = tx.getOutputs().size();
@@ -1341,7 +1237,7 @@ public class SendFragment extends SubaccountFragment {
         for (int i = 0; i < signatures.size(); ++i) {
             final byte[] sig = signatures.get(i);
             // FIXME: Massive duplication with TransactionActivity
-            final JSONMap utxo = used.get(i);
+            final JSONMap utxo = usedUtxos.get(i);
             final int scriptType = utxo.getInt("script_type");
             final byte[] outscript = GATx.createOutScript(service, utxo);
             final List<byte[]> userSigs = ImmutableList.of(new byte[]{0}, sig);
@@ -1355,30 +1251,22 @@ public class SendFragment extends SubaccountFragment {
             }
         }
 
-        final Map underLimits = new HashMap();
-        underLimits.put("asset_id", Wally.hex_from_bytes(service.mAssetId)); // FIXME: Others
-        underLimits.put("amount", amount.add(sendFee).getValue());
-        underLimits.put("fee", sendFee.getValue());
-        underLimits.put("change_idx", changeOutput == null ? -1 : 2);
-        underLimits.put("ephemeral_privkeys", ephemeralKeys);
-        underLimits.put("blinding_pubkeys", blindingKeys);
-        final Coin finalFee = fee;
+        final int changeIndex = changeOutput == null ? -1 : 2;
+        final JSONMap underLimits = GATx.makeLimitsData(amount.add(fee), fee, changeIndex);
+        underLimits.putBytes("asset_id", service.mAssetId); // FIXME: Others
+        underLimits.mData.put("ephemeral_privkeys", ephemeralKeys);
+        underLimits.mData.put("blinding_pubkeys", blindingKeys);
+        final boolean skipChoice = service.isUnderLimit(underLimits.getCoin("amount"));
+        final Coin sendFee = fee;
 
         gaActivity.runOnUiThread(new Runnable() {
             public void run() {
                 mSendButton.setProgress(0);
-                final String limit = service.cfg().getString("twoFacLimits", "0");
-                final boolean skipChoice = /* FIXME: !ptx.mRequiresTwoFactor || */
-                        twoFacConfig == null || !((Boolean) twoFacConfig.get("any")) ||
-                        amount.add(finalFee).getValue() < Float.valueOf(limit)*100;
                 mTwoFactor = UI.popupTwoFactorChoice(gaActivity, service, skipChoice,
                         new CB.Runnable1T<String>() {
-                            @Override
                             public void run(String method) {
-                                if (twoFacConfig != null && ((Boolean) twoFacConfig.get("any")) &&
-                                    amount.add(finalFee).getValue() < Float.valueOf(limit) * 100) {
+                                if (skipChoice && service.hasAnyTwoFactor())
                                     method = "limit";
-                                }
                                 onTransactionValidated(null, tx, recipient, amount, method,
                                                        sendFee, privateData, underLimits);
                             }

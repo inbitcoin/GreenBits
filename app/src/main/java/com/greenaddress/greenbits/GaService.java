@@ -126,7 +126,7 @@ public class GaService extends Service implements INotificationHandler {
     private final SparseArray<GaObservable> mBalanceObservables = new SparseArray<>();
     private final GaObservable mNewTxObservable = new GaObservable();
     private final GaObservable mVerifiedTxObservable = new GaObservable();
-    private String mSignUpMnemonics;
+    private String mSignUpMnemonic;
     private Bitmap mSignUpQRCode;
     private int mCurrentBlock; // FIXME: Pass current block height back in login data.
 
@@ -139,6 +139,7 @@ public class GaService extends Service implements INotificationHandler {
     private Float mFiatRate;
     private String mFiatCurrency;
     private String mFiatExchange;
+    private JSONMap mLimitsData;
     private ArrayList<Map<String, Object>> mSubAccounts;
     private String mReceivingId;
     private Coin mDustThreshold = Coin.valueOf(546); // Per 0.13.0, updated on login
@@ -473,11 +474,12 @@ public class GaService extends Service implements INotificationHandler {
         mFiatExchange = loginData.get("exchange");
         mSubAccounts = loginData.mSubAccounts;
         mReceivingId = loginData.get("receiving_id");
+        mLimitsData = new JSONMap((Map) loginData.get("limits"));
 
         if (loginData.mRawData.containsKey("min_fee"))
-            mMinFeeRate = Coin.valueOf((long)((int) loginData.get("min_fee")));
+            mMinFeeRate = Coin.valueOf((int) loginData.get("min_fee"));
         if (loginData.mRawData.containsKey("dust"))
-            mDustThreshold = Coin.valueOf((long) ((int) loginData.get("dust")));
+            mDustThreshold = Coin.valueOf((int) loginData.get("dust"));
 
         HDKey.resetCache(loginData.mGaitPath);
 
@@ -489,7 +491,7 @@ public class GaService extends Service implements INotificationHandler {
                 updateBalance((Integer) data.get("pointer"));
             // fetch the asset id and symbol for elements:
             int maxId = 0;
-            final Map<String, Integer> assetIds =  (Map<String, Integer>) loginData.mRawData.get("asset_ids");
+            final Map<String, Integer> assetIds = (Map<String, Integer>) loginData.mRawData.get("asset_ids");
             final Map<String, String> assetSymbols = (Map<String, String>) loginData.mRawData.get("asset_symbols");
             for (final String assetIdHex : assetIds.keySet()) {
                 // find largest asset id that has a symbol set:
@@ -498,9 +500,7 @@ public class GaService extends Service implements INotificationHandler {
                     mAssetId = Wally.hex_to_bytes(assetIdHex);
                 }
             }
-            mAssetSymbol = assetSymbols.get(
-                    Wally.hex_from_bytes(mAssetId)
-            );
+            mAssetSymbol = assetSymbols.get(Wally.hex_from_bytes(mAssetId));
             final int decimalPlaces = ((Map<String, Integer>) loginData.mRawData.get("asset_decimal_places")).get(
                     Wally.hex_from_bytes(mAssetId)
             );
@@ -534,16 +534,16 @@ public class GaService extends Service implements INotificationHandler {
         mClient.disableWatchOnly();
     }
 
-    public ListenableFuture<LoginData> login(final String mnemonics) {
-        return login(new SWWallet(mnemonics), mnemonics);
+    public ListenableFuture<LoginData> login(final String mnemonic) {
+        return login(new SWWallet(mnemonic), mnemonic);
     }
 
-    private ListenableFuture<LoginData> login(final ISigningWallet signingWallet, final String mnemonics) {
-        return loginImpl(mClient.login(signingWallet, mDeviceId, mnemonics));
+    private ListenableFuture<LoginData> login(final ISigningWallet signingWallet, final String mnemonic) {
+        return loginImpl(mClient.login(signingWallet, mDeviceId, mnemonic));
     }
 
     private ListenableFuture<LoginData> signup(final ISigningWallet signingWallet,
-                                               final String mnemonics,
+                                               final String mnemonic,
                                                final byte[] pubkey, final byte[] chaincode,
                                                final byte[] pathPubkey, final byte[] pathChaincode) {
         mState.transitionTo(ConnState.LOGGINGIN);
@@ -552,7 +552,7 @@ public class GaService extends Service implements INotificationHandler {
                    @Override
                    public LoginData call() throws Exception {
                        try {
-                           mClient.registerUser(signingWallet, mnemonics,
+                           mClient.registerUser(signingWallet, mnemonic,
                                                 pubkey, chaincode,
                                                 pathPubkey, pathChaincode,
                                                 mDeviceId);
@@ -567,9 +567,9 @@ public class GaService extends Service implements INotificationHandler {
                });
     }
 
-    public ListenableFuture<LoginData> signup(final String mnemonics) {
-        final SWWallet sw = new SWWallet(mnemonics);
-        return signup(sw, mnemonics, sw.getMasterKey().getPubKey(),
+    public ListenableFuture<LoginData> signup(final String mnemonic) {
+        final SWWallet sw = new SWWallet(mnemonic);
+        return signup(sw, mnemonic, sw.getMasterKey().getPubKey(),
                       sw.getMasterKey().getChainCode(), null, null);
     }
 
@@ -579,21 +579,32 @@ public class GaService extends Service implements INotificationHandler {
         return signup(signingWallet, null, pubkey, chaincode, pathPubkey, pathChaincode);
     }
 
+    public String getMnemonic() {
+        return mClient.getMnemonic();
+    }
+
     public ISigningWallet getBitidWallet(final String bitid, final Integer index) throws URISyntaxException, IOException {
         final String callbackURI = BitID.parse(bitid).toCallbackURI().toString();
         return mClient.getSigningWallet().getBitIdWallet(callbackURI, index);
-    }
-
-    public String getMnemonics() {
-        return mClient.getMnemonics();
     }
 
     public LoginData getLoginData() {
         return mClient.getLoginData();
     }
 
-    public Map<String, Object> getFeeEstimates() {
+    public JSONMap getFeeEstimates() {
         return mClient.getFeeEstimates();
+    }
+
+    // Get the fee rate to confirm at the next blockNum blocks in BTC/1000 bytes
+    public Double getFeeRate(final int blockNum) {
+        final JSONMap m = new JSONMap((Map) getFeeEstimates().get(Integer.toString(blockNum)));
+        return m == null ? null : m.getDouble("feerate");
+    }
+
+    public Integer getFeeBlocks(final int blockNum) {
+        final JSONMap m = new JSONMap((Map) getFeeEstimates().get(Integer.toString(blockNum)));
+        return m == null ? null : m.getInt("blocks");
     }
 
     public Coin getMinFeeRate() {
@@ -636,7 +647,10 @@ public class GaService extends Service implements INotificationHandler {
         final JSONMap data = new JSONMap(rawData);
         final String fiatCurrency = data.getString("fiat_currency");
         if (!TextUtils.isEmpty(fiatCurrency))
-            mFiatCurrency = fiatCurrency;
+            if (mFiatCurrency == null || !fiatCurrency.equals(mFiatCurrency)) {
+                mFiatCurrency = fiatCurrency;
+                resetFiatSpendingLimits();
+            }
 
         mCoinBalances.put(subAccount, data.getCoin("satoshi"));
 
@@ -690,6 +704,7 @@ public class GaService extends Service implements INotificationHandler {
             public Boolean apply(final Boolean input) {
                 mFiatCurrency = currency;
                 mFiatExchange = exchange;
+                resetFiatSpendingLimits();
                 return input;
             }
         });
@@ -743,7 +758,7 @@ public class GaService extends Service implements INotificationHandler {
     }
 
     private void preparePrivData(final JSONMap privateData) {
-        int subAccount = privateData.get("subaccount", 0);
+        final int subAccount = privateData.get("subaccount", 0);
 
         // Skip fetching raw previous outputs if they are not required
         final Coin verifiedBalance = getSPVVerifiedBalance(subAccount);
@@ -773,17 +788,49 @@ public class GaService extends Service implements INotificationHandler {
         return mSPV.validateTx(ptx, recipientStr, amount);
     }
 
-    public ListenableFuture<String> signAndSendTransaction(final PreparedTransaction ptx, final Object twoFacData) {
-        return Futures.transform(signTransaction(ptx), new AsyncFunction<List<byte[]>, String>() {
+    public ListenableFuture<Void>
+    signAndSendTransaction(final PreparedTransaction ptx, final Object twoFacData) {
+        return Futures.transform(signTransaction(ptx),
+                                 new AsyncFunction<List<byte[]>, Void>() {
             @Override
-            public ListenableFuture<String> apply(final List<byte[]> txSigs) throws Exception {
-                return mClient.sendTransaction(txSigs, twoFacData);
+            public ListenableFuture<Void> apply(final List<byte[]> sigs) throws Exception {
+                return sendTransaction(sigs, twoFacData);
             }
         }, mExecutor);
     }
 
-    public ListenableFuture<Map<String, Object>> sendRawTransaction(final Transaction tx, final Map<String, Object> twoFacData, final JSONMap privateData, final boolean returnErrorUri) {
-        return mClient.sendRawTransaction(tx, twoFacData, privateData, returnErrorUri);
+    public ListenableFuture<Void>
+    sendTransaction(final List<byte[]> sigs, final Object twoFacData) {
+        // FIXME: The server should return the full limits including is_fiat from send_tx
+        return Futures.transform(mClient.sendTransaction(sigs, twoFacData),
+                                 new Function<String, Void>() {
+                   @Override
+                   public Void apply(final String txHash) {
+                       try {
+                           mLimitsData = mClient.getSpendingLimits();
+                       } catch (final Exception e) {
+                           // We don't know what the new limit is so nuke it
+                           mLimitsData.mData.put("total", 0);
+                           e.printStackTrace();
+                       }
+                       return null;
+                   }
+        }, mExecutor);
+    }
+
+    public ListenableFuture<Void>
+    sendRawTransaction(final Transaction tx, final Map<String, Object> twoFacData,
+                       final JSONMap privateData) {
+        return Futures.transform(mClient.sendRawTransaction(tx, twoFacData, privateData),
+                                 new Function<Map<String, Object>, Void>() {
+                   @Override
+                   public Void apply(final Map<String, Object> ret) {
+                       // FIXME: Server should return the full limits including is_fiat
+                       if (ret.get("new_limit") != null)
+                           mLimitsData.mData.put("total", ret.get("new_limit"));
+                       return null;
+                   }
+        }, mExecutor);
     }
 
     private List<JSONMap> unblindValues(final List<JSONMap> values, final boolean filterAsset,
@@ -848,12 +895,8 @@ public class GaService extends Service implements INotificationHandler {
         return mClient.getRawOutputHex(txHash);
     }
 
-    public ListenableFuture<Boolean> changeMemo(final Sha256Hash txHash, final String memo) {
-        return mClient.changeMemo(txHash, memo);
-    }
-
-    public ListenableFuture<String> sendTransaction(final List<byte[]> txSigs) {
-        return mClient.sendTransaction(txSigs, null);
+    public ListenableFuture<Boolean> changeMemo(final String txHashHex, final String memo) {
+        return mClient.changeMemo(txHashHex, memo);
     }
 
     private static byte[] getSegWitScript(final byte[] input) {
@@ -1045,16 +1088,16 @@ public class GaService extends Service implements INotificationHandler {
     }
 
     public void resetSignUp() {
-        mSignUpMnemonics = null;
+        mSignUpMnemonic = null;
         if (mSignUpQRCode != null)
             mSignUpQRCode.recycle();
         mSignUpQRCode = null;
     }
 
     public String getSignUpMnemonic() {
-        if (mSignUpMnemonics == null)
-            mSignUpMnemonics = CryptoHelper.mnemonic_from_bytes(CryptoHelper.randomBytes(32));
-        return mSignUpMnemonics;
+        if (mSignUpMnemonic == null)
+            mSignUpMnemonic = CryptoHelper.mnemonic_from_bytes(CryptoHelper.randomBytes(32));
+        return mSignUpMnemonic;
     }
 
     public Bitmap getSignUpQRCode() {
@@ -1211,6 +1254,10 @@ public class GaService extends Service implements INotificationHandler {
         return mTwoFactorConfig;
     }
 
+    public boolean hasAnyTwoFactor() {
+        return mTwoFactorConfig != null && (Boolean) mTwoFactorConfig.get("any");
+    }
+
     public ListenableFuture<Boolean> setUserConfig(final String key, final Object value, final boolean updateImmediately) {
         return mClient.setUserConfig(ImmutableMap.of(key, value), updateImmediately);
     }
@@ -1236,6 +1283,12 @@ public class GaService extends Service implements INotificationHandler {
         return mClient.preparePayreq(amount, data, privateData);
     }
 
+    public Map<String, String> make2FAData(final String method, final String code) {
+        if (code == null)
+            return new HashMap<>();
+        return ImmutableMap.of("method", method, "code", code);
+    }
+
     public ListenableFuture<Boolean> initEnableTwoFac(final String type, final String details, final Map<?, ?> twoFacData) {
         return mClient.initEnableTwoFac(type, details, twoFacData);
     }
@@ -1258,8 +1311,51 @@ public class GaService extends Service implements INotificationHandler {
         return true;
     }
 
-    public void changeTxLimits(final long newValue, final Map<String, String> twoFacData) throws Exception {
-        mClient.changeTxLimits(newValue, twoFacData);
+    private void resetFiatSpendingLimits() {
+        if (!isWatchOnly() && mLimitsData.getBool("is_fiat")) {
+            mLimitsData.mData.put("total", 0);
+            mLimitsData.mData.put("per_tx", 0);
+        }
+    }
+
+    public JSONMap makeLimitsData(final long limit, final boolean isFiat) {
+        final JSONMap limitsData = new JSONMap();
+        limitsData.mData.put("total", limit);
+        limitsData.mData.put("per_tx", 0);
+        limitsData.mData.put("is_fiat", isFiat);
+        return limitsData;
+    }
+
+    public void setSpendingLimits(final JSONMap limitsData,
+                                  final Map<String, String> twoFacData) throws Exception {
+        mClient.setSpendingLimits(limitsData, twoFacData);
+        mLimitsData = limitsData;
+    }
+
+    public JSONMap getSpendingLimits() {
+        return mLimitsData;
+    }
+
+    // Get the users spending limit in BTC/the primary asset
+    private Coin getSpendingLimitAmount() {
+        final Coin unconverted = mLimitsData.getCoin("total");
+        if (IS_ELEMENTS)
+            return unconverted.multiply(100);
+        if (!mLimitsData.getBool("is_fiat"))
+            return unconverted;
+        // Fiat class uses SMALLEST_UNIT_EXPONENT units (10^4), our limit is
+        // held in 10^2 (e.g. cents) units, hence we * 100 below.
+        final Fiat fiatLimit = Fiat.valueOf("???", mLimitsData.getLong("total") * 100);
+        return getFiatRate().fiatToCoin(fiatLimit);
+    }
+
+    public boolean isUnderLimit(final Coin amount) {
+        return !hasAnyTwoFactor() || !amount.isGreaterThan(getSpendingLimitAmount());
+    }
+
+    public boolean doesLimitChangeRequireTwoFactor(final long newValue, final boolean isFiat) {
+        return hasAnyTwoFactor() && (isFiat != mLimitsData.getBool("is_fiat") ||
+                                     newValue > mLimitsData.getLong("total"));
     }
 
     public ListenableFuture<String> create2to2subaccount(final Integer pointer, final String name,

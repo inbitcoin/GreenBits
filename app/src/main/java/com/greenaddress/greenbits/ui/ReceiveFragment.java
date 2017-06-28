@@ -101,10 +101,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         if (mAmountFields != null)
             mAmountFields.setIsPausing(true);
         Log.d(TAG, "onPause -> " + TAG);
-        if (mQrCodeDialog != null) {
-            mQrCodeDialog.dismiss();
-            mQrCodeDialog = null;
-        }
+        mQrCodeDialog = UI.dismiss(getActivity(), mQrCodeDialog);
         if (mTagDispatcher != null)
             mTagDispatcher.disableExclusiveNfc();
         detachObservers();
@@ -327,7 +324,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
             // TODO: non-fiat / non-assets values
             if (mAmountEdit.getText().toString().isEmpty())
                 return;
-            amount = (long) (Float.valueOf(mAmountEdit.getText().toString()).floatValue() * 100);
+            amount = (long) (Float.valueOf(mAmountEdit.getText().toString()) * 100);
         }
         mCurrentAddress = "";
         UI.disable(mCopyIcon);
@@ -370,21 +367,18 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
     }
 
     private void onAddressImageClicked(final BitmapDrawable bd) {
-        if (mQrCodeDialog != null)
-            mQrCodeDialog.dismiss();
+        mQrCodeDialog = UI.dismiss(getActivity(), mQrCodeDialog);
 
-        final View v;
+        final View v = getActivity().getLayoutInflater().inflate(R.layout.dialog_qrcode, null, false);
         if (mIsExchanger) {
-            v = getActivity().getLayoutInflater().inflate(R.layout.dialog_qrcode_exchanger, null, false);
-            final Button cancelBtn = UI.find(v, R.id.cancelBtn);
-            cancelBtn.setOnClickListener(new View.OnClickListener() {
+            final Button cancelButton = UI.find(v, R.id.qrInDialogCancel);
+            UI.show(cancelButton, UI.find(v, R.id.qrInDialogWaiting));
+            cancelButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(final View view) {
-                    mQrCodeDialog.dismiss();
+                    mQrCodeDialog = UI.dismiss(getActivity(), mQrCodeDialog);
                 }
             });
-        } else {
-            v = getActivity().getLayoutInflater().inflate(R.layout.dialog_qrcode, null, false);
         }
 
         final ImageView qrCode = UI.find(v, R.id.qrInDialogImageView);

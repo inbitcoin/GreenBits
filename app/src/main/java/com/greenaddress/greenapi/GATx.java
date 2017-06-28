@@ -16,13 +16,18 @@ import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionWitness;
 import org.bitcoinj.core.Utils;
 import org.bitcoinj.core.VarInt;
+import org.bitcoinj.params.MainNetParams;
+import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import com.blockstream.libwally.Wally;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import android.util.Log;
 
@@ -110,24 +115,62 @@ public class GATx {
             tx.setWitness(tx.getInputs().size() - 1, witness);
     }
 
+    private static Address createChangeAddress(final JSONMap addrInfo) {
+        byte[] script = addrInfo.getBytes("script");
+        if (addrInfo.getString("addr_type").equals("p2wsh"))
+            script = ScriptBuilder.createP2WSHOutputScript(Wally.sha256(script)).getProgram();
+        return Address.fromP2SHHash(Network.NETWORK, Utils.sha256hash160(script));
+    }
+
     /* Add a new change output to a tx */
     public static Pair<TransactionOutput, Integer> addChangeOutput(final GaService service, final Transaction tx,
                                                                    final int subaccount) {
-            final JSONMap addr = service.getNewAddress(subaccount);
-            if (addr == null)
-                return null;
-            final byte[] script;
-            if (addr.getString("addr_type").equals("p2wsh")) {
-                script = ScriptBuilder.createP2WSHOutputScript(
-                        Wally.sha256(addr.getBytes("script"))).getProgram();
-            } else {
-                script = addr.getBytes("script");
+        final JSONMap addrInfo = service.getNewAddress(subaccount);
+        if (addrInfo == null)
+            return null;
+        return new Pair<>(tx.addOutput(Coin.ZERO, createChangeAddress(addrInfo)),
+                          addrInfo.getInt("pointer"));
+    }
+
+    /* Identify the change output in a tx */
+    public static Pair<TransactionOutput, Integer> findChangeOutput(final List<JSONMap> endPoints,
+                                                                    final Transaction tx) {
+        int index = -1;
+        int pubkey_pointer = -1;
+        for (final JSONMap ep : endPoints) {
+            if (!ep.getBool("is_credit") || !ep.getBool("is_relevant"))
+                continue;
+
+            if (index != -1) {
+                // Found another output paying to this account. This can
+                // only happend when redepositing to our own acount with
+                // a change output (e.g. by manually sending some amount
+                // of funds to ourself). In this case the change output
+                // will have been created after the amount output by the
+                // tx construction code, so the output with the highest
+                // pubkey pointer is our change, as they are incremented
+                // for each new output. Note that we can't use the order
+                // of the output in the tx due to change randomisation.
+                if (ep.getInt("pubkey_pointer") < pubkey_pointer)
+                    continue; // Not our change output
             }
-            return new Pair<>(
-                    tx.addOutput(Coin.ZERO, Address.fromP2SHHash(Network.NETWORK,
-                                                                Utils.sha256hash160(script))),
-                    addr.getInt("pointer")
-            );
+            index = ep.getInt("pt_idx");
+            pubkey_pointer = ep.getInt("pubkey_pointer");
+        }
+        return new Pair<>(tx.getOutput(index), pubkey_pointer);
+    }
+
+    /* Swap the change and recipient output in a tx with 50% probability */
+    public static boolean randomizeChangeOutput(final Transaction tx) {
+        if (CryptoHelper.randomBytes(1)[0] < 0)
+            return false;
+
+        final TransactionOutput a = tx.getOutput(0);
+        final TransactionOutput b = tx.getOutput(1);
+        tx.clearOutputs();
+        tx.addOutput(b);
+        tx.addOutput(a);
+        return true;
     }
 
     /* Create previous outputs for tx construction from uxtos */
@@ -135,7 +178,7 @@ public class GATx {
         final List<Output> prevOuts = new ArrayList<>();
         for (final JSONMap utxo : utxos)
             prevOuts.add(new Output(utxo.getInt("subaccount"),
-                                    utxo.getInt("pointer"),
+                                    utxo.getInt(utxo.getKey("pubkey_pointer", "pointer")),
                                     HDKey.BRANCH_REGULAR,
                                     getOutScriptType(utxo.getInt("script_type")),
                                     Wally.hex_from_bytes(createOutScript(service, utxo)),
@@ -176,16 +219,102 @@ public class GATx {
         return singleOutputSize * tx.getOutputs().size();
     }
 
-    // Calculate the fee that must be paid for a tx
-    public static Coin getTxFee(final GaService service, final Transaction tx, final Coin feeRate) {
-        final Coin minRate = service.getMinFeeRate();
-        final Coin rate = feeRate.isLessThan(minRate) ? minRate : feeRate;
-        final int vSize;
-        Log.d(TAG, "getTxFee(rates): " + rate.value + '/' + feeRate.value + '/' + minRate.value);
+    public static Coin getFeeEstimate(final GaService service, final boolean isInstant) {
+        return getFeeEstimate(service, isInstant, 6); // Fee rate for 6 confs if not instant
+    }
 
-        if (!GaService.IS_ELEMENTS && !service.isSegwitEnabled()) {
+    public static Coin getFeeEstimateForRBF(final GaService service, final boolean isInstant) {
+        return getFeeEstimate(service, isInstant, 1); // Fee rate for 1 conf if not instant
+    }
+
+    // Return the best estimate of the fee rate in satoshi/1000 bytes
+    public static Coin getFeeEstimate(final GaService service, final boolean isInstant, final int forBlock) {
+        Double bestInstantRate = null;
+
+        // Iterate the estimates from shortest to longest confirmation time
+        final SortedSet<Integer> keys = new TreeSet<>();
+        for (final String block : service.getFeeEstimates().mData.keySet())
+            keys.add(Integer.parseInt(block));
+
+        for (final Integer blockNum : keys) {
+            if (!isInstant && blockNum < forBlock)
+                continue; // Non-instant: Use forBlock confirmation rate and later only
+
+            double feeRate = service.getFeeRate(blockNum);
+            if (feeRate <= 0.0)
+                continue; // No estimate available: Try next confirmation rate
+
+            if (isInstant) {
+                // For instant, increase the rate to increase the likelyhood of confirmation.
+                // We use the lowest value of:
+                // a) 1.1 * the 1st or 2nd block fee rate
+                // b) 2.0 * the first rate later than 2 blocks
+                if (blockNum <= 2) {
+                    if (bestInstantRate == null)
+                       bestInstantRate = feeRate * 1.1; // Save earliest fast confirmation rate
+                    continue; // Continue to find the first non-fast rate
+                } else
+                    feeRate *= 2.0;
+            }
+
+            if (bestInstantRate != null && bestInstantRate < feeRate)
+                feeRate = bestInstantRate; // Use the lowest instant rate found
+
+            return Coin.valueOf((long) (feeRate * 1000 * 1000 * 100));
+        }
+
+        if (bestInstantRate != null) {
+            // No non-fast confirmation rate, return the fast confirmation rate
+            return Coin.valueOf((long) (bestInstantRate * 1000 * 1000 * 100));
+        }
+
+        // We don't have a usable fee rate estimate, use a default.
+        if (GaService.IS_ELEMENTS)
+            return Coin.valueOf(1);
+        if (Network.NETWORK == MainNetParams.get())
+            return Coin.valueOf((isInstant ? 200 : 120) * 1000);
+        return Coin.valueOf((isInstant ? 75 : 60) * 1000);
+    }
+
+    public static JSONMap makeLimitsData(final Coin limitDelta, final Coin fee,
+                                         final int changeIndex) {
+        final JSONMap m = new JSONMap();
+        m.mData.put("asset", "BTC");
+        m.mData.put("amount", limitDelta.getValue());
+        m.mData.put("fee", fee.getValue());
+        m.mData.put("change_idx", changeIndex);
+        return m;
+    }
+
+    public static Coin addUtxo(final GaService service, final Transaction tx,
+                               final List<JSONMap> utxos, final List<JSONMap> used) {
+        return addUtxo(service, tx, utxos, used, null, null, null, null);
+    }
+
+    public static Coin addUtxo(final GaService service, final Transaction tx,
+                               final List<JSONMap> utxos, final List<JSONMap> used,
+                               final List<Long> inValues, final List<byte[]> inAssetIds,
+                               final List<byte[]> inAbfs, final List<byte[]> inVbfs) {
+        final JSONMap utxo = utxos.get(0);
+        utxos.remove(0);
+        if (utxo.getBool("confidential")) {
+            inAssetIds.add(utxo.getBytes("assetId"));
+            inAbfs.add(utxo.getBytes("abf"));
+            inVbfs.add(utxo.getBytes("vbf"));
+        }
+        used.add(utxo);
+        addInput(service, tx, utxo);
+        if (inValues != null)
+            inValues.add(utxo.getLong("value"));
+        return utxo.getCoin("value");
+    }
+
+    public static int getTxVSize(final Transaction tx) {
+        final int vSize;
+
+        if (!(GaService.IS_ELEMENTS || tx.hasWitness())) {
             vSize = tx.unsafeBitcoinSerialize().length;
-            Log.d(TAG, "getTxFee(non-sw): " + vSize);
+            Log.d(TAG, "getTxVSize(non-sw): " + vSize);
         } else {
             /* For segwit, the fee is based on the weighted size of the tx */
             tx.transactionOptions = TransactionOptions.NONE;
@@ -194,24 +323,62 @@ public class GATx {
             final int swSize = tx.unsafeBitcoinSerialize().length;
             final int fullSize = swSize + estimateElementsSize(tx);
             vSize = (int) Math.ceil((nonSwSize * 3 + fullSize) / 4.0);
-            Log.d(TAG, "getTxFee(sw): " + nonSwSize + '/' + swSize + '/' + vSize);
+            Log.d(TAG, "getTxVSize(sw): " + nonSwSize + '/' + swSize + '/' + vSize);
         }
+        return vSize;
+    }
+
+    // Calculate the fee that must be paid for a tx
+    public static Coin getTxFee(final GaService service, final Transaction tx, final Coin feeRate) {
+        final Coin minRate = service.getMinFeeRate();
+        final Coin rate = feeRate.isLessThan(minRate) ? minRate : feeRate;
+        Log.d(TAG, "getTxFee(rates): " + rate.value + '/' + feeRate.value + '/' + minRate.value);
+
+        final int vSize = getTxVSize(tx);
         final double fee = (double) vSize * rate.value / 1000.0;
         final long roundedFee = (long) Math.ceil(fee); // Round up
         Log.d(TAG, "getTxFee: fee is " + roundedFee);
         return Coin.valueOf(roundedFee);
     }
 
-    // Swap the change and recipient output in a tx with 50% probability */
-    public static boolean randomizeChange(final Transaction tx) {
-        if (CryptoHelper.randomBytes(1)[0] < 0)
-            return false;
+    public static PreparedTransaction signTransaction(final GaService service, final Transaction tx,
+                                                      final List<JSONMap> usedUtxos,
+                                                      final int subAccount,
+                                                      final Pair<TransactionOutput, Integer> changeOutput) {
 
-        final TransactionOutput a = tx.getOutput(0);
-        final TransactionOutput b = tx.getOutput(1);
-        tx.clearOutputs();
-        tx.addOutput(b);
-        tx.addOutput(a);
-        return true;
+        // Fetch previous outputs
+        final List<Output> prevOuts = createPrevouts(service, usedUtxos);
+        final PreparedTransaction ptx;
+        ptx = new PreparedTransaction(changeOutput == null ? null : changeOutput.second,
+                                      subAccount, tx,
+                                      service.findSubaccountByType(subAccount, "2of3"));
+        ptx.mPrevoutRawTxs = new HashMap<>();
+        for (final Transaction prevTx : getPreviousTransactions(service, tx))
+            ptx.mPrevoutRawTxs.put(Wally.hex_from_bytes(prevTx.getHash().getBytes()), prevTx);
+
+        final boolean isSegwitEnabled = service.isSegwitEnabled();
+
+        // Sign the tx
+        final List<byte[]> signatures = service.signTransaction(tx, ptx, prevOuts);
+        for (int i = 0; i < signatures.size(); ++i) {
+            final byte[] sig = signatures.get(i);
+            final JSONMap utxo = usedUtxos.get(i);
+            final int scriptType = utxo.getInt("script_type");
+            final byte[] outscript = createOutScript(service, utxo);
+            final List<byte[]> userSigs = ImmutableList.of(new byte[]{0}, sig);
+            final byte[] inscript = createInScript(userSigs, outscript, scriptType);
+
+            tx.getInput(i).setScriptSig(new Script(inscript));
+            if (isSegwitEnabled && getOutScriptType(scriptType) == P2SH_P2WSH_FORTIFIED_OUT) {
+                // Replace the witness data with just the user signature:
+                // the server will recreate the witness data to include the
+                // dummy OP_CHECKMULTISIG push, user + server sigs and script.
+                final TransactionWitness witness = new TransactionWitness(1);
+                witness.setPush(0, sig);
+                tx.setWitness(i, witness);
+            }
+        }
+        return ptx;
     }
+
 }

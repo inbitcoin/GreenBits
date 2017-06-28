@@ -50,7 +50,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
 
-public class PinActivity extends LoginActivity implements Observer {
+public class PinActivity extends LoginActivity implements Observer, View.OnClickListener {
 
     private Menu mMenu;
     private static final String KEYSTORE_KEY = "NativeAndroidAuth";
@@ -161,8 +161,7 @@ public class PinActivity extends LoginActivity implements Observer {
                     }
                     editor.apply();
                     error = null;
-                }
-                else {
+                } else {
                     error = t;
                     message = null;
                 }
@@ -219,13 +218,7 @@ public class PinActivity extends LoginActivity implements Observer {
                         }
                     }));
 
-            mPinLoginButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(final View v) {
-                    login();
-                }
-            });
-
+            mPinLoginButton.setOnClickListener(this);
         } else  {
             // force hide keyboard
             getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
@@ -358,6 +351,12 @@ public class PinActivity extends LoginActivity implements Observer {
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+        UI.unmapClick(mPinLoginButton);
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(final Menu menu) {
         getMenuInflater().inflate(R.menu.common_menu, menu);
         getMenuInflater().inflate(R.menu.camera_menu, menu);
@@ -427,4 +426,10 @@ public class PinActivity extends LoginActivity implements Observer {
             return WAIT_TIME_SEC_2;
         return 0;
     }
-}
+
+    @Override
+    public void onClick(final View v) {
+        if (v == mPinLoginButton)
+            login();
+    }
+ }

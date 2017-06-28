@@ -5,6 +5,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.content.res.Resources;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
@@ -15,6 +16,7 @@ import android.support.v7.widget.Toolbar;
 import android.text.Html;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -30,34 +32,23 @@ import android.widget.TextView;
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.blockstream.libwally.Wally;
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.greenaddress.greenapi.ConfidentialAddress;
 import com.greenaddress.greenapi.GAException;
 import com.greenaddress.greenapi.GATx;
-import com.greenaddress.greenapi.HDKey;
 import com.greenaddress.greenapi.Network;
 import com.greenaddress.greenapi.JSONMap;
-import com.greenaddress.greenapi.Output;
 import com.greenaddress.greenapi.PreparedTransaction;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.QrBitmap;
 import com.greenaddress.greenbits.wallets.TrezorHWWallet;
 
-import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.TransactionWitness;
-import org.bitcoinj.core.Utils;
 import org.bitcoinj.params.RegTestParams;
-import org.bitcoinj.script.Script;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -74,11 +65,10 @@ import java.util.List;
 import java.util.Map;
 
 
-
-public class TransactionActivity extends GaActivity {
+public class TransactionActivity extends GaActivity implements View.OnClickListener {
 
     private static final String TAG = TransactionActivity.class.getSimpleName();
-    private static final String FEE_BLOCK_NUMBERS[] = {"1", "3", "6"};
+    private static final int FEE_BLOCK_NUMBERS[] = {1, 3, 6};
 
     // For debug regtest builds, always allow RBF (Useful for development/testing)
     private static final boolean ALWAYS_ALLOW_RBF = BuildConfig.DEBUG &&
@@ -86,9 +76,9 @@ public class TransactionActivity extends GaActivity {
 
     private Menu mMenu;
     private TextView mUnconfirmedText;
-    private TextView mUnconfirmedEstimatedBlocks;
+    private TextView mEstimatedBlocks;
     private TextView mUnconfirmedRecommendation;
-    private Button mUnconfirmedIncreaseFee;
+    private Button mBumpFeeButton;
     private View mMemoView;
     private View mMemoTitle;
     private TextView mMemoIcon;
@@ -112,6 +102,10 @@ public class TransactionActivity extends GaActivity {
     private final Runnable mDialogCB = new Runnable() { public void run() { mDialog = null; } };
     final private Activity mActivity = this;
 
+    private int mTwoFactorAttemptsRemaining;
+    private TransactionItem mTxItem;
+    private Coin mChosenFeeRate;
+
     @Override
     protected int getMainViewId() { return R.layout.activity_transaction; }
 
@@ -130,9 +124,9 @@ public class TransactionActivity extends GaActivity {
         mMemoEditText = UI.find(this, R.id.sendToNoteText);
         mMemoSaveButton = UI.find(this, R.id.saveMemo);
         mUnconfirmedText = UI.find(this, R.id.txUnconfirmedText);
-        mUnconfirmedEstimatedBlocks = UI.find(this, R.id.txUnconfirmedEstimatedBlocks);
+        mEstimatedBlocks = UI.find(this, R.id.txUnconfirmedEstimatedBlocks);
         mUnconfirmedRecommendation = UI.find(this, R.id.txUnconfirmedRecommendation);
-        mUnconfirmedIncreaseFee = UI.find(this, R.id.txUnconfirmedIncreaseFee);
+        mBumpFeeButton = UI.find(this, R.id.txUnconfirmedIncreaseFee);
         merchantName = UI.find(this, R.id.merchantName);
         merchantView = UI.find(this, R.id.merchantView);
         paymentProcessorInfo = UI.find(this, R.id.paymentProcessor);
@@ -147,42 +141,42 @@ public class TransactionActivity extends GaActivity {
         final TextView recipientTitle = UI.find(this, R.id.txRecipientTitle);
 
         // Hide outgoing-only widgets by default
-        UI.hide(mUnconfirmedRecommendation, mUnconfirmedEstimatedBlocks, mUnconfirmedIncreaseFee);
+        UI.hide(mUnconfirmedRecommendation, mEstimatedBlocks, mBumpFeeButton);
 
-        final TransactionItem txItem = (TransactionItem) getIntent().getSerializableExtra("TRANSACTION");
+        mTxItem = (TransactionItem) getIntent().getSerializableExtra("TRANSACTION");
 
         final TextView hashText = UI.find(this, R.id.txHashText);
-        openInBrowser(hashText, txItem.txHash.toString(), Network.BLOCKEXPLORER_TX, null);
+        openInBrowser(hashText, mTxItem.txHash.toString(), Network.BLOCKEXPLORER_TX, null);
 
+        showFeeInfo(mTxItem.fee, mTxItem.size, mTxItem.getFeePerKilobyte());
         mBitmapWorkerTask = new BitmapWorkerTask();
         mQrcodeWorkerTask = new QrcodeWorkerTask();
         if (Build.VERSION.SDK_INT>= Build.VERSION_CODES.HONEYCOMB) {
-            mBitmapWorkerTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, txItem.txHash.toString());
-            mQrcodeWorkerTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, txItem.txHash.toString());
+            mBitmapWorkerTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, mTxItem.txHash.toString());
+            mQrcodeWorkerTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, mTxItem.txHash.toString());
         } else {
-            mBitmapWorkerTask.execute(txItem.txHash.toString());
-            mQrcodeWorkerTask.execute(txItem.txHash.toString());
+            mBitmapWorkerTask.execute(mTxItem.txHash.toString());
+            mQrcodeWorkerTask.execute(mTxItem.txHash.toString());
         }
 
-        final Coin feePerKb = txItem.getFeePerKilobyte();
 
         final boolean isWatchOnly = mService.isWatchOnly();
 
         if (GaService.IS_ELEMENTS) {
             UI.hide(UI.find(this, R.id.txUnconfirmed));
-        } else if (txItem.type == TransactionItem.TYPE.OUT || txItem.type == TransactionItem.TYPE.REDEPOSIT || txItem.isSpent) {
-            if (txItem.getConfirmations() > 0)
+        } else if (mTxItem.type == TransactionItem.TYPE.OUT || mTxItem.type == TransactionItem.TYPE.REDEPOSIT || mTxItem.isSpent) {
+            if (mTxItem.getConfirmations() > 0)
                 UI.hide(UI.find(this, R.id.txUnconfirmed)); // Confirmed: hide warning
-            else if (txItem.type == TransactionItem.TYPE.OUT || txItem.type == TransactionItem.TYPE.REDEPOSIT)
-                showUnconfirmed(txItem, feePerKb);
+            else if (mTxItem.type == TransactionItem.TYPE.OUT || mTxItem.type == TransactionItem.TYPE.REDEPOSIT)
+                showUnconfirmed();
         } else {
             // unspent incoming output
-            if (txItem.getConfirmations() > 0)
-                if (isWatchOnly || txItem.spvVerified)
+            if (mTxItem.getConfirmations() > 0)
+                if (isWatchOnly || mTxItem.spvVerified)
                     UI.hide(UI.find(this, R.id.txUnconfirmed));
                 else {
                     final int blocksLeft = mService.getSPVBlocksRemaining();
-                    final String message = getResources().getString(R.string.txUnverifiedTx);
+                    final String message = getString(R.string.txUnverifiedTx);
                     if (blocksLeft != Integer.MAX_VALUE)
                         mUnconfirmedText.setText(String.format("%s %s", message, blocksLeft));
                     else
@@ -192,36 +186,30 @@ public class TransactionActivity extends GaActivity {
         }
 
         UI.setCoinText(this, R.id.txBitcoinUnit, R.id.txAmountText,
-                       Coin.valueOf(txItem.amount));
-
-        final TextView feeUnit = UI.find(this, R.id.txFeeUnit);
-        final TextView feeInfoText = UI.find(this, R.id.txFeeInfoText);
-        feeInfoText.setText(UI.setCoinText(mService, feeUnit, null, Coin.valueOf(txItem.fee)) +
-                            " / " + String.valueOf(txItem.size) + " / " +
-                            UI.setCoinText(mService, feeUnit, null, feePerKb));
+                       Coin.valueOf(mTxItem.amount));
 
         final TextView dateText = UI.find(this, R.id.txDateText);
-        dateText.setText(SimpleDateFormat.getInstance().format(txItem.date));
+        dateText.setText(SimpleDateFormat.getInstance().format(mTxItem.date));
 
         // FIXME: use a list instead of reusing a TextView to show all double spends to allow
         // for a warning to be shown before the browser is open
         // this is to prevent to accidentally leak to block explorers your addresses
-        if (txItem.doubleSpentBy != null || !txItem.replacedHashes.isEmpty()) {
+        if (mTxItem.doubleSpentBy != null || !mTxItem.replacedHashes.isEmpty()) {
             CharSequence res = "";
-            if (txItem.doubleSpentBy != null) {
-                if (txItem.doubleSpentBy.equals("malleability") || txItem.doubleSpentBy.equals("update"))
-                    res = txItem.doubleSpentBy;
+            if (mTxItem.doubleSpentBy != null) {
+                if (mTxItem.doubleSpentBy.equals("malleability") || mTxItem.doubleSpentBy.equals("update"))
+                    res = mTxItem.doubleSpentBy;
                 else
-                    res = Html.fromHtml("<a href=\"" + Network.BLOCKEXPLORER_TX + txItem.doubleSpentBy + "\">" + txItem.doubleSpentBy + "</a>");
-                if (!txItem.replacedHashes.isEmpty())
+                    res = Html.fromHtml("<a href=\"" + Network.BLOCKEXPLORER_TX + mTxItem.doubleSpentBy + "\">" + mTxItem.doubleSpentBy + "</a>");
+                if (!mTxItem.replacedHashes.isEmpty())
                     res = TextUtils.concat(res, "; ");
             }
-            if (!txItem.replacedHashes.isEmpty()) {
+            if (!mTxItem.replacedHashes.isEmpty()) {
                 res = TextUtils.concat(res, Html.fromHtml("replaces transactions:<br/>"));
-                for (int i = 0; i < txItem.replacedHashes.size(); ++i) {
+                for (int i = 0; i < mTxItem.replacedHashes.size(); ++i) {
                     if (i > 0)
                         res = TextUtils.concat(res, Html.fromHtml("<br/>"));
-                    final String txHashHex = txItem.replacedHashes.get(i).toString();
+                    final String txHashHex = mTxItem.replacedHashes.get(i).toString();
                     final String link = "<a href=\"" + Network.BLOCKEXPLORER_TX + txHashHex + "\">" + txHashHex + "</a>";
                     res = TextUtils.concat(res, Html.fromHtml(link));
                 }
@@ -231,18 +219,16 @@ public class TransactionActivity extends GaActivity {
             UI.hide(doubleSpentByText, doubleSpentByTitle,
                     UI.find(this, R.id.txDoubleSpentByMargin));
 
-        if (!TextUtils.isEmpty(txItem.counterparty))
-            recipientText.setText(txItem.counterparty);
+        if (!TextUtils.isEmpty(mTxItem.counterparty))
+            recipientText.setText(mTxItem.counterparty);
         else
             UI.hide(recipientText, recipientTitle,
                     UI.find(this, R.id.txRecipientMargin));
 
         final TextView receivedOnText = UI.find(this, R.id.txReceivedOnText);
-        if (!TextUtils.isEmpty(txItem.receivedOn))
-            openInBrowser(
-                    receivedOnText, txItem.receivedOn, Network.BLOCKEXPLORER_ADDRESS,
-                    txItem.receivedOnEp
-            );
+        if (!TextUtils.isEmpty(mTxItem.receivedOn))
+            openInBrowser(receivedOnText, mTxItem.receivedOn, Network.BLOCKEXPLORER_ADDRESS,
+                          mTxItem.receivedOnEp);
         else {
             final View receivedOnTitle = UI.find(this, R.id.txReceivedOnTitle);
             final View receivedOnMargin = UI.find(this, R.id.txReceivedOnMargin);
@@ -250,82 +236,119 @@ public class TransactionActivity extends GaActivity {
         }
 
         // Memo
-        if (!TextUtils.isEmpty(txItem.memo)) {
-            mMemoText.setText(txItem.memo);
+        if (!TextUtils.isEmpty(mTxItem.memo)) {
+            mMemoText.setText(mTxItem.memo);
             UI.hideIf(isWatchOnly, mMemoIcon);
         } else {
             UI.hide(mMemoText, mMemoView);
             UI.hideIf(isWatchOnly, mMemoTitle, mMemoIcon);
         }
 
-        final String merchant = mService.getTxMerchant(txItem.txHash.toString());
+        if (!isWatchOnly) {
+            mMemoIcon.setOnClickListener(this);
+            mMemoSaveButton.setOnClickListener(this);
+         }
+
+        final String merchant = mService.getTxMerchant(mTxItem.txHash.toString());
         if (!merchant.isEmpty()) {
             merchantName.setText(merchant);
             UI.show(merchantView);
         }
 
-        final String paymentProcessor = mService.getTxPaymentProcessor(txItem.txHash.toString());
+        final String paymentProcessor = mService.getTxPaymentProcessor(mTxItem.txHash.toString());
         if (!paymentProcessor.isEmpty()) {
             paymentProcessorInfo.setText(paymentProcessor);
             UI.show(paymentProcessorView);
         }
 
-        final String invoice = mService.getTxInvoice(txItem.txHash.toString());
+        final String invoice = mService.getTxInvoice(mTxItem.txHash.toString());
         if (!invoice.isEmpty()) {
             invoiceInfo.setText(invoice);
             UI.show(invoiceView);
         }
-
-        if (isWatchOnly)
-            return;
-
-        mMemoIcon.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(final View v) {
-                final boolean editInProgress = mMemoEditText.getVisibility() == View.VISIBLE;
-                mMemoEditText.setText(UI.getText(mMemoText));
-                UI.hideIf(editInProgress, mMemoEditText, mMemoSaveButton);
-                UI.showIf(editInProgress, mMemoText);
-            }
-        });
-
-        mMemoSaveButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(final View v) {
-                saveMemo(txItem.txHash);
-            }
-        });
     }
 
-    private void showUnconfirmed(final TransactionItem txItem, final Coin feePerKb) {
-        UI.show(mUnconfirmedEstimatedBlocks);
+    private void showFeeInfo(final long fee, final long vSize, final Coin feeRate) {
+        final TextView feeUnit = UI.find(this, R.id.txFeeUnit);
+        final TextView feeText = UI.find(this, R.id.txFeeInfoText);
+        feeText.setText(UI.setCoinText(mService, feeUnit, null, Coin.valueOf(fee)) +
+                        " / " + String.valueOf(vSize) + " / " +
+                        UI.setCoinText(mService, feeUnit, null, feeRate));
+    }
 
-        final Map<String, Object> feeEstimates = mService.getFeeEstimates();
-        int currentEstimate = 25;
-        for (final String atBlock : FEE_BLOCK_NUMBERS)
-            if (!feePerKb.isLessThan(getFeeEstimate(feeEstimates, atBlock))) {
-                currentEstimate = (Integer) ((Map) feeEstimates.get(atBlock)).get("blocks");
+    private void showUnconfirmed() {
+        UI.show(mEstimatedBlocks);
+
+        // FIXME: The fee rate for segwit txs without txdata is not
+        // correct, because the backend does not provide vSize. So,
+        // we re-compute it here.
+        final double satoshiPerKb;
+        final int vSize;
+
+        if (mTxItem.data != null && mService.isSegwitEnabled()) {
+            // Compute the correct fee rate as we have tx data available
+            final Transaction tx = GaService.buildTransaction(mTxItem.data);
+            vSize = GATx.getTxVSize(tx);
+            satoshiPerKb = Math.ceil(mTxItem.fee * 1000.0 / vSize);
+            // Update displayed fee info: its incorrect due to the FIXME above
+            showFeeInfo(mTxItem.fee, vSize, Coin.valueOf((long) satoshiPerKb));
+        } else {
+            vSize = mTxItem.size;
+            satoshiPerKb = mTxItem.getFeePerKilobyte().value;
+        }
+        final double currentFeeRate = satoshiPerKb / 100000000.0; // ->BTC/KB
+
+        // Compute the number of expected blocks before this tx confirms
+        int estimatedBlocks = 25;
+        for (final int blockNum : FEE_BLOCK_NUMBERS) {
+            final double blockFeeRate = mService.getFeeRate(blockNum);
+            if (blockFeeRate >=0 && currentFeeRate >= blockFeeRate) {
+                estimatedBlocks = mService.getFeeBlocks(blockNum);
                 break;
             }
+        }
 
-        mUnconfirmedEstimatedBlocks.setText(String.format(getResources().getString(R.string.willConfirmAfter), currentEstimate));
-        if (mService.isWatchOnly() || GaService.IS_ELEMENTS || !txItem.replaceable)
+        mEstimatedBlocks.setText(getString(R.string.willConfirmAfter, estimatedBlocks));
+        if (mService.isWatchOnly() || GaService.IS_ELEMENTS || !mTxItem.replaceable)
             return; // FIXME: Implement RBF for elements
 
-        final int bestEstimate = (Integer) ((Map) feeEstimates.get("1")).get("blocks");
-        if (ALWAYS_ALLOW_RBF || (bestEstimate < currentEstimate)) {
-            UI.show(mUnconfirmedRecommendation, mUnconfirmedIncreaseFee);
-            if (bestEstimate == 1)
-                mUnconfirmedRecommendation.setText(R.string.recommendationSingleBlock);
-            else
-                mUnconfirmedRecommendation.setText(getString(R.string.recommendationBlocks, bestEstimate));
-            mUnconfirmedIncreaseFee.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(final View v) {
-                    replaceByFee(txItem, getFeeEstimate(feeEstimates, "1"), null, 0);
-                }
-            });
+        // If the fastest number of blocks is less than the expected number,
+        // then allow the user to RBF the fee up to the fastest fee rate
+        final int fastestBlocks = mService.getFeeBlocks(1);
+        boolean allowRbf = fastestBlocks < estimatedBlocks;
+
+        double fastestFeeRate = mService.getFeeRate(1);
+        if (fastestFeeRate >= 0) {
+            final double rounded = Math.ceil(fastestFeeRate * 100000000.0);
+            mChosenFeeRate = Coin.valueOf((long) rounded);
+        } else {
+            // No fastest fee rate is available: allow the user to RBF to the
+            // current new transaction rate for 1 block confirmation if it is
+            // higher than the current rate
+            final boolean isInstant = false; // FIXME: Support instant RBF
+            mChosenFeeRate = GATx.getFeeEstimateForRBF(mService, isInstant);
+            fastestFeeRate = mChosenFeeRate.getValue() / 100000000.0;
+            allowRbf = fastestFeeRate > currentFeeRate;
         }
+
+        if (!allowRbf) {
+            if (!ALWAYS_ALLOW_RBF)
+                return;
+            // Core rejects a bumped fee rate that is not higher than the old
+            // one. On regtest the rates are usually unavailable and so the
+            // old and new rates are the same. Increment the new rate by 1 to
+            // avoid core failing the bump.
+            final double rounded = Math.ceil(currentFeeRate * 100000000.0);
+            mChosenFeeRate = Coin.valueOf((long) rounded + vSize);
+        }
+
+        UI.show(mUnconfirmedRecommendation, mBumpFeeButton);
+        if (fastestBlocks == 1)
+            mUnconfirmedRecommendation.setText(R.string.recommendationSingleBlock);
+        else
+            mUnconfirmedRecommendation.setText(getString(R.string.recommendationBlocks, fastestBlocks));
+
+        mBumpFeeButton.setOnClickListener(this);
     }
 
     @Override
@@ -346,10 +369,16 @@ public class TransactionActivity extends GaActivity {
             mBitmapWorkerTask.cancel(true);
         if (mQrcodeWorkerTask != null)
             mQrcodeWorkerTask.cancel(true);
-        if (mSummary != null)
-            mSummary.dismiss();
-        if (mTwoFactor != null)
-            mTwoFactor.dismiss();
+        mSummary = UI.dismiss(this, mSummary);
+        mTwoFactor = UI.dismiss(this, mTwoFactor);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        UI.unmapClick(mMemoIcon);
+        UI.unmapClick(mMemoSaveButton);
+        UI.unmapClick(mBumpFeeButton);
     }
 
     @Override
@@ -360,12 +389,28 @@ public class TransactionActivity extends GaActivity {
     }
 
     @Override
+    public void onClick(final View v) {
+        if (v == mMemoIcon)
+            onMemoIconClicked();
+        else if (v == mMemoSaveButton)
+            onMemoSaveButtonClicked();
+        else if (v == mBumpFeeButton)
+            onBumpFeeButtonClicked();
+    }
+
+    private void onMemoIconClicked() {
+        final boolean editInProgress = mMemoEditText.getVisibility() == View.VISIBLE;
+        mMemoEditText.setText(UI.getText(mMemoText));
+        UI.hideIf(editInProgress, mMemoEditText, mMemoSaveButton);
+        UI.showIf(editInProgress, mMemoText);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
         switch(item.getItemId()) {
             case R.id.action_share:
-                final TransactionItem txItem = (TransactionItem) getIntent().getSerializableExtra("TRANSACTION");
                 final Intent sendIntent = new Intent(Intent.ACTION_SEND);
-                sendIntent.putExtra(Intent.EXTRA_TEXT, Network.BLOCKEXPLORER_TX + txItem.txHash.toString());
+                sendIntent.putExtra(Intent.EXTRA_TEXT, Network.BLOCKEXPLORER_TX + mTxItem.txHash.toString());
                 sendIntent.setType("text/plain");
                 startActivity(sendIntent);
                 return true;
@@ -391,25 +436,20 @@ public class TransactionActivity extends GaActivity {
         });
     }
 
-    private void saveMemo(final Sha256Hash txHash) {
+    private void onMemoSaveButtonClicked() {
         final String newMemo = UI.getText(mMemoEditText);
         if (newMemo.equals(UI.getText(mMemoText))) {
             onFinishedSavingMemo();
             return;
         }
 
-        CB.after(mService.changeMemo(txHash, newMemo),
+        CB.after(mService.changeMemo(mTxItem.txHash.toString(), newMemo),
                 new CB.Toast<Boolean>(this) {
                     @Override
                     public void onSuccess(final Boolean result) {
                         onFinishedSavingMemo();
                     }
                 });
-    }
-
-    private static Coin getFeeEstimate(final Map<String, Object> feeEstimates, final String atBlock) {
-        final double rate = Double.parseDouble(((Map)feeEstimates.get(atBlock)).get("feerate").toString());
-        return Coin.valueOf((long) (rate * 1000 * 1000 * 100));
     }
 
     private void openInBrowser(final TextView textView, final String identifier, final String url, final JSONMap confidentialData) {
@@ -450,6 +490,14 @@ public class TransactionActivity extends GaActivity {
                         }).build().show();
             }
         });
+    }
+
+    private List<JSONMap> getUtxosFromEndpoints() {
+        final List<JSONMap> utxos = new ArrayList<>();
+        for (final JSONMap ep : mTxItem.eps)
+            if (!ep.getBool("is_credit"))
+                utxos.add(ep);
+        return utxos;
     }
 
     /**
@@ -595,268 +643,231 @@ public class TransactionActivity extends GaActivity {
         }
     }
 
-    private void replaceByFee(final TransactionItem txItem, final Coin feerate, Integer txSize, final int level) {
-        if (level > 10)
-            throw new RuntimeException("Recursion limit exceeded");
 
-        final Transaction tx = GaService.buildTransaction(txItem.data);
-        Integer change_pointer = null;
+    private static Coin getUtxoSum(final List<JSONMap> utxos) {
+        Coin value = Coin.ZERO;
+        for (final JSONMap utxo : utxos)
+            value = value.add(Coin.valueOf(utxo.getLong("value")));
+        return value;
+    }
+
+    // Modify tx to pay fees at the chosen feeRate
+    private void onBumpFeeButtonClicked() {
+        // For RBF we must ensure that the fee is incremented by at least the
+        // minimum relay fee of the original transaction (per BIP 125), i.e.
+        // the new fee must be higher than the old fee plus the bandwidth fee.
+        final Transaction tx = GaService.buildTransaction(mTxItem.data);
+        final Coin oldFee = Coin.valueOf(mTxItem.fee);
+        Coin amount = tx.getOutputSum();
+
+        final List<JSONMap> usedUtxos = getUtxosFromEndpoints();
         final int subAccount = mService.getCurrentSubAccount();
-        // requiredFeeDelta assumes mintxfee = 1000, and inputs increasing
-        // by at most 4 bytes per input (signatures have variable lengths)
-        if (txSize == null)
-            txSize = tx.getMessageSize();
-        final long requiredFeeDelta = txSize + tx.getInputs().size() * 4;
-        final List<TransactionInput> oldInputs = new ArrayList<>(tx.getInputs());
-        tx.clearInputs();
-        final List<JSONMap> tx_eps = new ArrayList<>();
-        for (final JSONMap ep : txItem.eps) {
-            if (ep.getBool("is_credit"))
-                continue;
-            final TransactionInput oldInput = oldInputs.get(ep.getInt("pt_idx"));
-            final TransactionInput newInput = new TransactionInput(
-                    Network.NETWORK,
-                    null,
-                    oldInput.getScriptBytes(),
-                    oldInput.getOutpoint(),
-                    ep.getCoin("value")
-            );
-            newInput.setSequenceNumber(0); // This ensures nlocktime is recognized
-            tx.addInput(newInput);
-            tx_eps.add(ep);
-        }
-        final Coin oldFee = tx.getFee();
-        final Coin newFeeWithRate = feerate.multiply(txSize).divide(1000);
-        final Coin feeDelta = Coin.valueOf(Math.max(
-                newFeeWithRate.subtract(oldFee).longValue(),
-                requiredFeeDelta
-        ));
-        Coin remainingFeeDelta = feeDelta;
-        final List<TransactionOutput> origOuts = new ArrayList<>(tx.getOutputs());
-        tx.clearOutputs();
 
-        for (final JSONMap ep : txItem.eps) {
-            if (!ep.getBool("is_credit"))
-                continue;
+        final Pair<TransactionOutput, Integer> changeOutput = GATx.findChangeOutput(mTxItem.eps, tx);
+        if (changeOutput != null) {
+            // Either this tx has change, or it is a changeless re-deposit.
+            if (tx.getOutputs().size() != 1) {
+                // Not a changeless re-deposit
+                // Subtract the change from the output amount
+                amount = amount.subtract(changeOutput.first.getValue());
+            }
 
-            if (!ep.getBool("is_relevant"))
-                // keep non-change/non-redeposit intact
-                tx.addOutput(origOuts.get(ep.getInt("pt_idx")));
-            else {
-                if (ep.getInt("subaccount", 0).equals(subAccount))
-                    change_pointer = ep.getInt("pubkey_pointer");
+            // See if we can shrink the change/redeposit value to increase the fee
+            final Coin bandwidthFee = GATx.getTxFee(mService, tx, mService.getMinFeeRate());
+            Coin fee = GATx.getTxFee(mService, tx, mChosenFeeRate);
+            fee = fee.isLessThan(oldFee) ? oldFee.add(Coin.SATOSHI) : fee;
 
-                // change/redeposit
-                final Coin value = ep.getCoin("value");
-                if (!value.isGreaterThan(remainingFeeDelta)) {
-                    // smaller than remaining fee -- get rid of this output
-                    remainingFeeDelta = remainingFeeDelta.subtract(value);
-                } else {
-                    // larger than remaining fee -- subtract the remaining fee
-                    final TransactionOutput out = origOuts.get(ep.getInt("pt_idx"));
-                    out.setValue(out.getValue().subtract(remainingFeeDelta));
-                    tx.addOutput(out);
-                    remainingFeeDelta = Coin.ZERO;
-                }
+            final Coin feeIncrement = fee.subtract(oldFee).add(bandwidthFee);
+            fee = fee.add(bandwidthFee);
+            final Coin remainingChange = changeOutput.first.getValue().subtract(feeIncrement);
+            if (remainingChange.isGreaterThan(mService.getDustThreshold())) {
+                // We have enough change to cover the fee increase
+                changeOutput.first.setValue(remainingChange);
+                final Coin newFee = fee;
+                CB.after(Futures.immediateFuture((Void) null),
+                         new CB.Toast<Void>(this, mBumpFeeButton) {
+                    @Override
+                    public void onSuccess(final Void dummy) {
+                        final PreparedTransaction ptx;
+                        ptx = GATx.signTransaction(mService, tx, usedUtxos, subAccount, changeOutput);
+                        onTransactionConstructed(tx, oldFee, newFee);
+                    }
+                });
+                return;
             }
         }
 
-        if (!remainingFeeDelta.isGreaterThan(Coin.ZERO)) {
-            doReplaceByFee(txItem, feerate, tx, tx_eps, change_pointer, subAccount, oldFee, null, level);
-            return;
-        }
+        // We can't shrink the change output; add new inputs (and possibly
+        // a new change output) in order to increase the fee.
+        final int numConfs = 1; // FIXME: 6 if instant
+        final boolean is2Of3 = mService.findSubaccountByType(subAccount, "2of3") != null;
+        final boolean minimizeInputs = is2Of3;
+        final boolean filterAsset = true;
+        final boolean sendAll = false;
+        final JSONMap privateData = new JSONMap(); // FIXME: Populate
+        final Coin outputAmount = amount;
 
-        final Coin finalRemaining = remainingFeeDelta;
-        final boolean filterAsset = true; // TODO: Elements doesn't support RBF yet
-        CB.after(mService.getAllUnspentOutputs(1, subAccount, filterAsset),
-                 new CB.Toast<List<JSONMap>>(TransactionActivity.this) {
+        CB.after(mService.getAllUnspentOutputs(numConfs, subAccount, filterAsset),
+                 new CB.Toast<List<JSONMap>>(this, mBumpFeeButton) {
             @Override
-            public void onSuccess(final List<JSONMap> result) {
-                Coin remaining = finalRemaining;
-                final List<JSONMap> moreInputs = new ArrayList<>();
-
-                for (final JSONMap utxo : result) {
-                    remaining = remaining.subtract(utxo.getCoin("value"));
-                    moreInputs.add(utxo);
-                    if (!remaining.isGreaterThan(Coin.ZERO))
-                        break;
+            public void onSuccess(final List<JSONMap> utxos) {
+                Pair<Integer, JSONMap> ret = createFailed(R.string.insufficientFundsText);
+                if (!utxos.isEmpty()) {
+                    GATx.sortUtxos(utxos, minimizeInputs);
+                    ret = createRawTransaction(mService, tx, usedUtxos, utxos, subAccount,
+                                               changeOutput, outputAmount, oldFee, mChosenFeeRate,
+                                               privateData, sendAll);
+                    /*
+                     * FIXME: Attempt to replace smallest used utxo with the larget fee one?
+                     * FIXME: Implement
+                    if (ret == R.string.insufficientFundsText && !minimizeInputs && uxtos.size() > 1) {
+                        // Not enough money using nlocktime outputs first:
+                        // Try again using the largest values first
+                        GATx.sortUtxos(utxos, true);
+                        ret = createRawTransaction(utxos, recipient, amount, privateData, sendAll);
+                    }
+                    */
+                    if (ret.first == 0) {
+                        final PreparedTransaction ptx;
+                        ptx = GATx.signTransaction(mService, tx, usedUtxos, subAccount, changeOutput);
+                        onTransactionConstructed(tx, oldFee, ret.second.getCoin("fee"));
+                    }
                 }
-
-                final int remainingCmp = remaining.compareTo(Coin.ZERO);
-                if (remainingCmp > 0) {
-                    // Not enough funds
-                    TransactionActivity.this.toast(R.string.insufficientFundsText);
-                    return;
-                }
-
-                if (remainingCmp == 0) {
-                    // Funds available exactly match the required value
-                    doReplaceByFee(txItem, feerate, tx, tx_eps, null, subAccount,
-                                   oldFee, moreInputs, level);
-                    return;
-                }
-
-                // Funds left over - add a new change output
-                final Coin changeValue = remaining.multiply(-1);
-                final JSONMap addr = mService.getNewAddress(subAccount);
-                if (addr == null) {
-                    TransactionActivity.this.toast(R.string.unable_to_create_change);
-                    return;
-                }
-                final byte[] script = addr.getBytes("script");
-                tx.addOutput(changeValue,
-                             Address.fromP2SHHash(Network.NETWORK, Utils.sha256hash160(script)));
-                doReplaceByFee(txItem, feerate, tx, tx_eps, addr.getInt("pointer"),
-                               subAccount, oldFee, moreInputs, level);
+                if (ret.first != 0)
+                    toast(ret.first, mBumpFeeButton);
             }
         });
     }
 
-    private void doReplaceByFee(final TransactionItem txItem, final Coin feerate,
-                                final Transaction tx, final List<JSONMap> tx_eps,
-                                final Integer change_pointer, final int subAccount,
-                                final Coin oldFee, final List<JSONMap> moreInputs,
-                                final int level) {
-        final PreparedTransaction ptx;
-        ptx = new PreparedTransaction(change_pointer, subAccount, tx,
-                                      mService.findSubaccountByType(subAccount, "2of3"));
+    private static Pair<Integer, JSONMap> createFailed(final int ret) {
+        return new Pair<>(ret, null);
+    }
 
-        for (final JSONMap ep : txItem.eps) {
-            if (ep.getBool("is_credit"))
+    private static Pair<Integer, JSONMap>
+    createRawTransaction(final GaService service,
+                         final Transaction tx, final List<JSONMap> usedUtxos,
+                         final List<JSONMap> utxos, final int subAccount,
+                         Pair<TransactionOutput, Integer> changeOutput,
+                         final Coin amount, final Coin oldFee,
+                         final Coin feeRate,
+                         final JSONMap privateData, final boolean sendAll) {
+
+        final boolean isRBF = usedUtxos != null;
+        final boolean haveExistingChange = changeOutput != null;
+        Coin total =  isRBF ? getUtxoSum(usedUtxos) : Coin.ZERO;
+        Coin fee;
+
+        // First add inputs until we cover the amount to send
+        while ((sendAll || total.isLessThan(amount)) && !utxos.isEmpty())
+            total = total.add(GATx.addUtxo(service, tx, utxos, usedUtxos));
+
+        // Then add inputs until we cover amount + fee/change
+        while (true) {
+            fee = GATx.getTxFee(service, tx, feeRate);
+            if (isRBF) {
+                final Coin bandwidthFee = GATx.getTxFee(service, tx, service.getMinFeeRate());
+                fee = (fee.isLessThan(oldFee) ? oldFee : fee).add(bandwidthFee);
+            }
+
+            final Coin minChange = changeOutput == null ? Coin.ZERO : service.getDustThreshold();
+            final int cmp = sendAll ? 0 : total.compareTo(amount.add(fee).add(minChange));
+            if (cmp < 0) {
+                // Need more inputs to cover amount + fee/change
+                if (utxos.isEmpty())
+                    return createFailed(R.string.insufficientFundsText); // None left, fail
+
+                total = total.add(GATx.addUtxo(service, tx, utxos, usedUtxos));
                 continue;
-            final Integer prevIndex = ep.get("pt_idx");
-            final TransactionInput oldInput = tx.getInput(prevIndex);
-            final int scriptType = ep.getInt("script_type");
-            ptx.mPrevOutputs.add(new Output(
-                    (Integer) ep.get("subaccount"),
-                    (Integer) ep.get("pubkey_pointer"),
-                    HDKey.BRANCH_REGULAR,
-                    GATx.getOutScriptType(scriptType),
-                    Wally.hex_from_bytes(GATx.createOutScript(mService, ep)),
-                    oldInput.getValue().longValue()
-            ));
-        }
-
-        if (moreInputs != null) {
-            for (final JSONMap ep : moreInputs) {
-                final int scriptType = ep.getInt("script_type");
-                final byte[] outscript = GATx.createOutScript(mService, ep);
-                ptx.mPrevOutputs.add(new Output(
-                        ep.getInt("subaccount"),
-                        ep.getInt("pointer"),
-                        1,
-                        GATx.getOutScriptType(scriptType),
-                        Wally.hex_from_bytes(outscript),
-                        ep.getLong("value")
-                ));
-                GATx.addInput(mService, tx, ep);
-                tx_eps.add(ep);
-            }
-        }
-
-        // verify if the increased fee is enough to achieve wanted feerate
-        // (can be too small in case of added inputs)
-        final int estimatedSize = tx.getMessageSize() + tx.getInputs().size() * 4;
-        if (feerate.multiply(estimatedSize).divide(1000).isGreaterThan(tx.getFee())) {
-            replaceByFee(txItem, feerate, estimatedSize, level + 1);
-            return;
-        }
-
-        // also verify if it's enough for 'bandwidth fee increment' condition
-        // of RBF
-        final Coin bandwidthAdjustedFee = Coin.valueOf(tx.getMessageSize() + tx.getInputs().size() * 4);
-        if (tx.getFee().subtract(oldFee).isLessThan(bandwidthAdjustedFee)) {
-            replaceByFee(txItem, feerate, estimatedSize, level + 1);
-            return;
-        }
-
-        final List<TransactionInput> inputs = tx.getInputs();
-        final List<ListenableFuture<Void>> outpointToRaw = new ArrayList<>(inputs.size() + 1);
-        if (!(mService.getSigningWallet() instanceof TrezorHWWallet))
-            outpointToRaw.add(Futures.immediateFuture((Void) null));
-        else
-            for (final TransactionInput inp : inputs) {
-                final Sha256Hash hash = inp.getOutpoint().getHash();
-                outpointToRaw.add(Futures.transform(mService.getRawOutput(hash),
-                        new Function<Transaction, Void>() {
-                            @Override
-                            public Void apply(final Transaction input) {
-                                ptx.mPrevoutRawTxs.put(Wally.hex_from_bytes(hash.getReversedBytes()), input);
-                                return null;
-                            }
-                        }));
             }
 
-        final ListenableFuture<List<Void>> prevouts = Futures.allAsList(outpointToRaw);
-        final ListenableFuture<List<byte[]>> signed = Futures.transform(prevouts, new AsyncFunction<List<Void>, List<byte[]>>() {
+            if (cmp == 0 || changeOutput != null) {
+                // Inputs exactly match amount + fee/change, or are greater
+                // and we have a change output for the excess
+                break;
+            }
+
+            // Inputs greater than amount + fee, add a change output and try again
+            changeOutput = GATx.addChangeOutput(service, tx, subAccount);
+            if (changeOutput == null)
+                return createFailed(R.string.unable_to_create_change);
+        }
+
+        boolean randomizedChange = false;
+        if (changeOutput != null) {
+            // Set the value of the change output
+            if (tx.getOutputs().size() == 1)
+                changeOutput.first.setValue(total.subtract(fee)); // Redeposit
+            else
+                changeOutput.first.setValue(total.subtract(amount).subtract(fee));
+            if (haveExistingChange)
+                randomizedChange = changeOutput.first == tx.getOutput(0);
+            else
+                randomizedChange = GATx.randomizeChangeOutput(tx);
+        }
+
+        final Coin actualAmount;
+        if (!sendAll)
+            actualAmount = amount;
+        else {
+            actualAmount = total.subtract(fee);
+            if (!actualAmount.isGreaterThan(Coin.ZERO))
+                return createFailed(R.string.insufficientFundsText);
+            final int amtIndex = tx.getOutputs().size() == 1 ? 0 : (randomizedChange ? 1 : 0);
+            tx.getOutput(amtIndex).setValue(actualAmount);
+        }
+
+        // FIXME: Needed?
+        tx.setLockTime(service.getCurrentBlock()); // Prevent fee sniping
+
+        int changeIndex = -1;
+        if (changeOutput != null && tx.getOutputs().size() != 1)
+            changeIndex = randomizedChange ? 0 : 1;
+        return new Pair<>(0,
+                          GATx.makeLimitsData(fee.subtract(oldFee), fee, changeIndex));
+    }
+
+    private void onTransactionConstructed(final Transaction tx, final Coin oldFee, final Coin newFee) {
+        final Coin feeDelta = newFee.subtract(oldFee);
+        final boolean skipChoice = mService.isUnderLimit(feeDelta);
+        runOnUiThread(new Runnable() {
             @Override
-            public ListenableFuture<List<byte[]>> apply(final List<Void> input) throws Exception {
-                return mService.signTransaction(ptx);
-            }
-        });
-
-        final boolean isSegwitEnabled = mService.isSegwitEnabled();
-
-        CB.after(signed, new CB.Toast<List<byte[]>>(TransactionActivity.this) {
-            @Override
-            public void onSuccess(final List<byte[]> signatures) {
-                int i = 0;
-                for (final byte[] sig : signatures) {
-                    final JSONMap ep = tx_eps.get(i);
-                    final int scriptType = ep.getInt("script_type");
-                    final byte[] outscript = GATx.createOutScript(mService, ep);
-                    final List<byte[]> userSigs = ImmutableList.of(new byte[]{0}, sig);
-                    final byte[] inscript = GATx.createInScript(userSigs, outscript, scriptType);
-
-                    tx.getInput(i).setScriptSig(new Script(inscript));
-                    if (isSegwitEnabled && scriptType == GATx.REDEEM_P2SH_P2WSH_FORTIFIED) {
-                        final TransactionWitness witness = new TransactionWitness(1);
-                        witness.setPush(0, sig);
-                        tx.setWitness(i, witness);
+            public void run() {
+                mTwoFactor = UI.popupTwoFactorChoice(TransactionActivity.this, mService, skipChoice,
+                                                     new CB.Runnable1T<String>() {
+                    public void run(String method) {
+                        if (skipChoice && mService.hasAnyTwoFactor())
+                            method = "limit";
+                        showIncreaseSummary(method, oldFee, newFee, tx);
                     }
-                    i++;
-                }
-                final Map<String, Object> twoFacData = new HashMap<>();
-                twoFacData.put("try_under_limits_bump", tx.getFee().subtract(oldFee).longValue());
-                final ListenableFuture<Map<String,Object>> sendFuture;
-                sendFuture = mService.sendRawTransaction(tx, twoFacData, null, true);
-                Futures.addCallback(sendFuture, new FutureCallback<Map<String,Object>>() {
-                    @Override
-                    public void onSuccess(final Map result) {
-                        // FIXME: Add notification with "Transaction sent"?
-                        finishOnUiThread();
-                    }
-
-                    @Override
-                    public void onFailure(final Throwable t) {
-                        if (!(t instanceof GAException) || !t.getMessage().equals("http://greenaddressit.com/error#auth")) {
-                            toast(t);
-                            return;
-                        }
-                        // 2FA is required, prompt the user
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                final boolean skipChoice = false;
-                                mTwoFactor = UI.popupTwoFactorChoice(TransactionActivity.this, mService, skipChoice,
-                                                                             new CB.Runnable1T<String>() {
-                                    @Override
-                                    public void run(final String method) {
-                                        showIncreaseSummary(method, oldFee, tx.getFee(), tx);
-                                    }
-                                });
-                                if (mTwoFactor != null)
-                                    mTwoFactor.show();
-                            }
-                        });
-                    }
-                }, mService.getExecutor());
+                });
+                if (mTwoFactor != null)
+                    mTwoFactor.show();
             }
         });
     }
 
-    private void showIncreaseSummary(final String method, final Coin oldFee, final Coin newFee, final Transaction signedTx) {
+    private void showIncreaseSummary(final String method, final Coin oldFee, final Coin newFee,
+                                     final Transaction signedTx) {
         Log.i(TAG, "showIncreaseSummary( params " + method + ' ' + oldFee + ' ' + newFee + ')');
+
+        final long feeDeltaSatoshi = newFee.subtract(oldFee).longValue();
+        final Map<String, Object> twoFacData;
+        if (method == null) {
+            twoFacData = null;
+        } else if (method.equals("limit")) {
+            twoFacData = new HashMap<>();
+            twoFacData.put("try_under_limits_bump", feeDeltaSatoshi);
+        } else {
+            twoFacData = new HashMap<>();
+            twoFacData.put("method", method);
+            twoFacData.put("bump_fee_amount", feeDeltaSatoshi);
+            if (!method.equals("gauth")) {
+                final Map<String, Long> amount = new HashMap<>();
+                amount.put("amount", feeDeltaSatoshi);
+                mService.requestTwoFacCode(method, "bump_fee", amount);
+            }
+        }
+
         final View v = getLayoutInflater().inflate(R.layout.dialog_new_transaction, null, false);
 
         final TextView amountLabel = UI.find(v, R.id.newTxAmountLabel);
@@ -865,42 +876,60 @@ public class TransactionActivity extends GaActivity {
         feeLabel.setText(R.string.oldFeeText);
 
         UI.hide(UI.find(v, R.id.newTxRecipientLabel), UI.find(v, R.id.newTxRecipientText));
-        final TextView twoFAText = UI.find(v, R.id.newTx2FATypeText);
-        final EditText newTx2FACodeText = UI.find(v, R.id.newTx2FACodeText);
 
         UI.setCoinText(mService, v, R.id.newTxAmountUnitText, R.id.newTxAmountText, newFee);
         UI.setCoinText(mService, v, R.id.newTxFeeUnit, R.id.newTxFeeText, oldFee);
 
-        final Map<String, Object> twoFacData;
-        if (method == null) {
-            UI.hide(twoFAText, newTx2FACodeText);
-            twoFacData = null;
-        } else {
+        final EditText newTx2FACodeText = UI.find(v, R.id.newTx2FACodeText);
+
+        if (method != null && !method.equals("limit")) {
+            final TextView twoFAText = UI.find(v, R.id.newTx2FATypeText);
             twoFAText.setText(String.format("2FA %s code", method));
-            twoFacData = new HashMap<>();
-            twoFacData.put("method", method);
-            twoFacData.put("bump_fee_amount", newFee.subtract(oldFee).longValue());
-            if (!method.equals("gauth")) {
-                final Map<String, Long> amount = new HashMap<>();
-                amount.put("amount", newFee.subtract(oldFee).longValue());
-                mService.requestTwoFacCode(method, "bump_fee", amount);
-            }
+            UI.show(twoFAText, newTx2FACodeText);
         }
 
+        mTwoFactorAttemptsRemaining = 3;
         mSummary = UI.popup(this, R.string.feeIncreaseTitle, R.string.send, R.string.cancel)
                 .customView(v, true)
+                .autoDismiss(false)
+                .onNegative(new MaterialDialog.SingleButtonCallback() {
+                    @Override
+                    public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                        UI.dismiss(null, TransactionActivity.this.mSummary);
+                    }
+                })
                 .onPositive(new MaterialDialog.SingleButtonCallback() {
                     @Override
                     public void onClick(final MaterialDialog dialog, final DialogAction which) {
-                        if (twoFacData != null)
+                        if (twoFacData != null && twoFacData.containsKey("method"))
                             twoFacData.put("code", UI.getText(newTx2FACodeText));
-                        final ListenableFuture<Map<String,Object>> sendFuture;
-                        sendFuture = mService.sendRawTransaction(signedTx, twoFacData, null, false);
-                        Futures.addCallback(sendFuture, new CB.Toast<Map<String,Object>>(TransactionActivity.this) {
+                        Futures.addCallback(mService.sendRawTransaction(signedTx, twoFacData, null),
+                                            new CB.Toast<Void>(TransactionActivity.this) {
                             @Override
-                            public void onSuccess(final Map result) {
+                            public void onSuccess(final Void dummy) {
                                 // FIXME: Add notification with "Transaction sent"?
+                                UI.dismiss(TransactionActivity.this, TransactionActivity.this.mSummary);
                                 finishOnUiThread();
+                            }
+
+                            @Override
+                            public void onFailure(final Throwable t) {
+                                final TransactionActivity activity = TransactionActivity.this;
+                                if (t instanceof GAException) {
+                                    final GAException e = (GAException) t;
+                                    if (e.mUri.equals(GAException.AUTH)) {
+                                        final int n = --activity.mTwoFactorAttemptsRemaining;
+                                        if (n > 0) {
+                                            final Resources r = activity.getResources();
+                                            final String msg = r.getQuantityString(R.plurals.attempts_remaining, n, n);
+                                            UI.toast(activity, e.mMessage + "\n(" + msg + ')', mBumpFeeButton);
+                                            return; // Allow re-trying
+                                        }
+                                    }
+                                }
+                                UI.toast(activity, t, mBumpFeeButton);
+                                // Out of 2FA attempts, or another exception; give up
+                                UI.dismiss(activity, activity.mSummary);
                             }
                         }, mService.getExecutor());
                     }

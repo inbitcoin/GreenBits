@@ -29,6 +29,12 @@
     <string name="choose">CHOOSE</string>
     <string name="cancel">CANCEL</string>
     <string name="attemptsLeft">%1$d attempts left</string>
+    <plurals
+        name="attempts_remaining">
+        <item quantity="zero">No attempts remaining</item>
+        <item quantity="one">One attempt remaining</item>
+        <item quantity="other">%d attempts remaining</item>
+    </plurals>
 
     <string-array name="twoFactorChoices">
         <item>Email</item>
@@ -94,7 +100,7 @@
     <string name="action_network">Network Monitor</string>
     <string name="action_about">About</string>
 
-    <!-- Example settings for Notifications -->
+    <string name="currency">Currency</string>
     <string name="txDateText">Date</string>
     <string name="txAmountText">Amount</string>
     <string name="newTxAmount">Amount: </string>
@@ -122,7 +128,7 @@
     <string name="mnemonic_passphrase">Mnemonic passphrase</string>
     <string name="mnemonic_passphrase_not_available">Passphrase not available</string>
     <string name="autologout_time">Auto logout timeout</string>
-    <string name="autologout_time_default"> minutes</string>
+    <string name="autologout_time_default">%1$d minutes</string>
     <string name="touch_to_display">Touch to display</string>
     <string name="show_mnemonic_passphrase_alert">Show the mnemonic passphrase could be dangerous. We recommend to backup it with password instead show in plain.\nDo you want to show it anyway?</string>
     <string name="txUnconfirmedTx">Transaction not confirmed. Please wait for block confirmations to gain trust in this transaction.</string>
@@ -201,6 +207,8 @@
     <string name="invalidWord">\'%1$s\' is an invalid word, do you want it corrected to %2$s?</string>
     <string name="app_description">GreenAddress Logo</string>
     <string name="setPin">Setup PIN</string>
+    <string name="verify_your_pin">Verify Your PIN</string>
+    <string name="pins_dont_match">PINs do not match, please try again.</string>
     <string name="set2FA">SETUP 2FA</string>
     <string name="resetSPV">Reset SPV</string>
     <string name="err_send_invalid_bitcoin_uri">Invalid Bitcoin URI</string>
@@ -212,7 +220,7 @@
     <string name="err_tabbed_verify_paperwallet_requires_camera_permissions">Please enable camera permissions to use verify paperwallet functionality.</string>
     <string name="err_qrscan_requires_camera_permissions">Please enable camera permissions to use scan functionality.</string>
     <string name="err_mnemonic_activity_logout_required">You must first logout before signing in.</string>
-    <string name="err_mnemonic_activity_invalid_mnemonic">Invalid passphrase (has to be 24 or 27 words)</string>
+    <string name="err_mnemonic_activity_invalid_mnemonic">Invalid passphrase (must be 24 or 27 words)</string>
     <string name="err_pin_save_wrong_length">PIN has to be between 4 and 15 digits</string>
     <string name="send_max_amount">MAX</string>
     <string name="err_sign_up_nfc_not_writable">Error: NFC tag not writable</string>
@@ -282,7 +290,7 @@
     <string name="signupInProgress">Signup in progress</string>
     <string name="notConnected">You are not connected, please wait</string>
     <string name="pinErrorLength">PIN has to be between 4 and 15 long</string>
-    <string name="problemWithKey">Problem with key %s</string>
+    <string name="problemWithKey">Problem with key %1$s</string>
     <string name="sendPay">Pay</string>
     <string name="confirm">Confirm</string>
     <string name="mainEmptyTransInbitcoinText">Your transactions will appear here as soon as you start using Altana</string>
@@ -322,15 +330,17 @@
     <string name="enterValidValue">Enter a valid value</string>
     <string name="enterValidPerc">Enter value from 0 to 100</string>
     <string name="enterValidValueGreaterZero">Enter value greater than 0</string>
-    <string name="fixedCommissionDesc">fixed commission in</string>
+    <string name="fixedCommissionDesc">fixed commission in %1$s</string>
     <string name="totalWithCommissions">Total with commissions:</string>
     <string name="showQrCode">Show QR code</string>
     <string name="cash_in">Cash in</string>
     <string name="cash_out">Cash out</string>
     <string name="send_to_address">Send to address</string>
     <string name="twoFacLimitTitle">Set Two Factor Threshold</string>
-    <string name="twoFacLimitEnabled">Two Factor Authentication will be skipped for transactions under your threshold.</string>
-    <string name="twoFacLimitDisabled">You must enable at least one Two Factor Authentication method before you can change the threshold.</string>
+    <string name="twoFacLimitEnabled">Your transaction threshold is %1$s.</string>
+    <string name="twoFacLimitDisabled">You must enable Two Factor Authentication before you can change the threshold.</string>
+    <string name="enter_matching_words">Enter The Matching Words</string>
+    <string name="hash_number"># %1$d</string>
     <string name="sweep_wait_message">This operation may take several seconds…</string>
     <string name="doubleTilde" translatable="false">≈</string>
     <string name="sharedVia">Shared via</string>

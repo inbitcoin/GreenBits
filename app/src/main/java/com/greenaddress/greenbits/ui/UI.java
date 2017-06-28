@@ -86,6 +86,15 @@ public abstract class UI {
         setDialogCloseHandler(d, callback, false);
     }
 
+    public static MaterialDialog dismiss(final Activity a, final Dialog d) {
+        if (d != null)
+            if (a == null)
+                d.dismiss();
+            else
+                a.runOnUiThread(new Runnable() { public void run() { d.dismiss(); } });
+        return null;
+    }
+
     private static boolean isEnterKeyDown(final KeyEvent e) {
         return e != null && e.getAction() == KeyEvent.ACTION_DOWN &&
                e.getKeyCode() == KeyEvent.KEYCODE_ENTER;
@@ -261,6 +270,11 @@ public abstract class UI {
                 activity.startActivity(activityIntent);
             }
         });
+    }
+
+    public static void unmapClick(final View v) {
+        if (v != null)
+            v.setOnClickListener(null);
     }
 
     public static void mapEnterToPositive(final Dialog dialog, final int editId) {
