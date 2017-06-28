@@ -872,16 +872,15 @@ public class SendFragment extends SubaccountFragment {
                         if (twoFacData != null && !method.equals("limit"))
                             twoFacData.put("code", UI.getText(newTx2FACodeText));
 
-                        final ListenableFuture<Void> sendFn;
+                        final ListenableFuture<String> sendFn;
                         if (signedRawTx != null)
                             sendFn = service.sendRawTransaction(signedRawTx, twoFacData, privateData);
                         else
                             sendFn = service.signAndSendTransaction(ptx, twoFacData);
 
-                        Futures.addCallback(sendFn, new CB.Toast<Void>(gaActivity, mSendButton) {
+                        Futures.addCallback(sendFn, new CB.Toast<String>(gaActivity, mSendButton) {
                             @Override
-                            public void onSuccess(final Void dummy) {
-                                // FIXME txhash
+                            public void onSuccess(final String txHash) {
                                 if (mMerchantInvoiceData != null) {
                                     final String invoiceInfo = mMerchantInvoiceData[0];
                                     final String paymentProcessor = mMerchantInvoiceData[1];
@@ -891,7 +890,8 @@ public class SendFragment extends SubaccountFragment {
                                     else
                                         merchantName = null;
                                     final GaService service = getGAService();
-                                    //service.saveMerchantInvoiceData(txhash, merchantName, invoiceInfo, paymentProcessor);
+                                    if (txHash != null)
+                                        service.saveMerchantInvoiceData(txHash, merchantName, invoiceInfo, paymentProcessor);
                                 }
                                 UI.dismiss(SendFragment.this.getActivity(), SendFragment.this.mSummary);
                                 onTransactionSent();
