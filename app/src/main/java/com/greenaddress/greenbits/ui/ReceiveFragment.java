@@ -152,17 +152,19 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
             }
         });
 
-        mShareIcon = UI.find(mView, R.id.receiveShareIcon);
-        UI.disable(mShareIcon);
-        mShareIcon.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(final View v) {
-                if (mQrCodeBitmap != null && !mQrCodeBitmap.getData().isEmpty()) {
-                    // SHARE intent
-                    UI.shareQrcodeAddress(getGaActivity(), mQrCodeBitmap.getQRCode(), getAddressUri());
+        if (!mIsExchanger) {
+            mShareIcon = UI.find(mView, R.id.receiveShareIcon);
+            UI.disable(mShareIcon);
+            mShareIcon.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(final View v) {
+                    if (mQrCodeBitmap != null && !mQrCodeBitmap.getData().isEmpty()) {
+                        // SHARE intent
+                        UI.shareQrcodeAddress(getGaActivity(), mQrCodeBitmap.getQRCode(), getAddressUri());
+                    }
                 }
-            }
-        });
+            });
+        }
 
         mNewAddressCallback = new FutureCallback<QrBitmap>() {
             @Override
@@ -329,7 +331,8 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         }
         mCurrentAddress = "";
         UI.disable(mCopyIcon);
-        UI.disable(mShareIcon);
+        if (!mIsExchanger)
+            UI.disable(mShareIcon);
         destroyCurrentAddress(clear);
         mNewAddressFinished = onDone;
         final Callable waitFn = new Callable<Void>() {
@@ -477,7 +480,8 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
 
         hideWaitDialog();
         UI.enable(mCopyIcon);
-        UI.enable(mShareIcon);
+        if (!mIsExchanger)
+            UI.enable(mShareIcon);
         UI.show(mReceiveAddressLayout);
 
         if (mNewAddressFinished != null)

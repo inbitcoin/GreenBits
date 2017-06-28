@@ -405,12 +405,14 @@ public class SendFragment extends SubaccountFragment {
                                     }
         );
 
-        mClearAllFields.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                resetAllFields();
-            }
-        });
+        if (!mIsExchanger) {
+            mClearAllFields.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    resetAllFields();
+                }
+            });
+        }
 
         mNoteIcon.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -477,6 +479,10 @@ public class SendFragment extends SubaccountFragment {
     public void onResume() {
         super.onResume();
         Log.d(TAG, "onResume -> " + TAG);
+
+        if (isZombie())
+            return;
+
         if (mAmountFields != null)
             mAmountFields.setIsPausing(false);
 

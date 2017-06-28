@@ -57,8 +57,8 @@ public class ListTransactionsAdapter extends
         final Coin coin = Coin.valueOf(txItem.amount);
         UI.setCoinText(mService, holder.unitText, holder.textValue, coin);
 
-        UI.hide(holder.fiatView);
-        if (!GaService.IS_ELEMENTS) {
+        if (!GaService.IS_ELEMENTS && !mIsExchanger) {
+            UI.hide(holder.fiatView);
             try {
                 // Show actual fiat value
                 Fiat fiatValue = mService.getFiatRate().coinToFiat(coin);

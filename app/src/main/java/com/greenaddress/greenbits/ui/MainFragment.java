@@ -261,9 +261,12 @@ public class MainFragment extends SubaccountFragment {
     }
 
     private void showTxView(final boolean doShow) {
-        UI.showIf(doShow, UI.find(mView, R.id.mainTransactionListSwipe));
-        if (!mIsExchanger)
+        if (!mIsExchanger) {
+            UI.showIf(doShow, UI.find(mView, R.id.mainTransactionListSwipe));
             UI.hideIf(doShow, UI.find(mView, R.id.mainEmptyTransText));
+        } else {
+            UI.showIf(doShow, UI.find(mView, R.id.mainTransactionList));
+        }
     }
 
     private void reloadTransactions(final boolean newAdapter, final boolean showWaitDialog) {
