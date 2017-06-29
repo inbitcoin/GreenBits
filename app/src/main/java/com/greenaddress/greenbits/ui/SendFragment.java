@@ -569,7 +569,9 @@ public class SendFragment extends SubaccountFragment {
         mClearAllFields.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                resetAllFields();
+                // do nothing during loading
+                if (mSendButton.getProgress() == 0)
+                    resetAllFields();
             }
         });
 
