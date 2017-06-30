@@ -19,6 +19,7 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.dd.CircularProgressButton;
 import com.google.common.base.Throwables;
@@ -67,6 +68,7 @@ public class PinActivity extends LoginActivity implements Observer {
     private final static int WAIT_TIME_SEC_2 = 20;
     private final static int MAX_ATTEMPTS = 3;
     private Boolean mErrorAuthScreen = false;
+    private int AUTH_SCREEN_ATTEMPT = 0;
 
     private void login() {
 
@@ -303,7 +305,12 @@ public class PinActivity extends LoginActivity implements Observer {
                 }
             });
         } catch (final KeyStoreException | InvalidKeyException e) {
-            showAuthenticationScreen();
+            if (AUTH_SCREEN_ATTEMPT < MAX_ATTEMPTS) {
+                showAuthenticationScreen();
+            } else {
+                UI.toast(this, R.string.error_auth_screen, Toast.LENGTH_LONG);
+                errorAuthenticationScreen();
+            }
         } catch (final InvalidAlgorithmParameterException | BadPaddingException | IllegalBlockSizeException  |
                  CertificateException | UnrecoverableKeyException | IOException |
                  NoSuchAlgorithmException | NoSuchPaddingException e) {
@@ -326,6 +333,7 @@ public class PinActivity extends LoginActivity implements Observer {
 
     @TargetApi(Build.VERSION_CODES.M)
     private void showAuthenticationScreen() {
+        AUTH_SCREEN_ATTEMPT++;
         final KeyguardManager keyguardManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
         final Intent intent = keyguardManager.createConfirmDeviceCredentialIntent(null, null);
         if (intent != null) {

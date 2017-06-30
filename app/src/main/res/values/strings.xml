@@ -332,4 +332,5 @@
     <string name="err_password_doesnt_match">Password doesn\'t match</string>
     <string name="err_password_length">Password must be at least %d characters long</string>
     <string name="err_password">Invalid password</string>
+    <string name="error_auth_screen">Problem with Android\'s authentication, fallback to manual PIN</string>
 </resources>
