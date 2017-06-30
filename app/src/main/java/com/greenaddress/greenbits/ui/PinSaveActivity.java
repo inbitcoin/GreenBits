@@ -87,14 +87,14 @@ public class PinSaveActivity extends GaActivity {
         if (requestCode == ACTIVITY_REQUEST_CODE && resultCode == RESULT_OK &&
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             // Challenge completed, proceed with using cipher
-            tryEncrypt();
+            tryEncrypt(mPinText.getText().toString());
         }
     }
 
     @TargetApi(Build.VERSION_CODES.M)
-    void tryEncrypt() {
+    void tryEncrypt(final String pin) {
         try {
-            setPin(KeyStoreAES.tryEncrypt(mService), true);
+            setPin(KeyStoreAES.tryEncrypt(mService, pin), true);
         } catch (final KeyStoreAES.RequiresAuthenticationScreen e) {
             KeyStoreAES.showAuthenticationScreen(this);
         } catch (final KeyStoreAES.KeyInvalidated e) {
@@ -114,16 +114,7 @@ public class PinSaveActivity extends GaActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
                 KeyStoreAES.createKey(true);
-
                 UI.show(mNativeAuthCB);
-                mNativeAuthCB.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                    @Override
-                    public void onCheckedChanged(final CompoundButton compoundButton, final boolean isChecked) {
-                        if (isChecked)
-                            tryEncrypt();
-                    }
-                });
-
             } catch (final RuntimeException e) {
                 // lock not set, simply don't show native options
             }
@@ -138,7 +129,15 @@ public class PinSaveActivity extends GaActivity {
 
         mSaveButton = (CircularProgressButton) UI.mapClick(this, R.id.pinSaveButton, new View.OnClickListener() {
             public void onClick(final View v) {
-                setPin(UI.getText(mPinText), false);
+                if (mNativeAuthCB.isChecked()) {
+                    if (mPinText.getText().length() < 4) {
+                        shortToast(R.string.err_pin_save_wrong_length);
+                        return;
+                    }
+                    tryEncrypt(mPinText.getText().toString());
+                } else {
+                    setPin(UI.getText(mPinText), false);
+                }
             }
         });
 
