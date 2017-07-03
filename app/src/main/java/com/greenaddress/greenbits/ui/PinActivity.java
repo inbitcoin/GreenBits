@@ -325,6 +325,7 @@ public class PinActivity extends LoginActivity implements Observer {
             if (AUTH_SCREEN_ATTEMPT < MAX_ATTEMPTS) {
                 showAuthenticationScreen();
             } else {
+                UI.toast(this, R.string.error_auth_screen, Toast.LENGTH_LONG);
                 errorAuthenticationScreen();
             }
         } catch (final InvalidAlgorithmParameterException | BadPaddingException | IllegalBlockSizeException  |
@@ -343,6 +344,7 @@ public class PinActivity extends LoginActivity implements Observer {
                 if (resultCode == RESULT_OK) {
                     tryDecrypt();
                 } else {
+                    UI.toast(this, R.string.error_auth_screen, Toast.LENGTH_LONG);
                     errorAuthenticationScreen();
                 }
                 break;
@@ -467,7 +469,6 @@ public class PinActivity extends LoginActivity implements Observer {
             startActivity(new Intent(this, FirstScreenActivity.class));
             finish();
         } else {
-            UI.toast(this, R.string.error_auth_screen, Toast.LENGTH_LONG);
             mErrorAuthScreen = true;
             mPinText.setEnabled(true);
             if (mService.isConnected())
