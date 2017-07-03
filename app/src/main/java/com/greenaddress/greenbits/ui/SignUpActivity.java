@@ -33,7 +33,7 @@ import java.util.Locale;
 
 public class SignUpActivity extends LoginActivity {
     private static final String TAG = SignUpActivity.class.getSimpleName();
-    private static final int PINSAVE = 1337;
+    public static final int PINSAVE = 1337;
 
     private Dialog mMnemonicDialog;
     private NfcAdapter mNfcAdapter;

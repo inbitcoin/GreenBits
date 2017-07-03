@@ -3,6 +3,7 @@ package com.greenaddress.greenbits.ui;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
@@ -114,6 +115,13 @@ public class PinSaveActivity extends GaActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
                 UI.show(mNativeAuthCB);
+                final SharedPreferences prefs = mService.cfg("pin");
+                final String nativePIN = prefs.getString("native", null);
+                final int nativeVersion = prefs.getInt("nativeVersion", 1);
+                if (nativePIN != null && nativeVersion < KeyStoreAES.SAVED_PIN_VERSION) {
+                    UI.show((View)UI.find(this, R.id.warningPin));
+                    mNativeAuthCB.setChecked(true);
+                }
             } catch (final RuntimeException e) {
                 // lock not set, simply don't show native options
             }

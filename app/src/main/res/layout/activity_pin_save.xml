@@ -43,6 +43,16 @@
         android:background="@color/white">
 
         <TextView
+            android:id="@+id/warningPin"
+            android:visibility="gone"
+            android:gravity="center"
+            android:textColor="@color/lightRed"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:text="@string/warn_old_pin_android_auth" />
+
+        <TextView
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:gravity="center"

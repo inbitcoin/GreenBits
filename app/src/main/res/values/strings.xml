@@ -334,4 +334,5 @@
     <string name="err_password">Invalid password</string>
     <string name="error_auth_screen">Problem with Android\'s authentication, fallback to manual PIN</string>
     <string name="error_auth_screen_fallback_firstscreen">Problem with Android\'s authentication, please restore your wallet with mnemonic passphrase</string>
+    <string name="warn_old_pin_android_auth">Now to reuse Android\'s authentication you need to set a PIN. Insert new pin to continue.</string>
 </resources>
