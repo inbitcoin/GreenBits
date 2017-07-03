@@ -259,4 +259,5 @@
   <string name="showHide2to2">Mostra/Nascondi account</string>
   <string name="show_mnemonic_passphrase_alert">Mostrare la passphrase mnemonica può essere pericoloso. Vi consigliamo di fare il backup con password invece di mostrarla in chiaro.\nVuoi mostrarla ugualmente?</string>
   <string name="error_auth_screen">Problemi con l\'autenticazione Android, fallback al PIN manuale</string>
+  <string name="error_auth_screen_fallback_firstscreen">Problemi con l\'autenticazione Android, ripristina il tuo wallet con la passphrase mnemonica</string>
 </resources>

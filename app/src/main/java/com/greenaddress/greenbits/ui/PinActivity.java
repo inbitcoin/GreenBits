@@ -308,7 +308,6 @@ public class PinActivity extends LoginActivity implements Observer {
             if (AUTH_SCREEN_ATTEMPT < MAX_ATTEMPTS) {
                 showAuthenticationScreen();
             } else {
-                UI.toast(this, R.string.error_auth_screen, Toast.LENGTH_LONG);
                 errorAuthenticationScreen();
             }
         } catch (final InvalidAlgorithmParameterException | BadPaddingException | IllegalBlockSizeException  |
@@ -438,6 +437,7 @@ public class PinActivity extends LoginActivity implements Observer {
         final SharedPreferences prefs = mService.cfg("pin");
         final int nativeVersion = prefs.getInt("nativeVersion", 1);
         if (nativeVersion < KeyStoreAES.SAVED_PIN_VERSION) {
+            UI.toast(this, R.string.error_auth_screen_fallback_firstscreen, Toast.LENGTH_LONG);
             // The user canceled or didn’t complete the lock screen
             // operation. Go back to the initial login screen to allow
             // them to enter mnemonics.
@@ -445,6 +445,7 @@ public class PinActivity extends LoginActivity implements Observer {
             startActivity(new Intent(this, FirstScreenActivity.class));
             finish();
         } else {
+            UI.toast(this, R.string.error_auth_screen, Toast.LENGTH_LONG);
             mErrorAuthScreen = true;
             mPinText.setEnabled(true);
             if (mService.isConnected())
