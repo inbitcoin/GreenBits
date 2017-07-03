@@ -113,7 +113,6 @@ public class PinSaveActivity extends GaActivity {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
-                KeyStoreAES.createKey(true);
                 UI.show(mNativeAuthCB);
             } catch (final RuntimeException e) {
                 // lock not set, simply don't show native options
@@ -134,6 +133,7 @@ public class PinSaveActivity extends GaActivity {
                         shortToast(R.string.err_pin_save_wrong_length);
                         return;
                     }
+                    KeyStoreAES.createKey(true);
                     tryEncrypt(mPinText.getText().toString());
                 } else {
                     setPin(UI.getText(mPinText), false);
