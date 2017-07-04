@@ -279,7 +279,7 @@ public class PinActivity extends LoginActivity implements Observer {
     @TargetApi(Build.VERSION_CODES.M)
     private void tryDecrypt() {
 
-        if (mService.onConnected == null) {
+        if (mService == null || mService.onConnected == null) {
             toast(R.string.unable_to_connect_to_service);
             finishOnUiThread();
             return;
