@@ -12,6 +12,7 @@ import android.preference.ListPreference;
 import android.preference.Preference;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TextInputEditText;
+import android.support.v4.util.Pair;
 import android.text.Editable;
 import android.text.Html;
 import android.util.Log;
@@ -458,18 +459,20 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         dialog.setContentView(v);
         dialog.show();
 
-        class BitmapWorkerTask extends AsyncTask<String, Void, Bitmap> {
+        class BitmapWorkerTask extends AsyncTask<Object, Object, Pair<Bitmap, String>> {
 
             @Override
-            protected Bitmap doInBackground(String... params) {
+            protected Pair<Bitmap, String> doInBackground(Object... params) {
                 final String encrypted = CryptoHelper.mnemonic_to_encrypted_mnemonic(mnemonic, password);
                 final QrBitmap qrBitmap = new QrBitmap(encrypted, Color.WHITE, getActivity());
-                return qrBitmap.getQRCode();
+                return Pair.create(qrBitmap.getQRCode(), encrypted);
             }
 
             @Override
-            protected void onPostExecute(final Bitmap bitmap) {
+            protected void onPostExecute(final Pair pair) {
 
+                final Bitmap bitmap = (Bitmap) pair.first;
+                final String encryptedMnemonic = (String) pair.second;
                 final ImageView qrCode = UI.find(v, R.id.inDialogImageView);
                 qrCode.setLayoutParams(UI.getScreenLayout(getActivity(), 0.8));
                 qrCode.setImageBitmap(bitmap);
@@ -493,7 +496,8 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                         // Prevent activity to be re-instantiated if it is already running.
                         // Instead, the onNewEvent() is triggered
                         intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        intent.putExtra("mnemonic", CryptoHelper.mnemonic_to_bytes(mnemonic));
+                        intent.putExtra("mnemonic", CryptoHelper.encrypted_mnemonic_to_bytes(encryptedMnemonic));
+                        intent.putExtra("is_encrypted", true);
                         getActivity().startActivity(intent);
                     }
                 });

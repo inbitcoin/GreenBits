@@ -76,7 +76,7 @@ public class NfcWriteMnemonic {
 
         if (mIsEncrypted) {
             record[0] = NdefRecord.createMime("x-ga/en",
-                    CryptoHelper.mnemonic_to_bytes(mnemonicText));
+                    CryptoHelper.encrypted_mnemonic_to_bytes(mnemonicText));
         } else {
             record[0] = NdefRecord.createMime("x-gait/mnc",
                     CryptoHelper.mnemonic_to_bytes(mnemonicText));
