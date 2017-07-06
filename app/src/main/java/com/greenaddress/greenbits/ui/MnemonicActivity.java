@@ -150,7 +150,7 @@ public class MnemonicActivity extends LoginActivity {
                     return mService.login(mnemonics);
 
                 // Encrypted mnemonic
-                return Futures.transform(askForPassphrase(), new AsyncFunction<String, LoginData>() {
+                return Futures.transform(askForPassphrase(false), new AsyncFunction<String, LoginData>() {
                     @Override
                     public ListenableFuture<LoginData> apply(final String passphrase) {
                         return mService.login(CryptoHelper.encrypted_mnemonic_to_mnemonic(mnemonics, passphrase));
@@ -190,7 +190,7 @@ public class MnemonicActivity extends LoginActivity {
         }, mService.getExecutor());
     }
 
-    private ListenableFuture<String> askForPassphrase() {
+    private ListenableFuture<String> askForPassphrase(final Boolean closeOnCancel) {
         final SettableFuture<String> passphraseFuture = SettableFuture.create();
         runOnUiThread(new Runnable() {
             public void run() {
@@ -199,6 +199,7 @@ public class MnemonicActivity extends LoginActivity {
                 passphraseValue.requestFocus();
                 final MaterialDialog dialog = UI.popup(MnemonicActivity.this, R.string.restore_backup)
                         .customView(v, true)
+                        .cancelable(false)
                         .onPositive(new MaterialDialog.SingleButtonCallback() {
                             @Override
                             public void onClick(final MaterialDialog dlg, final DialogAction which) {
@@ -208,7 +209,12 @@ public class MnemonicActivity extends LoginActivity {
                         .onNegative(new MaterialDialog.SingleButtonCallback() {
                             @Override
                             public void onClick(final MaterialDialog dlg, final DialogAction which) {
-                                enableLogin();
+                                if (closeOnCancel) {
+                                    finishOnUiThread();
+                                } else {
+                                    mMnemonicText.setText("");
+                                    enableLogin();
+                                }
                             }
                         }).build();
                 UI.showDialog(dialog, true);
@@ -360,7 +366,7 @@ public class MnemonicActivity extends LoginActivity {
 
         } else if (intent.getType().equals("x-ga/en"))
             // Encrypted NFC
-            CB.after(askForPassphrase(), new CB.Op<String>() {
+            CB.after(askForPassphrase(true), new CB.Op<String>() {
                 @Override
                 public void onSuccess(final String passphrase) {
                     String mnemonics = CryptoHelper.encrypted_mnemonic_to_mnemonic(getNFCPayload(intent), passphrase);
