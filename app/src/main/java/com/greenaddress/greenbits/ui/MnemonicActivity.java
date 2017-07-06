@@ -177,7 +177,8 @@ public class MnemonicActivity extends LoginActivity {
             @Override
             public void onFailure(final Throwable t) {
                 final boolean accountDoesntExist = t instanceof ClassCastException;
-                final String message = accountDoesntExist ? "Account doesn't exist" : "Login failed";
+                final String message = accountDoesntExist ?
+                        getString(R.string.account_doesnt_exist) : getString(R.string.login_failed);
                 t.printStackTrace();
                 MnemonicActivity.this.runOnUiThread(new Runnable() {
                     public void run() {
