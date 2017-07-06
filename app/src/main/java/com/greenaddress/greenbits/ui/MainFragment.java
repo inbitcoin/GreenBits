@@ -448,7 +448,7 @@ public class MainFragment extends SubaccountFragment {
                         byte[] data = Base64.decode(paymentRequest, Base64.DEFAULT);
                         Protos.PaymentRequest paymentRequest1 = Protos.PaymentRequest.parseFrom(data);
 
-                        PaymentSession paymentSession = new PaymentSession(paymentRequest1);
+                        PaymentSession paymentSession = new PaymentSession(paymentRequest1, false);
                         final String [] memoInfo = FormatMemo.sanitizeMemo(paymentSession.getMemo());
                         if (memoInfo == null || memoInfo[0].isEmpty())
                             continue;
