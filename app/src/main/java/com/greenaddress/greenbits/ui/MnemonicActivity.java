@@ -23,6 +23,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
@@ -132,6 +133,8 @@ public class MnemonicActivity extends LoginActivity {
 
         mOkButton.setProgress(50);
         mMnemonicText.setEnabled(false);
+        // force hide keyboard
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
         // disable advanced option items
         mService.cfgEdit("advanced_options").putBoolean("enabled", false).apply();
