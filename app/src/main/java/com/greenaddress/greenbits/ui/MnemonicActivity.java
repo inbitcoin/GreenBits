@@ -210,7 +210,7 @@ public class MnemonicActivity extends LoginActivity {
                                 enableLogin();
                             }
                         }).build();
-                UI.showDialog(dialog);
+                UI.showDialog(dialog, true);
             }
         });
         return passphraseFuture;

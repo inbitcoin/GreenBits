@@ -398,7 +398,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                         }
                     }
                 }).build();
-        dialog.show();
+        UI.showDialog(dialog, true);
 
         // positive button, to show only on password match
         final MDButton positiveButton = dialog.getActionButton(DialogAction.POSITIVE);
