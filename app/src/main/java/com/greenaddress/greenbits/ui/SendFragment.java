@@ -75,6 +75,8 @@ public class SendFragment extends SubaccountFragment {
     private int mSubaccount;
     private AmountFields mAmountFields = null;
 
+    public static final int VENDOR_MESSAGE_MAX = 5;
+
     private void showTransactionSummary(final String method, final Coin fee, final Coin amount, final String recipient, final PreparedTransaction ptx) {
         Log.i(TAG, "showTransactionSummary( params " + method + " " + fee + " " + amount + " " + recipient + ")");
         final GaService service = getGAService();
@@ -733,7 +735,7 @@ public class SendFragment extends SubaccountFragment {
         } else if (!isZombie() && isSelected && getGAService().getTotalBalance() > 0) {
             // show vendor snackbar on top only for 5 times
             final Integer vendorMessageCount = getGAService().cfg("vendor_message").getInt("count", 0);
-            if (vendorMessageCount < 5) {
+            if (vendorMessageCount < VENDOR_MESSAGE_MAX) {
                 showVendorSnackbar();
                 getGAService().cfgEdit("vendor_message").putInt("count", vendorMessageCount + 1).apply();
             }
