@@ -261,6 +261,7 @@
   <string name="error_auth_screen">Problemi con l\'autenticazione Android, fallback al PIN manuale</string>
   <string name="error_auth_screen_fallback_firstscreen">Problemi con l\'autenticazione Android, ripristina il tuo wallet con la passphrase mnemonica</string>
   <string name="warn_old_pin_android_auth">Adesso per riutilizzare l\'autenticazione Android è necessario impostare un PIN. Inserisci il nuovo PIN per continuare.</string>
+  <string name="restore_backup">Ripristina backup</string>
   <string name="account_doesnt_exist">L\'account non esiste</string>
   <string name="login_failed">Login fallito</string>
 </resources>

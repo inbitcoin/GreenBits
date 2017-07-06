@@ -197,7 +197,7 @@ public class MnemonicActivity extends LoginActivity {
                 final View v = getLayoutInflater().inflate(R.layout.dialog_passphrase, null, false);
                 final EditText passphraseValue = UI.find(v, R.id.passphraseValue);
                 passphraseValue.requestFocus();
-                final MaterialDialog dialog = UI.popup(MnemonicActivity.this, "Encryption passphrase")
+                final MaterialDialog dialog = UI.popup(MnemonicActivity.this, R.string.restore_backup)
                         .customView(v, true)
                         .onPositive(new MaterialDialog.SingleButtonCallback() {
                             @Override
