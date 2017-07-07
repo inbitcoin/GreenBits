@@ -63,4 +63,14 @@
 
     <style name="myButtonCircle" parent="myButton" />
 
+    <style name="PreferencesTheme.AppBarOverlay" parent="AppTheme.AppBarOverlay">
+        <item name="colorPrimary">@color/primaryDark_workaround_pref</item>
+    </style>
+
+    <style name="PreferencesTheme" parent="AppTheme.Base">
+        <item name="android:windowBackground">@drawable/background_activity</item>
+        <item name="actionBarTheme">@style/PreferencesTheme.AppBarOverlay</item>
+        <item name="colorPrimaryDark">@color/primaryDark</item>
+    </style>
+
 </resources>

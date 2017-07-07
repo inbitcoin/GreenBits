@@ -5,9 +5,13 @@ import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ListView;
 
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.GreenAddressApplication;
+import com.greenaddress.greenbits.ui.R;
 
 public class GAPreferenceFragment extends PreferenceFragment {
     protected GaService mService = null;
@@ -47,5 +51,19 @@ public class GAPreferenceFragment extends PreferenceFragment {
 
     public <T> T find(final String preferenceName) {
         return (T) findPreference(preferenceName);
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        final ListView listView = (ListView) view.findViewById(android.R.id.list);
+        // force white background
+        listView.setBackgroundColor(getResources().getColor(R.color.white));
+
+        // add margins
+        final ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) listView.getLayoutParams();
+        int margin = getResources().getDimensionPixelSize(R.dimen.activity_content_margin);
+        layoutParams.setMargins(margin, margin, margin, margin);
     }
 }

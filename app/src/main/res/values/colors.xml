@@ -6,6 +6,7 @@
 
     <color name="primary">#000000</color>
     <color name="primaryDark">#AA000000</color>
+    <color name="primaryDark_workaround_pref">#9E000000</color>
     <color name="accent">#f5a344</color>
     <color name="accentLight">#f5b442</color>
     <color name="accentPressed">#f9a344</color>

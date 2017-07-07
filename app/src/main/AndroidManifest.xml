@@ -170,9 +170,11 @@
             android:label="@string/twoFacSetupHeader"/>
         <activity
             android:name=".preferences.SettingsActivity"
+            android:theme="@style/PreferencesTheme"
             android:label="@string/title_activity_settings"/>
         <activity
             android:name=".preferences.NetworkSettingsActivity"
+            android:theme="@style/PreferencesTheme"
             android:label="@string/pref_header_network"/>
         <activity android:name=".FailHardActivity"/>
         <activity android:name=".AboutActivity"/>
