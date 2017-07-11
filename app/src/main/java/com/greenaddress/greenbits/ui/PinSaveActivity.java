@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -118,7 +119,7 @@ public class PinSaveActivity extends GaActivity {
                 final SharedPreferences prefs = mService.cfg("pin");
                 final String nativePIN = prefs.getString("native", null);
                 final int nativeVersion = prefs.getInt("nativeVersion", 1);
-                if (nativePIN != null && nativeVersion < KeyStoreAES.SAVED_PIN_VERSION) {
+                if (!TextUtils.isEmpty(nativePIN) && nativeVersion < KeyStoreAES.SAVED_PIN_VERSION) {
                     UI.show((View)UI.find(this, R.id.warningPin));
                     mNativeAuthCB.setChecked(true);
                 }

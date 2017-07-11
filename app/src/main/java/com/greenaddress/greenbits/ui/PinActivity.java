@@ -148,7 +148,7 @@ public class PinActivity extends LoginActivity implements Observer {
                     final SharedPreferences prefs = mService.cfg("pin");
                     final String nativePIN = prefs.getString("native", null);
                     final int nativeVersion = prefs.getInt("nativeVersion", 1);
-                    if (nativePIN != null && nativeVersion < KeyStoreAES.SAVED_PIN_VERSION) {
+                    if (!TextUtils.isEmpty(nativePIN) && nativeVersion < KeyStoreAES.SAVED_PIN_VERSION) {
                         final String mnemonic = mService.getMnemonics();
                         final Intent savePin = PinSaveActivity.createIntent(mActivity, mnemonic);
                         startActivityForResult(savePin, PINSAVE);
