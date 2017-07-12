@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Color;
 import android.net.Uri;
+import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
@@ -13,8 +14,11 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.webkit.ConsoleMessage;
+import android.webkit.SslErrorHandler;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -73,6 +77,9 @@ public class VisiuWebview extends GaActivity {
                             + cm.lineNumber() + " of "
                             + cm.sourceId());
                 }
+                if (cm.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
+                    showErrorLayout();
+                }
                 return true;
             }
         });
@@ -122,9 +129,35 @@ public class VisiuWebview extends GaActivity {
 
         @Override
         public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error)  {
-            UI.hide(progressbarLayout);
-            UI.hide((View) UI.find(mActivity, R.id.visiu_webview));
-            UI.show((View) UI.find(mActivity, R.id.errorLayout));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                Log.d(TAG, "onReceivedError" + error.getErrorCode() + ": " + error.getDescription());
+            else
+                Log.d(TAG, "onReceivedError");
+            showErrorLayout();
         }
+
+        @Override
+        public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+            Log.d(TAG, "onReceivedSslError - " + error.getUrl());
+            showErrorLayout();
+        }
+
+        @Override
+        public void onReceivedHttpError(WebView view, WebResourceRequest request,
+                                        WebResourceResponse errorResponse) {
+            Log.d(TAG, "onReceivedHttpError - " + errorResponse.getStatusCode() + " url: " + request.getUrl());
+            showErrorLayout();
+        }
+    }
+
+    /**
+     * hide all and show error layout
+     */
+    public void showErrorLayout() {
+        Log.d(TAG, "show error layout");
+        UI.hide(progressbarLayout);
+        UI.hide((View) UI.find(mActivity, R.id.visiu_webview));
+        UI.show((View) UI.find(mActivity, R.id.errorLayout));
+
     }
 }
