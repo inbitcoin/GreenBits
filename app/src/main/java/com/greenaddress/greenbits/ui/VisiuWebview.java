@@ -52,7 +52,6 @@ public class VisiuWebview extends GaActivity {
         progressbarLayout = UI.find(this, R.id.progressbarLayout);
 
         final WebView visiuWebview = UI.find(this, R.id.visiu_webview);
-        // FIXME now we use dev link, in the future we will use production
         final String url = "https://inbitcoin.it/static/visiu/index.html#" + publicAddress;
         visiuWebview.getSettings().setJavaScriptEnabled(true);
         visiuWebview.setWebViewClient(new CustomWebViewClient());
