@@ -107,7 +107,7 @@ public class VisiuWebview extends GaActivity {
         overridePendingTransition(R.anim.fade_in, R.anim.slide_to_right);
     }
 
-    class CustomWebViewClient extends WebViewClient {
+    private class CustomWebViewClient extends WebViewClient {
         @Override
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
