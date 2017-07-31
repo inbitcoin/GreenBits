@@ -29,7 +29,6 @@ import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.internal.MDButton;
 import com.google.common.collect.Lists;
-import com.google.common.primitives.Booleans;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.greenaddress.greenapi.CryptoHelper;
@@ -43,6 +42,8 @@ import com.greenaddress.greenbits.ui.UI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
 
 public class GeneralPreferenceFragment extends GAPreferenceFragment
     implements Preference.OnPreferenceClickListener {
@@ -53,6 +54,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
     private Preference mToggleSW;
     private static final int PASSWORD_LENGTH = 12;
     private boolean mPassphraseVisible = false;
+    private Observer mEmailSummaryObserver;
 
     @Override
     public void onCreate(final Bundle savedInstanceState) {
@@ -183,14 +185,29 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                     // intent.putExtra("method", "email");
                     final int REQUEST_ENABLE_2FA = 0;
                     startActivityForResult(intent, REQUEST_ENABLE_2FA);
-
-
                     return false;
                 }
             });
         }
 
-        // TODO ? Add email update to mTwoFactorConfigObservable? And what abut destruction?
+        Observer mEmailSummaryObserver = new Observer() {
+            @Override
+            public void update(Observable o, Object arg) {
+                Log.d(TAG, "Update the email address into the menu");
+                final Map<?, ?> twoFactorConfig = mService.getTwoFactorConfig();
+                final String emailAddr = (String) twoFactorConfig.get("email_addr");
+
+                final Activity activity = getActivity();
+                if (activity != null) {
+                    activity.runOnUiThread(new Runnable() {
+                        public void run() {
+                            email.setSummary(emailAddr);
+                        }
+                    });
+                }
+            }
+        };
+        mService.addTwoFactorObserver(mEmailSummaryObserver);
 
         // -- handle currency and bitcoin denomination
         final ListPreference fiatCurrency = find("fiat_key");
@@ -410,6 +427,12 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
         });
         return false;
+    }
+
+    @Override
+    public void onDestroy() {
+        mService.deleteTwoFactorObserver(mEmailSummaryObserver);
+        super.onDestroy();
     }
 
     /**

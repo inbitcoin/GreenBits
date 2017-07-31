@@ -221,6 +221,8 @@ public class SetEmailActivity extends GaActivity {
                             @Override
                             public void onSuccess(Boolean result) {
                                 setResult(RESULT_OK);
+                                // Update 2FA setting in whole app
+                                mService.getAvailableTwoFactorMethods();
                                 finishOnUiThread();
                             }
                         });
