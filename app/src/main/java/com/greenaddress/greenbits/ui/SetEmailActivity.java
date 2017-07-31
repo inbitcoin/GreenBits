@@ -23,6 +23,8 @@ public class SetEmailActivity extends GaActivity {
     private static final String TAG = SetEmailActivity.class.getSimpleName();
     private Map<String, String> mLocalizedMap; // 2FA method to localized description
     private String mNewEmailAddress;
+    private List<String> mEnabledMethods;
+    private int mNumSteps;
 
     private Button mContinueButton;
     private TextView mPromptText;
@@ -50,8 +52,19 @@ public class SetEmailActivity extends GaActivity {
         }
 
         mLocalizedMap = UI.getTwoFactorLookup(getResources());
-
-        showProvideEmailAddress(1, 7);
+        mEnabledMethods = mService.getEnabledTwoFactorMethods();
+        switch (mEnabledMethods.size()) {
+            case 0:
+                mNumSteps = 2;
+                break;
+            case 1:
+                mNumSteps = 3;
+                break;
+            default:
+                mNumSteps = 4;
+        }
+        Log.d(TAG, "numSteps: " + mNumSteps);
+        showProvideEmailAddress();
     }
 
     /* Check 2FA configuration
@@ -59,55 +72,57 @@ public class SetEmailActivity extends GaActivity {
      *  1 -> get 2fa code
      *  >1 -> choose 2fa
      * */
-    private void showGetAuthConfig(final int stepNum, final int numSteps) {
+    private void showGetAuthConfig() {
 
         final int resId = R.string.emailAddress;
         final String type = getResources().getString(resId);
         mPromptText.setText(getTypeString(UI.getText(mPromptText), type));
-        mProgressBar.setProgress(stepNum);
-        mProgressBar.setMax(numSteps);
 
-        final List<String> enabledMethods = mService.getEnabledTwoFactorMethods();
-
-        Log.d(TAG, "enabledMethods = " + enabledMethods);
+        Log.d(TAG, "enabledMethods = " + mEnabledMethods);
         Log.d(TAG, "Updated user config = " + mService.getUserConfig("two_factor"));
-        if (enabledMethods.size() > 1) {
-            Log.d(TAG, "# enabled 2FA methods: " + enabledMethods.size());
-            // Multiple 2FA options enabled - Allow the user to choose
-            setView(R.layout.activity_two_factor_1_choose);
+        switch (mEnabledMethods.size()) {
+            case 0:
+                Log.d(TAG, "# enabled 2FA methods: 0");
+                // no 2FA enabled - go straight to email input
+                setEmail(null, null, 2);
+                break;
+            case 1:
+                Log.d(TAG, "# enabled 2FA methods: 1");
+                // just one 2FA enabled - go straight to code verification
+                showProvideAuthCode(2, mEnabledMethods.get(0));
+                break;
+            default:
+                Log.d(TAG, "# enabled 2FA methods: " + mEnabledMethods.size());
+                // Multiple 2FA options enabled - Allow the user to choose
+                setView(R.layout.activity_two_factor_1_choose);
+                mProgressBar.setProgress(2);
+                mProgressBar.setMax(mNumSteps);
+                Log.d(TAG, "stepNum: 2 of " + mProgressBar.getMax());
 
-            final RadioGroup group = UI.find(this, R.id.radioGroup);
-            group.removeViews(0, group.getChildCount());
+                final RadioGroup group = UI.find(this, R.id.radioGroup);
+                group.removeViews(0, group.getChildCount());
 
-            for (int i = 0; i < enabledMethods.size(); ++i) {
-                final RadioButton b = new RadioButton(SetEmailActivity.this);
-                b.setText(mLocalizedMap.get(enabledMethods.get(i)));
-                b.setId(i);
-                group.addView(b);
-            }
-
-            group.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(final RadioGroup group, final int checkedId) {
-                    mContinueButton.setEnabled(true);
+                for (int i = 0; i < mEnabledMethods.size(); ++i) {
+                    final RadioButton b = new RadioButton(SetEmailActivity.this);
+                    b.setText(mLocalizedMap.get(mEnabledMethods.get(i)));
+                    b.setId(i);
+                    group.addView(b);
                 }
-            });
 
-            mContinueButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(final View v) {
-                    final int checked = group.getCheckedRadioButtonId();
-                    showProvideAuthCode(2, enabledMethods.get(checked));
-                }
-            });
-        } else if (enabledMethods.size() == 1) {
-            Log.d(TAG, "# enabled 2FA methods: 1");
-            // just one 2FA enabled - go straight to code verification
-            showProvideAuthCode(1, enabledMethods.get(0));
-        } else {
-            Log.d(TAG, "# enabled 2FA methods: 0");
-            // no 2FA enabled - go straight to email input
-            setEmail(null, null);
+                group.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(final RadioGroup group, final int checkedId) {
+                        mContinueButton.setEnabled(true);
+                    }
+                });
+
+                mContinueButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(final View v) {
+                        final int checked = group.getCheckedRadioButtonId();
+                        showProvideAuthCode(3, mEnabledMethods.get(checked));
+                    }
+                });
         }
     }
 
@@ -117,15 +132,16 @@ public class SetEmailActivity extends GaActivity {
         return ImmutableMap.of("method", method, "code", code);
     }
 
-    private void showProvideEmailAddress(final int stepNum, final int numSteps) {
+    private void showProvideEmailAddress() {
         Log.d(TAG, "Start showProvideEmailAddress");
         setView(R.layout.activity_two_factor_3_provide_details);
 
         final int resId = R.string.emailAddress;
         final String type = getResources().getString(resId);
         mPromptText.setText(getTypeString(UI.getText(mPromptText), type));
-        mProgressBar.setProgress(stepNum);
-        mProgressBar.setMax(numSteps);
+        mProgressBar.setProgress(1);
+        mProgressBar.setMax(mNumSteps);
+        Log.d(TAG, "stepNum: 1 of " + mProgressBar.getMax());
 
         final TextView detailsText = UI.find(this, R.id.details);
         mContinueButton.setOnClickListener(new View.OnClickListener() {
@@ -136,7 +152,7 @@ public class SetEmailActivity extends GaActivity {
                     return;
                 UI.disable(mContinueButton);
 
-                showGetAuthConfig(stepNum + 1, numSteps);
+                showGetAuthConfig();
             }
         });
     }
@@ -145,7 +161,6 @@ public class SetEmailActivity extends GaActivity {
     private void showProvideAuthCode(final int stepNum, final String method) {
         // method: 2fa used to set email
         Log.d(TAG, "Start showProvideAuthCode");
-        final int numSteps = stepNum + 2;
 
         final String localizedName = mLocalizedMap.get(method);
         if (!method.equals("gauth")) {
@@ -154,24 +169,25 @@ public class SetEmailActivity extends GaActivity {
         }
 
         setView(R.layout.activity_two_factor_2_4_provide_code);
+        mProgressBar.setProgress(stepNum);
+        mProgressBar.setMax(mNumSteps);
+        Log.d(TAG, "stepNum: " + stepNum + " of " + mProgressBar.getMax());
 
         final TextView descriptionText = UI.find(this, R.id.description);
         descriptionText.setText(R.string.twoFacProvideAuthCodeDescription);
         mPromptText.setText(getTypeString(UI.getText(mPromptText), localizedName));
-        mProgressBar.setProgress(stepNum);
-        mProgressBar.setMax(numSteps);
 
         mContinueButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View v) {
                 mContinueButton.setEnabled(false);
-                setEmail(method, UI.getText(mCodeText).trim());
+                setEmail(method, UI.getText(mCodeText).trim(), stepNum + 1);
 
             }
         });
     }
 
-    private void setEmail(final String method, final String code) {
+    private void setEmail(final String method, final String code, final int stepNum) {
 
         CB.after(mService.setEmail(mNewEmailAddress, make2FAData(method, code)),
                 new CB.Toast<Object>(SetEmailActivity.this, mContinueButton) {
@@ -191,21 +207,21 @@ public class SetEmailActivity extends GaActivity {
                         // Confirm email
                         runOnUiThread(new Runnable() {
                             public void run() {
-                                showProvideConfirmationCode(5, 7);
+                                showProvideConfirmationCode(stepNum);
                             }
                         });
                     }
                 });
     }
 
-    private void showProvideConfirmationCode(final int stepNum, final int numSteps) {
+    private void showProvideConfirmationCode(final int stepNum) {
         Log.d(TAG, "Start showProvideConfirmationCode");
 
         setView(R.layout.activity_two_factor_2_4_provide_code);
         mPromptText.setText(getTypeString(UI.getText(mPromptText), mLocalizedMap.get("email")));
-
         mProgressBar.setProgress(stepNum);
-        mProgressBar.setMax(numSteps);
+        mProgressBar.setMax(mNumSteps);
+        Log.d(TAG, "stepNum: " + stepNum + " of " + mProgressBar.getMax());
 
         mContinueButton.setOnClickListener(new View.OnClickListener() {
             @Override
