@@ -194,6 +194,8 @@ public class SetEmailActivity extends GaActivity {
                     @Override
                     public void onSuccess(Object result) {
                         setResult(RESULT_OK);
+                        // Update unconfirmed email in whole app
+                        mService.getAvailableTwoFactorMethods();
 
                         if (!isNlocktimeConfig(true)) {
                             // {"email_incoming":true,"email_outgoing":true}

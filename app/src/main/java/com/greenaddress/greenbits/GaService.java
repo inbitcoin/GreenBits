@@ -168,6 +168,7 @@ public class GaService extends Service implements INotificationHandler {
             @Override
             public void onSuccess(final Map<?, ?> result) {
                 mTwoFactorConfig = result;
+                Log.d(TAG, "New mTwoFactorConfig = " + mTwoFactorConfig);
                 mTwoFactorConfigObservable.doNotify();
             }
 

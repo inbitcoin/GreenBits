@@ -196,12 +196,17 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                 Log.d(TAG, "Update the email address into the menu");
                 final Map<?, ?> twoFactorConfig = mService.getTwoFactorConfig();
                 final String emailAddr = (String) twoFactorConfig.get("email_addr");
+                final Boolean emailConfirmed = (Boolean) twoFactorConfig.get("email_confirmed");
 
                 final Activity activity = getActivity();
                 if (activity != null) {
                     activity.runOnUiThread(new Runnable() {
                         public void run() {
-                            email.setSummary(emailAddr);
+                            if (emailConfirmed) {
+                                email.setSummary(emailAddr);
+                            } else {
+                                email.setSummary("");
+                            }
                         }
                     });
                 }
