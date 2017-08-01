@@ -154,8 +154,9 @@
     <string name="twoFacProvideGauthDetailsDescription">You need to provide one code from your new Google Authenticator. You can obtain it by scanning the QR code below in the Google Authenticator app.</string>
     <string name="twoFacProvideGauthDetails">Please provide your Google Authenticator code.</string>
     <string name="twoFacProvideDetails">Please provide your %1$s.</string>
-    <string name="twoFacEmailChangeNotice">Providing an email enables notifications and transactions recovery</string>
-    <string name="twoFacEmailConfirmNotice">You will need to confirm your email in the next step, otherwise you won\'t receive any notifications.</string>
+    <string name="twoFacEmailChangeNotice">Providing an email enables transactions recovery and notifications</string>
+    <string name="twoFacEmailConfirmNotice">You will need to finish this process, otherwise you won\'t receive recovery data</string>
+    <string name="twoFacEmailWarningNotice">You will need reccovery data to recover the funds if the service provider suddenly disappear</string>
     <string name="twoFacProvideConfirmationCodeDescription">You need to provide the confirmation code to make sure you have access to the new two factor authentication method. After you providing the code, the method will be enabled.</string>
     <string name="twoFacProvideConfirmationCode">Please provide your %1$s code.</string>
     <string name="continueText">Continue</string>
