@@ -144,6 +144,15 @@ public class SetEmailActivity extends GaActivity {
         Log.d(TAG, "stepNum: 1 of " + mProgressBar.getMax());
 
         final TextView detailsText = UI.find(this, R.id.details);
+        // set email if not confirmed
+        final Map<?, ?> twoFactorConfig = mService.getTwoFactorConfig();
+        if (twoFactorConfig != null) {
+            final String emailAddr = (String) twoFactorConfig.get("email_addr");
+            final Boolean emailConfirmed = (Boolean) twoFactorConfig.get("email_confirmed");
+            if (emailAddr != null && !emailConfirmed) {
+                detailsText.setText(emailAddr);
+            }
+        }
         mContinueButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View v) {
