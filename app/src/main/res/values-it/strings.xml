@@ -109,6 +109,7 @@
   <string name="enableSPV">Abilita SPV</string>
   <string name="enableSPVSummary">Simple Payment Verification (Verifica Semplice di Pagamento) permette di fidarsi del saldo e delle proprie transazioni grazie alla sincronizzazione con il network Bitcoin. Richiede banda ed elaborazione, quindi si consiglia di spegnerlo se non si ha una buona connessione o si faccia uso di telefoni di fascia bassa.</string>
   <string name="noTwoFactorWarning">Non hai impostato nessuna autenticazione a due fattori! Per favore, vai nelle impostazioni a configurarlo!</string>
+  <string name="noEmailWarning">Per la tua sicurezza, vai nelle impostazioni e configura l\'email</string>
   <string name="scan_camera_problem_dialog_message">La fotocamera ha un problema. Probabilmente c\'è bisogno di riavviare il dispositivo.</string>
   <string name="scan_camera_problem_dialog_title">Problema fotocamera</string>
   <string name="pref_header_twofactor">Autenticazione a due fattori</string>
@@ -156,6 +157,7 @@
   <string name="invalidWord">La parola \'%1$s\' non è valida, vuoi che sia corretta con %2$s?</string>
   <string name="setPin">Configura PIN</string>
   <string name="set2FA">Configura 2FA</string>
+  <string name="setEmail">CONFIGURA EMAIL</string>
   <string name="resetSPV">Azzera SPV</string>
   <string name="err_send_invalid_bitcoin_uri">Indirizzo Bitcoin invalido</string>
   <string name="err_send_not_connected_will_resume">Disconnessi dal server, connessione in corso.</string>
