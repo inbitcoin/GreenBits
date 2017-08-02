@@ -373,9 +373,11 @@ public class SendFragment extends SubaccountFragment {
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View v) {
+                mSendButton.setProgress(50);
                 // FIXME: Instead of checking the state here, enable/disable sendButton when state changes
                 if (!service.isLoggedIn()) {
                     gaActivity.toast(R.string.err_send_not_connected_will_resume);
+                    mSendButton.setProgress(0);
                     return;
                 }
                 final String recipient = UI.getText(mRecipientEdit);
@@ -390,6 +392,7 @@ public class SendFragment extends SubaccountFragment {
 
                 if (recipient.isEmpty()) {
                     gaActivity.toast(R.string.err_send_need_recipient);
+                    mSendButton.setProgress(0);
                     return;
                 }
 
@@ -442,7 +445,6 @@ public class SendFragment extends SubaccountFragment {
                 }
 
                 if (ptxFn != null) {
-                    mSendButton.setProgress(50);
                     CB.after(ptxFn,
                             new CB.Toast<PreparedTransaction>(gaActivity, mSendButton) {
                                 @Override
@@ -509,6 +511,8 @@ public class SendFragment extends SubaccountFragment {
                                     super.onFailure(t);
                                 }
                             });
+                } else {
+                    mSendButton.setProgress(0);
                 }
 
                 if (message != null)
