@@ -232,6 +232,11 @@ public class SetEmailActivity extends GaActivity {
         mPromptText.setText(getTypeString(UI.getText(mPromptText), mLocalizedMap.get("email")));
         mProgressBar.setProgress(stepNum);
         mProgressBar.setMax(mNumSteps);
+
+        // Change description from 2fa confirmation code to email confirmation code
+        final TextView descriptionText = UI.find(this, R.id.description);
+        descriptionText.setText(R.string.twoFacProvideConfirmationEmailCodeDescription);
+
         Log.d(TAG, "stepNum: " + stepNum + " of " + mProgressBar.getMax());
 
         mContinueButton.setOnClickListener(new View.OnClickListener() {
