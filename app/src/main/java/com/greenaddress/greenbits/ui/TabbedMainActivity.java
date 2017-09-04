@@ -186,7 +186,24 @@ public class TabbedMainActivity extends GaActivity implements Observer {
             return;
         }
 
-        if (!((Boolean) twoFacConfig.get("any")) &&
+
+        if (!((Boolean) twoFacConfig.get("email_confirmed"))) {
+            snackbar = Snackbar
+                    .make(findViewById(R.id.main_content), getString(R.string.noEmailWarning), Snackbar.LENGTH_LONG)
+                    .setActionTextColor(Color.RED)
+                    .setAction(getString(R.string.setEmail), new View.OnClickListener() {
+                        @Override
+                        public void onClick(final View v) {
+                            startActivityForResult(new Intent(TabbedMainActivity.this, SettingsActivity.class), REQUEST_SETTINGS);
+                        }
+                    });
+
+            final View snackbarView = snackbar.getView();
+            snackbarView.setBackgroundColor(Color.DKGRAY);
+            final TextView textView = UI.find(snackbarView, android.support.design.R.id.snackbar_text);
+            textView.setTextColor(Color.WHITE);
+            snackbar.show();
+        } else if (!((Boolean) twoFacConfig.get("any")) &&
             !mService.cfg().getBoolean("hideTwoFacWarning", true)) {
             snackbar = Snackbar
                     .make(findViewById(R.id.main_content), getString(R.string.noTwoFactorWarning), Snackbar.LENGTH_LONG)
