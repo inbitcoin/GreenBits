@@ -20,6 +20,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.MultiAutoCompleteTextView;
@@ -225,6 +226,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
         mOkButton.setProgress(50);
         mMnemonicText.setEnabled(false);
         hideKeyboardFrom(mMnemonicText);
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         // disable advanced option items
         mService.cfgEdit("advanced_options").putBoolean("enabled", false).apply();
 
@@ -236,7 +238,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
                     return mService.login(mnemonic);
 
                 // Encrypted mnemonic
-                return Futures.transform(askForPassphrase(), new AsyncFunction<String, LoginData>() {
+                return Futures.transform(askForPassphrase(false), new AsyncFunction<String, LoginData>() {
                     @Override
                     public ListenableFuture<LoginData> apply(final String passphrase) {
                         return mService.login(CryptoHelper.decrypt_mnemonic(mnemonic, passphrase));
@@ -263,7 +265,8 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
             @Override
             public void onFailure(final Throwable t) {
                 final boolean accountDoesntExist = t instanceof ClassCastException;
-                final String message = accountDoesntExist ? "Account doesn't exist" : "Login failed";
+                final String message = accountDoesntExist ?
+                        getString(R.string.account_doesnt_exist) : getString(R.string.login_failed);
                 t.printStackTrace();
                 MnemonicActivity.this.runOnUiThread(new Runnable() {
                     public void run() {
@@ -275,15 +278,16 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
         }, mService.getExecutor());
     }
 
-    private ListenableFuture<String> askForPassphrase() {
+    private ListenableFuture<String> askForPassphrase(final Boolean closeOnCancel) {
         final SettableFuture<String> fn = SettableFuture.create();
         runOnUiThread(new Runnable() {
             public void run() {
                 final View v = getLayoutInflater().inflate(R.layout.dialog_passphrase, null, false);
                 final EditText passphraseValue = UI.find(v, R.id.passphraseValue);
                 passphraseValue.requestFocus();
-                final MaterialDialog dialog = UI.popup(MnemonicActivity.this, "Encryption passphrase")
+                final MaterialDialog dialog = UI.popup(MnemonicActivity.this, R.string.restore_backup)
                         .customView(v, true)
+                        .cancelable(false)
                         .onPositive(new MaterialDialog.SingleButtonCallback() {
                             @Override
                             public void onClick(final MaterialDialog dlg, final DialogAction which) {
@@ -293,10 +297,15 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
                         .onNegative(new MaterialDialog.SingleButtonCallback() {
                             @Override
                             public void onClick(final MaterialDialog dlg, final DialogAction which) {
-                                enableLogin();
+                                if (closeOnCancel) {
+                                    finishOnUiThread();
+                                } else {
+                                    mMnemonicText.setText("");
+                                    enableLogin();
+                                }
                             }
                         }).build();
-                UI.showDialog(dialog);
+                UI.showDialog(dialog, true);
             }
         });
         return fn;
@@ -352,7 +361,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
 
         } else if (intent.getType().equals("x-ga/en"))
             // Encrypted NFC
-            CB.after(askForPassphrase(), new CB.Op<String>() {
+            CB.after(askForPassphrase(true), new CB.Op<String>() {
                 @Override
                 public void onSuccess(final String passphrase) {
                     mMnemonicText.setText(CryptoHelper.decrypt_mnemonic(getNFCPayload(intent),

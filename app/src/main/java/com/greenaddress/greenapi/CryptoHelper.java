@@ -67,6 +67,10 @@ public class CryptoHelper {
                 MnemonicHelper.encryptMnemonic(mnemonic_to_bytes(mnemonic), Normalizer.normalize(pass, Normalizer.Form.NFC)));
     }
 
+    public static byte[] encrypted_mnemonic_to_bytes(final String mnemonic) {
+        return mnemonic_to_bytes(mnemonic, Wally.BIP39_ENTROPY_LEN_288);
+    }
+
     public static String mnemonic_from_bytes(final byte[] data) {
         return Wally.bip39_mnemonic_from_bytes(WL, data);
     }

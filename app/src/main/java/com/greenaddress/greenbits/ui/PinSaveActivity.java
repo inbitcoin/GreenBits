@@ -4,15 +4,16 @@ import android.annotation.TargetApi;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -34,6 +35,8 @@ public class PinSaveActivity extends GaActivity {
     private CircularProgressButton mSaveButton;
 
     private Dialog mVerifyDialog;
+
+    private CheckBox nativeAuthCB;
 
     static public Intent createIntent(final Context ctx, final String mnemonic) {
         final Intent intent = new Intent(ctx, PinSaveActivity.class);
@@ -92,14 +95,14 @@ public class PinSaveActivity extends GaActivity {
         if (requestCode == ACTIVITY_REQUEST_CODE && resultCode == RESULT_OK &&
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             // Challenge completed, proceed with using cipher
-            tryEncrypt();
+            tryEncrypt(mPinText.getText().toString());
         }
     }
 
     @TargetApi(Build.VERSION_CODES.M)
-    private void tryEncrypt() {
+    private void tryEncrypt(final String pin) {
         try {
-            setPin(KeyStoreAES.tryEncrypt(mService), true);
+            setPin(KeyStoreAES.tryEncrypt(mService, pin), true);
         } catch (final KeyStoreAES.RequiresAuthenticationScreen e) {
             KeyStoreAES.showAuthenticationScreen(this);
         } catch (final KeyStoreAES.KeyInvalidated e) {
@@ -114,21 +117,18 @@ public class PinSaveActivity extends GaActivity {
     protected void onCreateWithService(final Bundle savedInstanceState) {
 
         mPinText = UI.find(this, R.id.pinSaveText);
+        nativeAuthCB = UI.find(this, R.id.useNativeAuthentication);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
-                KeyStoreAES.createKey(true);
-
-                final CheckBox nativeAuthCB = UI.find(this, R.id.useNativeAuthentication);
                 UI.show(nativeAuthCB);
-                nativeAuthCB.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                    @Override
-                    public void onCheckedChanged(final CompoundButton compoundButton, final boolean isChecked) {
-                        if (isChecked)
-                            tryEncrypt();
-                    }
-                });
-
+                final SharedPreferences prefs = mService.cfg("pin");
+                final String nativePIN = prefs.getString("native", null);
+                final int nativeVersion = prefs.getInt("nativeVersion", 1);
+                if (!TextUtils.isEmpty(nativePIN) && nativeVersion < KeyStoreAES.SAVED_PIN_VERSION) {
+                    UI.show((View)UI.find(this, R.id.warningPin));
+                    nativeAuthCB.setChecked(true);
+                }
             } catch (final RuntimeException e) {
                 // lock not set, simply don't show native options
             }
@@ -137,13 +137,13 @@ public class PinSaveActivity extends GaActivity {
         mPinText.setOnEditorActionListener(
                 UI.getListenerRunOnEnter(new Runnable() {
                     public void run() {
-                        onSaveNonNativePin();
+                        onSavePin();
                     }
                 }));
 
         mSaveButton = (CircularProgressButton) UI.mapClick(this, R.id.pinSaveButton, new View.OnClickListener() {
             public void onClick(final View v) {
-                onSaveNonNativePin();
+                onSavePin();
             }
         });
 
@@ -163,7 +163,7 @@ public class PinSaveActivity extends GaActivity {
         mVerifyDialog = UI.dismiss(this, mVerifyDialog);
     }
 
-    private void onSaveNonNativePin() {
+    private void onSavePin() {
         final String currentPin = UI.getText(mPinText);
 
         final View v = getLayoutInflater().inflate(R.layout.dialog_btchip_pin, null, false);
@@ -185,7 +185,16 @@ public class PinSaveActivity extends GaActivity {
                     public void onClick(final MaterialDialog dialog, final DialogAction which) {
                         if (UI.getText(newPin).equals(currentPin)) {
                             UI.dismiss(null, PinSaveActivity.this.mVerifyDialog);
-                            setPin(currentPin, false);
+                            if (nativeAuthCB.isChecked()) {
+                                if (mPinText.getText().length() < 4) {
+                                    shortToast(R.string.err_pin_save_wrong_length);
+                                    return;
+                                }
+                                KeyStoreAES.createKey(true);
+                                tryEncrypt(mPinText.getText().toString());
+                            } else {
+                                setPin(currentPin, false);
+                            }
                             return;
                         }
                         UI.toast(PinSaveActivity.this, R.string.pins_dont_match, Toast.LENGTH_SHORT);

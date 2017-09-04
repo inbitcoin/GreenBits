@@ -24,7 +24,10 @@ public class FormatMemo {
 
         if (memo.endsWith("‹inbitcoin")) {
             final String [] memoElements = memo.split(" ");
-            return new String[] { memoElements[memoElements.length-2], "inbitcoin", memoElements[0]};
+            if (memoElements.length > 2)
+                return new String[] { memoElements[memoElements.length-2], "inbitcoin", memoElements[0]};
+            else
+                return null;
         }
 
         final Matcher m = PATTERN_MEMO.matcher(memo);

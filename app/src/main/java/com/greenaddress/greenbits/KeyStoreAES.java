@@ -38,6 +38,7 @@ public class KeyStoreAES {
     private static final String KEYSTORE_KEY = "NativeAndroidAuth";
     private static final int SECONDS_AUTH_VALID = 10;
     private static final int ACTIVITY_REQUEST_CODE = 1;
+    public static final int SAVED_PIN_VERSION = 2;
 
     @TargetApi(Build.VERSION_CODES.M)
     public static void createKey(final boolean deleteImmediately) {
@@ -79,9 +80,8 @@ public class KeyStoreAES {
     public static class  KeyInvalidated extends RuntimeException {}
 
     @TargetApi(Build.VERSION_CODES.M)
-    public static String tryEncrypt(final GaService gaService) {
+    public static String tryEncrypt(final GaService gaService, final String pin) {
         createKey(false);
-        final byte[] fakePin = CryptoHelper.randomBytes(32);
         try {
             final KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
             keyStore.load(null);
@@ -93,11 +93,11 @@ public class KeyStoreAES {
 
             cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 
-            final byte[] encryptedPIN = cipher.doFinal(fakePin);
+            final byte[] encryptedPIN = cipher.doFinal(pin.getBytes());
             final byte[] iv = cipher.getParameters().getParameterSpec(IvParameterSpec.class).getIV();
             setPINConfig(gaService, Base64.encodeToString(encryptedPIN, Base64.NO_WRAP),
                          Base64.encodeToString(iv, Base64.NO_WRAP));
-            return Base64.encodeToString(fakePin, Base64.NO_WRAP).substring(0, 15);
+            return pin;
         } catch (final UserNotAuthenticatedException e) {
             throw new RequiresAuthenticationScreen();
         } catch (final KeyPermanentlyInvalidatedException e) {
@@ -114,6 +114,7 @@ public class KeyStoreAES {
         gaService.cfgEdit("pin")
                  .putString("native", encryptedPIN)
                  .putString("nativeiv", iv)
+                 .putInt("nativeVersion", SAVED_PIN_VERSION)
                  .apply();
     }
 

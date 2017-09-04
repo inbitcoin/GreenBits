@@ -41,7 +41,7 @@ import java.util.Locale;
 
 
 public class SignUpActivity extends LoginActivity implements View.OnClickListener {
-    private static final int PINSAVE = 1337;
+    public static final int PINSAVE = 1337;
     private static final int VERIFY_COUNT = 4;
 
     private Dialog mMnemonicDialog;
@@ -384,11 +384,13 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     private void onVerifyDismissed() {
         if (mVerifyDialog != null) {
             UI.show(mMnemonicText, mQrCodeIcon);
-            mContinueButton.setIndeterminateProgressMode(false);
-            mContinueButton.setProgress(0);
             mVerifyDialog = null;
-            if (areAllChoicesValid())
+            if (areAllChoicesValid()) {
                 onMnemonicVerified();
+            } else {
+                mContinueButton.setIndeterminateProgressMode(false);
+                mContinueButton.setProgress(0);
+            }
         }
     }
 }

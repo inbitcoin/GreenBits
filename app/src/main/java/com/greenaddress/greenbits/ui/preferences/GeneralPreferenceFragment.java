@@ -6,12 +6,14 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TextInputEditText;
+import android.support.v4.util.Pair;
 import android.text.Editable;
 import android.util.Log;
 import android.view.View;
@@ -33,10 +35,14 @@ import com.greenaddress.greenbits.QrBitmap;
 import com.greenaddress.greenbits.ui.CB;
 import com.greenaddress.greenbits.ui.PinSaveActivity;
 import com.greenaddress.greenbits.ui.R;
+import com.greenaddress.greenbits.ui.SetEmailActivity;
 import com.greenaddress.greenbits.ui.UI;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
 
 public class GeneralPreferenceFragment extends GAPreferenceFragment
     implements Preference.OnPreferenceClickListener {
@@ -46,6 +52,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
     private Preference mToggleSW;
     private static final int PASSWORD_LENGTH = 12;
     private boolean mPassphraseVisible = false;
+    private Observer mEmailSummaryObserver;
 
     @Override
     public void onCreate(final Bundle savedInstanceState) {
@@ -140,6 +147,68 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                 }
             });
         }
+
+        // -- handle email address
+        final Preference email = find("email");
+        final Map<?, ?> twoFactorConfig = mService.getTwoFactorConfig();
+        if (twoFactorConfig != null) {
+            Log.d(TAG, "twoFactorConfig = " + twoFactorConfig);
+            final String emailAddr = (String) twoFactorConfig.get("email_addr");
+            if (emailAddr != null) {
+                final Boolean email_confirmed = (Boolean) twoFactorConfig.get("email_confirmed");
+                if (email_confirmed) {
+                    email.setSummary(emailAddr);
+                }
+            }
+
+        }
+        final Boolean emailTwoFac = (Boolean) twoFactorConfig.get("email");
+        if (emailTwoFac) {
+            // Disable
+            email.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(final Preference preference) {
+                    Toast.makeText(getActivity(), R.string.no_change_email, Toast.LENGTH_LONG)
+                            .show();
+                    return false;
+                }
+            });
+        } else {
+            email.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(final Preference preference) {
+                    final Intent intent = new Intent(getActivity(), SetEmailActivity.class);
+                    // intent.putExtra("method", "email");
+                    final int REQUEST_ENABLE_2FA = 0;
+                    startActivityForResult(intent, REQUEST_ENABLE_2FA);
+                    return false;
+                }
+            });
+        }
+
+        Observer mEmailSummaryObserver = new Observer() {
+            @Override
+            public void update(Observable o, Object arg) {
+                Log.d(TAG, "Update the email address into the menu");
+                final Map<?, ?> twoFactorConfig = mService.getTwoFactorConfig();
+                final String emailAddr = (String) twoFactorConfig.get("email_addr");
+                final Boolean emailConfirmed = (Boolean) twoFactorConfig.get("email_confirmed");
+
+                final Activity activity = getActivity();
+                if (activity != null) {
+                    activity.runOnUiThread(new Runnable() {
+                        public void run() {
+                            if (emailConfirmed) {
+                                email.setSummary(emailAddr);
+                            } else {
+                                email.setSummary("");
+                            }
+                        }
+                    });
+                }
+            }
+        };
+        mService.addTwoFactorObserver(mEmailSummaryObserver);
 
         // Currency and bitcoin denomination
         final ListPreference bitcoinDenomination = find("denomination_key");
@@ -370,6 +439,12 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         return false;
     }
 
+    @Override
+    public void onDestroy() {
+        mService.deleteTwoFactorObserver(mEmailSummaryObserver);
+        super.onDestroy();
+    }
+
     /**
      * Show dialog to insert password
      * @param mnemonic String
@@ -402,7 +477,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                         }
                     }
                 }).build();
-        dialog.show();
+        UI.showDialog(dialog, true);
 
         // positive button, to show only on password match
         final MDButton positiveButton = dialog.getActionButton(DialogAction.POSITIVE);
@@ -463,18 +538,20 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         dialog.setContentView(v);
         dialog.show();
 
-        class BitmapWorkerTask extends AsyncTask<String, Void, Bitmap> {
+        class BitmapWorkerTask extends AsyncTask<Object, Object, Pair<Bitmap, String>> {
 
             @Override
-            protected Bitmap doInBackground(String... params) {
+            protected Pair<Bitmap, String> doInBackground(Object... params) {
                 final String encrypted = CryptoHelper.mnemonic_to_encrypted_mnemonic(mnemonic, password);
                 final QrBitmap qrBitmap = new QrBitmap(encrypted, Color.WHITE, getActivity());
-                return qrBitmap.getQRCode();
+                return Pair.create(qrBitmap.getQRCode(), encrypted);
             }
 
             @Override
-            protected void onPostExecute(final Bitmap bitmap) {
+            protected void onPostExecute(final Pair pair) {
 
+                final Bitmap bitmap = (Bitmap) pair.first;
+                final String encryptedMnemonic = (String) pair.second;
                 final ImageView qrCode = UI.find(v, R.id.inDialogImageView);
                 qrCode.setLayoutParams(UI.getScreenLayout(getActivity(), 0.8));
                 qrCode.setImageBitmap(bitmap);
@@ -488,20 +565,24 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                     }
                 });
 
-                final ImageView nfcButton = UI.find(v, R.id.backupNfcIcon);
-                nfcButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        dialog.dismiss();
-                        Intent intent = new Intent(getActivity(), SettingsActivity.class);
-                        intent.setAction(SettingsActivity.INTENT_SHOW_NFC_DIALOG_REQUEST);
-                        // Prevent activity to be re-instantiated if it is already running.
-                        // Instead, the onNewEvent() is triggered
-                        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        intent.putExtra("mnemonic", CryptoHelper.mnemonic_to_bytes(mnemonic));
-                        getActivity().startActivity(intent);
-                    }
-                });
+                if (Build.VERSION.SDK_INT >= 16) {
+                    UI.show((View) UI.find(v, R.id.backupNfcView));
+                    final ImageView nfcButton = UI.find(v, R.id.backupNfcIcon);
+                    nfcButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            dialog.dismiss();
+                            Intent intent = new Intent(getActivity(), SettingsActivity.class);
+                            intent.setAction(SettingsActivity.INTENT_SHOW_NFC_DIALOG_REQUEST);
+                            // Prevent activity to be re-instantiated if it is already running.
+                            // Instead, the onNewEvent() is triggered
+                            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                            intent.putExtra("mnemonic", CryptoHelper.encrypted_mnemonic_to_bytes(encryptedMnemonic));
+                            intent.putExtra("is_encrypted", true);
+                            getActivity().startActivity(intent);
+                        }
+                    });
+                }
 
                 qrCode.setImageBitmap(bitmap);
                 UI.hide((View) UI.find(v, R.id.loadingView));

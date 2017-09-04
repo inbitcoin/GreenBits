@@ -22,6 +22,7 @@ public class QrBitmap implements Parcelable {
     private final int mBackgroundColor;
     private Bitmap mQRCode;
     private Bitmap mLogo;
+    private static int BORDER = 10;
 
     public QrBitmap(final String data, final int backgroundColor, Context context) {
         mData = data;
@@ -69,18 +70,21 @@ public class QrBitmap implements Parcelable {
             }
         }
 
+        final Bitmap qrcode = Bitmap.createBitmap(image.getWidth() + BORDER*2,
+                image.getHeight() + BORDER*2, image.getConfig());
+        qrcode.eraseColor(mBackgroundColor);
 
-        Canvas canvas = new Canvas(combined);
+        Canvas canvas = new Canvas(qrcode);
         int canvasWidth = canvas.getWidth();
         int canvasHeight = canvas.getHeight();
 
-        canvas.drawBitmap(image, new Matrix(), null);
+        canvas.drawBitmap(image, BORDER, BORDER, null);
 
         int centreY = (canvasHeight - mLogo2.getHeight());
 
-        canvas.drawBitmap(mLogo2, centreX, TOP_PADDING, null);
+        canvas.drawBitmap(mLogo2, centreX + BORDER, TOP_PADDING + BORDER, null);
 
-        return combined;
+        return qrcode;
     }
 
     public Bitmap getmQRCodeWithoutLogo() {

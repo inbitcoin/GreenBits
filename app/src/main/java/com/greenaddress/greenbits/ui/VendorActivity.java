@@ -49,6 +49,7 @@ public class VendorActivity extends GaActivity {
 
         // enable vendor activity by default on app start
         mService.cfgEdit("is_vendor_mode").putBoolean("enabled", true).apply();
+        mService.cfgEdit("vendor_message").putInt("count", SendFragment.VENDOR_MESSAGE_MAX).apply();
     }
 
 

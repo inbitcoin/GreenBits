@@ -1,6 +1,7 @@
 package com.greenaddress.greenbits.ui;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
@@ -18,6 +19,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.dd.CircularProgressButton;
 import com.google.common.base.Throwables;
@@ -29,6 +31,7 @@ import com.greenaddress.greenapi.GAException;
 import com.greenaddress.greenapi.LoginData;
 import com.greenaddress.greenapi.LoginFailed;
 import com.greenaddress.greenbits.GaService;
+import com.greenaddress.greenbits.KeyStoreAES;
 import com.greenaddress.greenbits.ui.preferences.NetworkSettingsActivity;
 
 import java.io.IOException;
@@ -49,6 +52,8 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
+import static com.greenaddress.greenbits.ui.SignUpActivity.PINSAVE;
+
 
 public class PinActivity extends LoginActivity implements Observer, View.OnClickListener {
 
@@ -64,6 +69,9 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
     private final static int WAIT_TIME_SEC_1 = 5;
     private final static int WAIT_TIME_SEC_2 = 20;
     private final static int MAX_ATTEMPTS = 3;
+    private Boolean mErrorAuthScreen = false;
+    private int AUTH_SCREEN_ATTEMPT = 0;
+    private Activity mActivity;
 
     private void login() {
 
@@ -133,8 +141,19 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
             public void onSuccess(final LoginData result) {
                 mService.cfgEdit("pin").putInt("counter", 0).apply();
                 if (getCallingActivity() == null) {
-                    onLoginSuccess();
-                    return;
+
+                    final SharedPreferences prefs = mService.cfg("pin");
+                    final String nativePIN = prefs.getString("native", null);
+                    final int nativeVersion = prefs.getInt("nativeVersion", 1);
+                    if (!TextUtils.isEmpty(nativePIN) && nativeVersion < KeyStoreAES.SAVED_PIN_VERSION) {
+                        final String mnemonic = mService.getMnemonic();
+                        final Intent savePin = PinSaveActivity.createIntent(mActivity, mnemonic);
+                        startActivityForResult(savePin, PINSAVE);
+                        return;
+                    } else {
+                        onLoginSuccess();
+                        return;
+                    }
                 }
                 setResult(RESULT_OK);
                 finishOnUiThread();
@@ -198,6 +217,8 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
             return;
         }
 
+        mActivity = this;
+
         setContentView(R.layout.activity_pin);
         mPinLoginButton = UI.find(this, R.id.pinLoginButton);
         mPinLoginButton.setIndeterminateProgressMode(true);
@@ -209,17 +230,15 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
 
         nativePIN = prefs.getString("native", null);
 
-        if (TextUtils.isEmpty(nativePIN)) {
-
-            mPinText.setOnEditorActionListener(
-                    UI.getListenerRunOnEnter(new Runnable() {
-                        public void run() {
-                            login();
-                        }
-                    }));
+        mPinText.setOnEditorActionListener(
+                UI.getListenerRunOnEnter(new Runnable() {
+                    public void run() {
+                        login();
+                    }
+                }));
 
             mPinLoginButton.setOnClickListener(this);
-        } else  {
+        if (!TextUtils.isEmpty(nativePIN)) {
             // force hide keyboard
             getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
@@ -257,7 +276,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
     @TargetApi(Build.VERSION_CODES.M)
     private void tryDecrypt() {
 
-        if (mService.onConnected == null) {
+        if (mService == null || mService.onConnected == null) {
             toast(R.string.unable_to_connect_to_service);
             finishOnUiThread();
             return;
@@ -266,6 +285,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
         final SharedPreferences prefs = mService.cfg("pin");
         final String nativePIN = prefs.getString("native", null);
         final String nativeIV = prefs.getString("nativeiv", null);
+        final int nativeVersion = prefs.getInt("nativeVersion", 1);
 
         try {
             final KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
@@ -274,7 +294,11 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
             final Cipher cipher = getAESCipher();
             cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(Base64.decode(nativeIV, Base64.NO_WRAP)));
             final byte[] decrypted = cipher.doFinal(Base64.decode(nativePIN, Base64.NO_WRAP));
-            final String pin = Base64.encodeToString(decrypted, Base64.NO_WRAP).substring(0, 15);
+            final String pin;
+            if (nativeVersion < KeyStoreAES.SAVED_PIN_VERSION)
+                pin = Base64.encodeToString(decrypted, Base64.NO_WRAP).substring(0, 15);
+            else
+                pin = new String(decrypted);
 
             Futures.addCallback(mService.onConnected, new FutureCallback<Void>() {
                 @Override
@@ -295,7 +319,12 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
                 }
             });
         } catch (final KeyStoreException | InvalidKeyException e) {
-            showAuthenticationScreen();
+            if (AUTH_SCREEN_ATTEMPT < MAX_ATTEMPTS) {
+                showAuthenticationScreen();
+            } else {
+                UI.toast(this, R.string.error_auth_screen, Toast.LENGTH_LONG);
+                errorAuthenticationScreen();
+            }
         } catch (final InvalidAlgorithmParameterException | BadPaddingException | IllegalBlockSizeException  |
                  CertificateException | UnrecoverableKeyException | IOException |
                  NoSuchAlgorithmException | NoSuchPaddingException e) {
@@ -306,27 +335,31 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
     @Override
     protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == ACTIVITY_REQUEST_CODE) {
-            // Challenge completed, proceed with using cipher
-            if (resultCode == RESULT_OK) {
-                tryDecrypt();
-            } else {
-                // The user canceled or didn’t complete the lock screen
-                // operation. Go back to the initial login screen to allow
-                // them to enter mnemonics.
-                mService.setUserCancelledPINEntry(true);
-                startActivity(new Intent(this, FirstScreenActivity.class));
-                finish();
-            }
+        switch (requestCode) {
+            case ACTIVITY_REQUEST_CODE:
+                // Challenge completed, proceed with using cipher
+                if (resultCode == RESULT_OK) {
+                    tryDecrypt();
+                } else {
+                    UI.toast(this, R.string.error_auth_screen, Toast.LENGTH_LONG);
+                    errorAuthenticationScreen();
+                }
+                break;
+            case PINSAVE:
+                onLoginSuccess();
+                break;
         }
     }
 
     @TargetApi(Build.VERSION_CODES.M)
     private void showAuthenticationScreen() {
+        AUTH_SCREEN_ATTEMPT++;
         final KeyguardManager keyguardManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
         final Intent intent = keyguardManager.createConfirmDeviceCredentialIntent(null, null);
         if (intent != null) {
             startActivityForResult(intent, ACTIVITY_REQUEST_CODE);
+        } else {
+            errorAuthenticationScreen();
         }
     }
 
@@ -387,7 +420,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
         final GaService.State state = (GaService.State) data;
         setMenuItemVisible(mMenu, R.id.network_unavailable,
                            !state.isConnected() && !state.isLoggedOrLoggingIn());
-        if (TextUtils.isEmpty(nativePIN)) {
+        if (TextUtils.isEmpty(nativePIN) || mErrorAuthScreen) {
             if (state.isConnected()) {
                 runOnUiThread(new Runnable() {
                     @Override
@@ -425,6 +458,25 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
         else if (counter > 1)
             return WAIT_TIME_SEC_2;
         return 0;
+    }
+
+    private void errorAuthenticationScreen() {
+        final SharedPreferences prefs = mService.cfg("pin");
+        final int nativeVersion = prefs.getInt("nativeVersion", 1);
+        if (nativeVersion < KeyStoreAES.SAVED_PIN_VERSION -1) {
+            UI.toast(this, R.string.error_auth_screen_fallback_firstscreen, Toast.LENGTH_LONG);
+            // The user canceled or didn’t complete the lock screen
+            // operation. Go back to the initial login screen to allow
+            // them to enter mnemonics.
+            mService.setUserCancelledPINEntry(true);
+            startActivity(new Intent(this, FirstScreenActivity.class));
+            finish();
+        } else {
+            mErrorAuthScreen = true;
+            mPinText.setEnabled(true);
+            if (mService.isConnected())
+                mPinLoginButton.setProgress(0);
+        }
     }
 
     @Override

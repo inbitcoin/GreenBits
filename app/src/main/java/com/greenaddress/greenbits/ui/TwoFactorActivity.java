@@ -130,6 +130,7 @@ public class TwoFactorActivity extends GaActivity {
                 UI.disable(mContinueButton);
                 final Map<String, String> twoFacData = mService.make2FAData("proxy", proxyCode);
                 CB.after(mService.initEnableTwoFac(mMethod, details, twoFacData),
+                // CB.after(mService.setEmail(details, twoFacData),
                          new CB.Toast<Boolean>(TwoFactorActivity.this, mContinueButton) {
                     @Override
                     public void onSuccess(final Boolean result) {

@@ -1,7 +1,8 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <CheckBoxPreference
         android:key="hideTwoFacWarning"
-        android:title="@string/hideTwoFacWarning" />
+        android:title="@string/hideTwoFacWarning"
+        android:defaultValue="true" />
 
     <CheckBoxPreference
         android:key="twoFacEmail"

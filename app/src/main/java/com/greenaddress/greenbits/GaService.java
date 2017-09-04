@@ -182,11 +182,12 @@ public class GaService extends Service implements INotificationHandler {
         return new File(getDir(dirName, Context.MODE_PRIVATE), "blockchain.spvchain");
     }
 
-    private void getAvailableTwoFactorMethods() {
+    public void getAvailableTwoFactorMethods() {
         Futures.addCallback(mClient.getTwoFactorConfig(), new FutureCallback<Map<?, ?>>() {
             @Override
             public void onSuccess(final Map<?, ?> result) {
                 mTwoFactorConfig = result;
+                Log.d(TAG, "New mTwoFactorConfig = " + mTwoFactorConfig);
                 mTwoFactorConfigObservable.doNotify();
             }
 
@@ -195,6 +196,10 @@ public class GaService extends Service implements INotificationHandler {
                 t.printStackTrace();
             }
         }, mExecutor);
+    }
+
+    public ListenableFuture<Boolean> activateEmail(final String enteredCode) {
+        return mClient.activateEmail(enteredCode);
     }
 
     public boolean getUserCancelledPINEntry() {
@@ -1291,6 +1296,10 @@ public class GaService extends Service implements INotificationHandler {
 
     public ListenableFuture<Boolean> initEnableTwoFac(final String type, final String details, final Map<?, ?> twoFacData) {
         return mClient.initEnableTwoFac(type, details, twoFacData);
+    }
+
+    public ListenableFuture<Boolean> setEmail(final String email, final Map<String, String> twoFacData) {
+        return mClient.setEmail(email, twoFacData);
     }
 
     public ListenableFuture<Boolean> enableTwoFactor(final String type, final String code, final Object twoFacData) {

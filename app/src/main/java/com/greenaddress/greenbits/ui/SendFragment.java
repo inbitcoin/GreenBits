@@ -102,6 +102,8 @@ public class SendFragment extends SubaccountFragment {
     private String address;
     private String fiat_amount;
 
+    public static final int VENDOR_MESSAGE_MAX = 5;
+
 
 
     private int mSubaccount;
@@ -371,15 +373,22 @@ public class SendFragment extends SubaccountFragment {
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View v) {
+                if (mSendButton.getProgress() != 0) {
+                    Log.d(TAG, "double tap on send button, ignored");
+                    return;
+                }
+                mSendButton.setProgress(50);
                 // FIXME: Instead of checking the state here, enable/disable sendButton when state changes
                 if (!service.isLoggedIn()) {
                     gaActivity.toast(R.string.err_send_not_connected_will_resume);
+                    mSendButton.setProgress(0);
                     return;
                 }
                 final String recipient = mIsVendor ? address : UI.getText(mRecipientEdit);
 
                 if (recipient.isEmpty()) {
                     gaActivity.toast(R.string.err_send_need_recipient);
+                    mSendButton.setProgress(0);
                     return;
                 }
                 onSendButtonClicked(recipient);
@@ -450,6 +459,8 @@ public class SendFragment extends SubaccountFragment {
             mClearAllFields.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+                // do nothing during loading
+                if (mSendButton.getProgress() == 0)
                     resetAllFields();
                 }
             });
@@ -603,7 +614,7 @@ public class SendFragment extends SubaccountFragment {
         } else if (!isZombie() && isSelected && getGAService().getTotalBalance() > 0) {
             // show vendor snackbar on top only for 5 times
             final Integer vendorMessageCount = getGAService().cfg("vendor_message").getInt("count", 0);
-            if (vendorMessageCount < 5) {
+            if (vendorMessageCount < VENDOR_MESSAGE_MAX) {
                 showVendorSnackbar();
                 getGAService().cfgEdit("vendor_message").putInt("count", vendorMessageCount + 1).apply();
             }

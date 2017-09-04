@@ -269,6 +269,8 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
 
         @Override
         protected Bitmap doInBackground(final Object... integers) {
+            if (mAmountEdit == null)
+                return null;
             final String amount = UI.getText(mAmountEdit);
             mCurrentAmount = null;
             if (amount.isEmpty())

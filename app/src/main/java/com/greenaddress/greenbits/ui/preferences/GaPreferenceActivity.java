@@ -6,10 +6,14 @@ import android.os.Bundle;
 import android.preference.PreferenceFragment;
 import android.support.v7.app.ActionBar;
 import android.view.MenuItem;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.GreenAddressApplication;
+import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.UI;
 import com.greenaddress.greenbits.ui.FirstScreenActivity;
 
@@ -90,4 +94,23 @@ public abstract class GaPreferenceActivity extends AppCompatPreferenceActivity {
     public void toast(final int id) {
         UI.toast(this, id, Toast.LENGTH_LONG);
     }
+
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+
+        final ListView listView = getListView();
+        // force white background
+        listView.setBackgroundColor(getResources().getColor(R.color.white));
+
+        // add margins
+        final ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) listView.getLayoutParams();
+        int margin = getResources().getDimensionPixelSize(R.dimen.activity_content_margin);
+        layoutParams.setMargins(margin, margin, margin, margin);
+
+        // workaround for bad background: force transparent background to see window background
+        final LinearLayout linearLayout = (LinearLayout) listView.getParent();
+        linearLayout.setBackgroundColor(getResources().getColor(android.R.color.transparent));
+    }
+
 }
