@@ -345,4 +345,5 @@
     <string name="account_doesnt_exist">Account doesn\'t exist</string>
     <string name="login_failed">Login failed</string>
     <string name="no_change_email">You can\'t change your email address while you have email 2FA enabled</string>
+    <string name="hideNoEmailWarning">Hide email warning</string>
 </resources>

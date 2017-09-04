@@ -187,9 +187,10 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         }
 
 
-        if (!((Boolean) twoFacConfig.get("email_confirmed"))) {
+        if (!((Boolean) twoFacConfig.get("email_confirmed")) &&
+                !mService.cfg().getBoolean("hideNoEmailWarning", false)) {
             snackbar = Snackbar
-                    .make(findViewById(R.id.main_content), getString(R.string.noEmailWarning), Snackbar.LENGTH_LONG)
+                    .make(findViewById(R.id.main_content), getString(R.string.noEmailWarning), 10 * 1000)
                     .setActionTextColor(Color.RED)
                     .setAction(getString(R.string.setEmail), new View.OnClickListener() {
                         @Override
