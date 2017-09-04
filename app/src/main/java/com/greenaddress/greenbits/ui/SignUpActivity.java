@@ -34,6 +34,7 @@ import com.greenaddress.greenbits.NfcWriteMnemonic;
 
 import java.util.ArrayList;
 import java.util.Currency;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -232,18 +233,36 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
                                     if (mActivity != null && result != null) {
                                         mActivity.runOnUiThread(new Runnable() {
                                             public void run() {
-                                                final ArrayList<String> currencies = new ArrayList<>(result.size());
+                                                final ArrayList<String> defaultExchanges = new ArrayList<>();
+                                                defaultExchanges.add("BTCAVG");
+                                                defaultExchanges.add("KRAKEN");
+                                                defaultExchanges.add("BITSTAMP");
 
-                                                for (final List<String> currency_exchange : result) {
-                                                    final String pair = String.format("%s", currency_exchange.get(0));
-                                                    currencies.add(pair);
+                                                String first_exchange = "";
+                                                final String currentCurrency = Currency.getInstance(Locale.getDefault()).getCurrencyCode();
+                                                boolean pairFound = false;
+                                                final Iterator<List<String>> resultIterator = result.iterator();
+                                                while (resultIterator.hasNext() && !pairFound) {
+                                                    List<String> pair = resultIterator.next();
+                                                    if (pair.get(0).equals(currentCurrency)) {
+                                                        // set first exchange found
+                                                        if (first_exchange.isEmpty())
+                                                            first_exchange = pair.get(1);
+
+                                                        // try to set exchange fround dafault list
+                                                        final Iterator exchangesIterator = defaultExchanges.iterator();
+                                                        while (exchangesIterator.hasNext() && !pairFound) {
+                                                            String exchange = (String) exchangesIterator.next();
+                                                            pairFound = pair.get(1).equals(exchange);
+                                                            if (pairFound)
+                                                                mService.setPricingSource(currentCurrency, exchange);
+                                                        }
+                                                    }
                                                 }
-                                                String currentCurrency = Currency.getInstance(Locale.getDefault()).getCurrencyCode();
-                                                if (currencies.contains(currentCurrency)) {
-                                                    // set currency based on system setup and fixed
-                                                    // BTCAVG exchange service
-                                                    mService.setPricingSource(currentCurrency, "BTCAVG");
-                                                }
+
+                                                // set first exchange if no default exchange found
+                                                if (!pairFound)
+                                                    mService.setPricingSource(currentCurrency, first_exchange);
                                             }
                                         });
                                     }
