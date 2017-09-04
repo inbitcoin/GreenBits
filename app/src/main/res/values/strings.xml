@@ -156,7 +156,7 @@
     <string name="twoFacProvideDetails">Please provide your %1$s.</string>
     <string name="twoFacEmailChangeNotice">Providing an email enables transactions recovery and notifications</string>
     <string name="twoFacEmailConfirmNotice">You will need to finish this process, otherwise you won\'t receive recovery data</string>
-    <string name="twoFacEmailWarningNotice">You will need reccovery data to recover the funds if the service provider suddenly disappear</string>
+    <string name="twoFacEmailWarningNotice">You will need recovery data to recover the funds if the service provider GreenAddress will cancel the service without notice</string>
     <string name="twoFacProvideConfirmationCodeDescription">You need to provide the confirmation code to make sure you have access to the new two factor authentication method. After you providing the code, the method will be enabled.</string>
     <string name="twoFacProvideConfirmationCode">Please provide your %1$s code.</string>
     <string name="continueText">Continue</string>

@@ -125,7 +125,7 @@
   <string name="twoFacProvideDetails">Prego, inserisci il tuo %1$s.</string>
   <string name="twoFacEmailChangeNotice">Fornire un indirizzo email abilita le notifiche e la ricezione delle transazioni di recupero</string>
   <string name="twoFacEmailConfirmNotice">Solo completando il processo attiverai la ricezione via email</string>
-  <string name="twoFacEmailWarningNotice">Le transazioni di recupero servono per recuperare i fondi nel caso in cui il fornitore del servizio sparisca improvvisamente</string>
+  <string name="twoFacEmailWarningNotice">Le transazioni di recupero servono per recuperare i fondi nel caso in cui il fornitore del servizio GreenAddress dismetta il servizio senza preavviso</string>
   <string name="twoFacProvideConfirmationCodeDescription">Devi fornire il codice di conferma per essere sicuri che tu abbia accesso al nuovo metodo di autenticazione a due fattori. Solo dopo che hai fornito il codice, il metodo verrà abilitato.</string>
   <string name="twoFacProvideConfirmationCode">Per piacere fornisci il codice %s.</string>
   <string name="continueText">Continua</string>
