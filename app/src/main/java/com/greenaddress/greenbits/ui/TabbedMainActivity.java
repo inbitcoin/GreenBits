@@ -78,6 +78,7 @@ import java.util.Observable;
 import java.util.Observer;
 
 import de.schildbach.wallet.ui.ScanActivity;
+import com.greenaddress.greenbits.ui.preferences.TwoFactorPreferenceFragment;
 
 // Problem with the above is that in the horizontal orientation the tabs don't go in the top bar
 public class TabbedMainActivity extends GaActivity implements Observer {
@@ -214,7 +215,10 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                     .setAction(getString(R.string.set2FA), new View.OnClickListener() {
                         @Override
                         public void onClick(final View v) {
-                            startActivityForResult(new Intent(TabbedMainActivity.this, SettingsActivity.class), REQUEST_SETTINGS);
+                            Intent intent = new Intent(TabbedMainActivity.this, SettingsActivity.class);
+                            intent.putExtra(SettingsActivity.EXTRA_SHOW_FRAGMENT, TwoFactorPreferenceFragment.class.getName());
+                            intent.putExtra(SettingsActivity.EXTRA_NO_HEADERS, true);
+                            startActivityForResult(intent, REQUEST_SETTINGS);
                         }
                     });
 
