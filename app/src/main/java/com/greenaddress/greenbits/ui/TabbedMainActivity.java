@@ -195,7 +195,8 @@ public class TabbedMainActivity extends GaActivity implements Observer {
                     .setAction(getString(R.string.setEmail), new View.OnClickListener() {
                         @Override
                         public void onClick(final View v) {
-                            startActivityForResult(new Intent(TabbedMainActivity.this, SettingsActivity.class), REQUEST_SETTINGS);
+                            final int REQUEST_ENABLE_2FA = 0;
+                            startActivityForResult(new Intent(TabbedMainActivity.this, SetEmailActivity.class), REQUEST_ENABLE_2FA);
                         }
                     });
 
