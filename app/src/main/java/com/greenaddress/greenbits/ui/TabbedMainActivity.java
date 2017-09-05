@@ -100,6 +100,7 @@ public class TabbedMainActivity extends GaActivity implements Observer {
     private Menu mMenu;
     private Boolean mInternalQr = false;
     private Snackbar snackbar;
+    private final int mSnackbarDuration = 10 * 1000;
     private Activity mActivity;
     private MaterialDialog mSegwitDialog = null;
     private final Runnable mSegwitCB = new Runnable() { public void run() { mSegwitDialog = null; } };
@@ -190,13 +191,13 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         if (!((Boolean) twoFacConfig.get("email_confirmed")) &&
                 !mService.cfg().getBoolean("hideNoEmailWarning", false)) {
             snackbar = Snackbar
-                    .make(findViewById(R.id.main_content), getString(R.string.noEmailWarning), 10 * 1000)
+                    .make(findViewById(R.id.main_content), getString(R.string.noEmailWarning), mSnackbarDuration)
                     .setActionTextColor(Color.RED)
                     .setAction(getString(R.string.setEmail), new View.OnClickListener() {
                         @Override
                         public void onClick(final View v) {
-                            final int REQUEST_ENABLE_2FA = 0;
-                            startActivityForResult(new Intent(TabbedMainActivity.this, SetEmailActivity.class), REQUEST_ENABLE_2FA);
+                            final int REQUEST_ENABLE_EMAIL = 0;
+                            startActivityForResult(new Intent(TabbedMainActivity.this, SetEmailActivity.class), REQUEST_ENABLE_EMAIL);
                         }
                     });
 
@@ -208,7 +209,7 @@ public class TabbedMainActivity extends GaActivity implements Observer {
         } else if (!((Boolean) twoFacConfig.get("any")) &&
             !mService.cfg().getBoolean("hideTwoFacWarning", true)) {
             snackbar = Snackbar
-                    .make(findViewById(R.id.main_content), getString(R.string.noTwoFactorWarning), Snackbar.LENGTH_LONG)
+                    .make(findViewById(R.id.main_content), getString(R.string.noTwoFactorWarning), mSnackbarDuration)
                     .setActionTextColor(Color.RED)
                     .setAction(getString(R.string.set2FA), new View.OnClickListener() {
                         @Override
