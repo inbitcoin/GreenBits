@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.primitives.Booleans;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -777,7 +778,10 @@ public class WalletClient {
     }
 
     public Object getUserConfig(final String key) {
-        return mLoginData.mUserConfig.get(key);
+        if (mLoginData.mUserConfig != null) {
+            return mLoginData.mUserConfig.get(key);
+        }
+        return null;
     }
 
     // Returns True if the user hasn't elected to use segwit yet
@@ -896,6 +900,16 @@ public class WalletClient {
 
     public ListenableFuture<Boolean> disableTwoFac(final String type, final Map<String, String> twoFacData) {
         return simpleCall("twofactor.disable_" + type, Boolean.class, twoFacData);
+    }
+
+    /* apidoc: Set email address for two factor authentication. Method not available if email 2FA is enabled. */
+    public ListenableFuture<Boolean> setEmail(final String email, final Map<String, String> twoFacData) {
+        // boolean ??
+        return simpleCall("twofactor.set_email", Boolean.class, email, twoFacData);
+    }
+
+    public ListenableFuture<Boolean> activateEmail(final String enteredCode) {
+        return simpleCall("twofactor.activate_email", Boolean.class, enteredCode);
     }
 
     public ListenableFuture<String> create2to2subaccount(final int pointer, final String name,

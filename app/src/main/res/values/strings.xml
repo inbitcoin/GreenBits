@@ -135,6 +135,7 @@
     <string name="syncSPVOnMobile">Synchronize SPV on mobile</string>
     <string name="syncSPVOnMobileSummary">SPV is always synchronized on non mobile networks like WiFi or Ethernet. This setting also synchronizes when using mobile data. This can be expensive depending on your data plan so take care when enabling.</string>
     <string name="noTwoFactorWarning">You don\'t have two factor authentication!\nPlease go to settings to set it up!</string>
+    <string name="noEmailWarning">For your safety, go to settings to set an email address up</string>
     <string name="scan_camera_problem_dialog_message">The camera has a problem. You probably need to restart the device.</string>
     <string name="scan_camera_problem_dialog_title">Camera problem</string>
     <string name="providePassphrase">Please provide your passphrase:</string>
@@ -153,14 +154,18 @@
     <string name="twoFacProvideGauthDetailsDescription">You need to provide one code from your new Google Authenticator. You can obtain it by scanning the QR code below in the Google Authenticator app.</string>
     <string name="twoFacProvideGauthDetails">Please provide your Google Authenticator code.</string>
     <string name="twoFacProvideDetails">Please provide your %1$s.</string>
-    <string name="twoFacEmailChangeNotice">Providing an email enables notifications and transactions recovery</string>
-    <string name="twoFacEmailConfirmNotice">You will need to confirm your email in the next step, otherwise you won\'t receive any notifications.</string>
+    <string name="twoFacEmailChangeNotice">Providing an email enables transactions recovery and notifications</string>
+    <string name="twoFacEmailConfirmNotice">You will need to finish this process, otherwise you won\'t receive recovery data</string>
+    <string name="twoFacEmailWarningNotice">You will need recovery data to recover the funds if the service provider GreenAddress will cancel the service without notice</string>
+    <string name="twoFacEmailProviderNotice">All the emails will be sent by the service provider GreenAddress</string>
     <string name="twoFacProvideConfirmationCodeDescription">You need to provide the confirmation code to make sure you have access to the new two factor authentication method. After you providing the code, the method will be enabled.</string>
+    <string name="twoFacProvideConfirmationEmailCodeDescription">You need to provide the confirmation code to make sure you have access to the new email address. After you providing the code, the email address will be enabled.</string>
     <string name="twoFacProvideConfirmationCode">Please provide your %1$s code.</string>
     <string name="continueText">Continue</string>
     <string name="twoFacProvideAuthCodeDescription">You need to provide existing two factor authentication code. This is to prevent malicious users from changing your 2FA settings without your consent.</string>
     <string name="recoveryAndNotifications">Recovery and Notifications</string>
     <string name="emailAddress">email address</string>
+    <string name="EmailAddress">Email address</string>
     <string name="phoneNumber">phone number</string>
     <string name="newAddress">New</string>
     <string name="copyAddress">Copy</string>
@@ -201,6 +206,7 @@
     <string name="app_description">GreenAddress Logo</string>
     <string name="setPin">Setup PIN</string>
     <string name="set2FA">SETUP 2FA</string>
+    <string name="setEmail">SETUP EMAIL</string>
     <string name="resetSPV">Reset SPV</string>
     <string name="err_send_invalid_bitcoin_uri">Invalid Bitcoin URI</string>
     <string name="err_send_not_connected_will_resume">Not connected, connection will resume automatically</string>
@@ -338,4 +344,6 @@
     <string name="restore_backup">Restore backup</string>
     <string name="account_doesnt_exist">Account doesn\'t exist</string>
     <string name="login_failed">Login failed</string>
+    <string name="no_change_email">You can\'t change your email address while you have email 2FA enabled</string>
+    <string name="hideNoEmailWarning">Hide email warning</string>
 </resources>

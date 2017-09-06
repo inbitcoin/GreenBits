@@ -78,6 +78,7 @@ import java.util.Observable;
 import java.util.Observer;
 
 import de.schildbach.wallet.ui.ScanActivity;
+import com.greenaddress.greenbits.ui.preferences.TwoFactorPreferenceFragment;
 
 // Problem with the above is that in the horizontal orientation the tabs don't go in the top bar
 public class TabbedMainActivity extends GaActivity implements Observer {
@@ -100,6 +101,7 @@ public class TabbedMainActivity extends GaActivity implements Observer {
     private Menu mMenu;
     private Boolean mInternalQr = false;
     private Snackbar snackbar;
+    private final int mSnackbarDuration = 10 * 1000;
     private Activity mActivity;
     private MaterialDialog mSegwitDialog = null;
     private final Runnable mSegwitCB = new Runnable() { public void run() { mSegwitDialog = null; } };
@@ -186,15 +188,37 @@ public class TabbedMainActivity extends GaActivity implements Observer {
             return;
         }
 
-        if (!((Boolean) twoFacConfig.get("any")) &&
+
+        if (!((Boolean) twoFacConfig.get("email_confirmed")) &&
+                !mService.cfg().getBoolean("hideNoEmailWarning", false)) {
+            snackbar = Snackbar
+                    .make(findViewById(R.id.main_content), getString(R.string.noEmailWarning), mSnackbarDuration)
+                    .setActionTextColor(Color.RED)
+                    .setAction(getString(R.string.setEmail), new View.OnClickListener() {
+                        @Override
+                        public void onClick(final View v) {
+                            final int REQUEST_ENABLE_EMAIL = 0;
+                            startActivityForResult(new Intent(TabbedMainActivity.this, SetEmailActivity.class), REQUEST_ENABLE_EMAIL);
+                        }
+                    });
+
+            final View snackbarView = snackbar.getView();
+            snackbarView.setBackgroundColor(Color.DKGRAY);
+            final TextView textView = UI.find(snackbarView, android.support.design.R.id.snackbar_text);
+            textView.setTextColor(Color.WHITE);
+            snackbar.show();
+        } else if (!((Boolean) twoFacConfig.get("any")) &&
             !mService.cfg().getBoolean("hideTwoFacWarning", true)) {
             snackbar = Snackbar
-                    .make(findViewById(R.id.main_content), getString(R.string.noTwoFactorWarning), Snackbar.LENGTH_LONG)
+                    .make(findViewById(R.id.main_content), getString(R.string.noTwoFactorWarning), mSnackbarDuration)
                     .setActionTextColor(Color.RED)
                     .setAction(getString(R.string.set2FA), new View.OnClickListener() {
                         @Override
                         public void onClick(final View v) {
-                            startActivityForResult(new Intent(TabbedMainActivity.this, SettingsActivity.class), REQUEST_SETTINGS);
+                            Intent intent = new Intent(TabbedMainActivity.this, SettingsActivity.class);
+                            intent.putExtra(SettingsActivity.EXTRA_SHOW_FRAGMENT, TwoFactorPreferenceFragment.class.getName());
+                            intent.putExtra(SettingsActivity.EXTRA_NO_HEADERS, true);
+                            startActivityForResult(intent, REQUEST_SETTINGS);
                         }
                     });
 

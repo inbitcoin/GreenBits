@@ -36,10 +36,14 @@ import com.greenaddress.greenbits.QrBitmap;
 import com.greenaddress.greenbits.ui.CB;
 import com.greenaddress.greenbits.ui.PinSaveActivity;
 import com.greenaddress.greenbits.ui.R;
+import com.greenaddress.greenbits.ui.SetEmailActivity;
 import com.greenaddress.greenbits.ui.UI;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
 
 public class GeneralPreferenceFragment extends GAPreferenceFragment
     implements Preference.OnPreferenceClickListener {
@@ -50,6 +54,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
     private Preference mToggleSW;
     private static final int PASSWORD_LENGTH = 12;
     private boolean mPassphraseVisible = false;
+    private Observer mEmailSummaryObserver;
 
     @Override
     public void onCreate(final Bundle savedInstanceState) {
@@ -146,6 +151,68 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         } else {
             getPreferenceScreen().removePreference(resetPin);
         }
+
+        // -- handle email address
+        final Preference email = find("email");
+        final Map<?, ?> twoFactorConfig = mService.getTwoFactorConfig();
+        if (twoFactorConfig != null) {
+            Log.d(TAG, "twoFactorConfig = " + twoFactorConfig);
+            final String emailAddr = (String) twoFactorConfig.get("email_addr");
+            if (emailAddr != null) {
+                final Boolean email_confirmed = (Boolean) twoFactorConfig.get("email_confirmed");
+                if (email_confirmed) {
+                    email.setSummary(emailAddr);
+                }
+            }
+
+        }
+        final Boolean emailTwoFac = (Boolean) twoFactorConfig.get("email");
+        if (emailTwoFac) {
+            // Disable
+            email.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(final Preference preference) {
+                    Toast.makeText(getActivity(), R.string.no_change_email, Toast.LENGTH_LONG)
+                            .show();
+                    return false;
+                }
+            });
+        } else {
+            email.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(final Preference preference) {
+                    final Intent intent = new Intent(getActivity(), SetEmailActivity.class);
+                    // intent.putExtra("method", "email");
+                    final int REQUEST_ENABLE_2FA = 0;
+                    startActivityForResult(intent, REQUEST_ENABLE_2FA);
+                    return false;
+                }
+            });
+        }
+
+        Observer mEmailSummaryObserver = new Observer() {
+            @Override
+            public void update(Observable o, Object arg) {
+                Log.d(TAG, "Update the email address into the menu");
+                final Map<?, ?> twoFactorConfig = mService.getTwoFactorConfig();
+                final String emailAddr = (String) twoFactorConfig.get("email_addr");
+                final Boolean emailConfirmed = (Boolean) twoFactorConfig.get("email_confirmed");
+
+                final Activity activity = getActivity();
+                if (activity != null) {
+                    activity.runOnUiThread(new Runnable() {
+                        public void run() {
+                            if (emailConfirmed) {
+                                email.setSummary(emailAddr);
+                            } else {
+                                email.setSummary("");
+                            }
+                        }
+                    });
+                }
+            }
+        };
+        mService.addTwoFactorObserver(mEmailSummaryObserver);
 
         // -- handle currency and bitcoin denomination
         final ListPreference fiatCurrency = find("fiat_key");
@@ -365,6 +432,12 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
         });
         return false;
+    }
+
+    @Override
+    public void onDestroy() {
+        mService.deleteTwoFactorObserver(mEmailSummaryObserver);
+        super.onDestroy();
     }
 
     /**

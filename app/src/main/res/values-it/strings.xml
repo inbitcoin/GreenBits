@@ -109,6 +109,7 @@
   <string name="enableSPV">Abilita SPV</string>
   <string name="enableSPVSummary">Simple Payment Verification (Verifica Semplice di Pagamento) permette di fidarsi del saldo e delle proprie transazioni grazie alla sincronizzazione con il network Bitcoin. Richiede banda ed elaborazione, quindi si consiglia di spegnerlo se non si ha una buona connessione o si faccia uso di telefoni di fascia bassa.</string>
   <string name="noTwoFactorWarning">Non hai impostato nessuna autenticazione a due fattori! Per favore, vai nelle impostazioni a configurarlo!</string>
+  <string name="noEmailWarning">Per la tua sicurezza, vai nelle impostazioni e configura l\'email</string>
   <string name="scan_camera_problem_dialog_message">La fotocamera ha un problema. Probabilmente c\'è bisogno di riavviare il dispositivo.</string>
   <string name="scan_camera_problem_dialog_title">Problema fotocamera</string>
   <string name="pref_header_twofactor">Autenticazione a due fattori</string>
@@ -121,10 +122,13 @@
   <string name="twoFacStep1SelectExisting">Seleziona un metodo 2FA pre-impostato per autenticare l\'impostazione di uno nuovo.</string>
   <string name="twoFacProvideGauthDetailsDescription">C\'è bisogno che fornisci un codice dal tuo nuovo Google Authenticator. Puoi ottenerlo scansionando il codice QR qui sotto con l\'app Google Authenticator.</string>
   <string name="twoFacProvideGauthDetails">Per piacere fornisci il codice Google Authenticator.</string>
-  <string name="twoFacProvideDetails">Prego, inserisci il tuo codice %s.</string>
-  <string name="twoFacEmailChangeNotice">Fornire un email abilita le notifiche e aumenta la sicurezza.</string>
-  <string name="twoFacEmailConfirmNotice">Dovrai confermare l\'email nel prossimo passaggio, altrimenti non riceverai nessuna notifica.</string>
+  <string name="twoFacProvideDetails">Prego, inserisci il tuo %1$s.</string>
+  <string name="twoFacEmailChangeNotice">Fornire un indirizzo email abilita le notifiche e la ricezione delle transazioni di recupero</string>
+  <string name="twoFacEmailConfirmNotice">Solo completando il processo attiverai la ricezione via email</string>
+  <string name="twoFacEmailWarningNotice">Le transazioni di recupero servono per recuperare i fondi nel caso in cui il fornitore del servizio GreenAddress dismetta il servizio senza preavviso</string>
+  <string name="twoFacEmailProviderNotice">Tutte le email saranno inviate dal fornitore del servizio GreenAddress</string>
   <string name="twoFacProvideConfirmationCodeDescription">Devi fornire il codice di conferma per essere sicuri che tu abbia accesso al nuovo metodo di autenticazione a due fattori. Solo dopo che hai fornito il codice, il metodo verrà abilitato.</string>
+  <string name="twoFacProvideConfirmationEmailCodeDescription">Devi fornire il codice di conferma per verificare che tu abbia accesso al nuovo indirizzo email. Solo dopo che avrai fornito il codice, l\'indirizzo verrà abilitato.</string>
   <string name="twoFacProvideConfirmationCode">Per piacere fornisci il codice %s.</string>
   <string name="continueText">Continua</string>
   <string name="twoFacProvideAuthCodeDescription">È necessario fornire un codice di autenticazione a due fattori esistente. Questo per evitare che utenti malintenzionati possano modificare le impostazioni 2FA senza il tuo consenso.</string>
@@ -156,6 +160,7 @@
   <string name="invalidWord">La parola \'%1$s\' non è valida, vuoi che sia corretta con %2$s?</string>
   <string name="setPin">Configura PIN</string>
   <string name="set2FA">Configura 2FA</string>
+  <string name="setEmail">CONFIGURA EMAIL</string>
   <string name="resetSPV">Azzera SPV</string>
   <string name="err_send_invalid_bitcoin_uri">Indirizzo Bitcoin invalido</string>
   <string name="err_send_not_connected_will_resume">Disconnessi dal server, connessione in corso.</string>
@@ -264,4 +269,6 @@
   <string name="restore_backup">Ripristina backup</string>
   <string name="account_doesnt_exist">L\'account non esiste</string>
   <string name="login_failed">Login fallito</string>
+  <string name="no_change_email">Non puoi cambiare l\'indirizzo email mentre l\'autenticazione a due fattori via email è attiva</string>
+  <string name="hideNoEmailWarning">Nascondi avviso email</string>
 </resources>
