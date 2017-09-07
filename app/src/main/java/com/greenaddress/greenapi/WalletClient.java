@@ -759,7 +759,10 @@ public class WalletClient {
     }
 
     public Object getUserConfig(final String key) {
-        return mLoginData.mUserConfig.get(key);
+        if (mLoginData.mUserConfig != null) {
+            return mLoginData.mUserConfig.get(key);
+        }
+        return null;
     }
 
     // Returns True if the user hasn't elected to use segwit yet

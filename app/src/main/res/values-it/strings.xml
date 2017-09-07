@@ -123,8 +123,10 @@
     <string name="twoFacProvideDetails">Prego, inserisci il tuo %1$s.</string>
     <string name="twoFacEmailChangeNotice">Fornire un indirizzo email abilita le notifiche e la ricezione delle transazioni di recupero</string>
     <string name="twoFacEmailConfirmNotice">Solo completando il processo attiverai la ricezione via email</string>
-    <string name="twoFacEmailWarningNotice">Le transazioni di recupero servono per recuperare i fondi nel caso in cui il fornitore del servizio sparisca improvvisamente</string>
+    <string name="twoFacEmailWarningNotice">Le transazioni di recupero servono per recuperare i fondi nel caso in cui il fornitore del servizio GreenAddress dismetta il servizio senza preavviso</string>
+  <string name="twoFacEmailProviderNotice">Tutte le email saranno inviate dal fornitore del servizio GreenAddress</string>
     <string name="twoFacProvideConfirmationCodeDescription">Devi fornire il codice di conferma per essere sicuri che tu abbia accesso al nuovo metodo di autenticazione a due fattori. Solo dopo che hai fornito il codice, il metodo verrà abilitato.</string>
+  <string name="twoFacProvideConfirmationEmailCodeDescription">Devi fornire il codice di conferma per verificare che tu abbia accesso al nuovo indirizzo email. Solo dopo che avrai fornito il codice, l\'indirizzo verrà abilitato.</string>
     <string name="twoFacProvideConfirmationCode">Per piacere fornisci il codice %s.</string>
     <string name="continueText">Continua</string>
     <string name="twoFacProvideAuthCodeDescription">È necessario fornire un codice di autenticazione a due fattori esistente. Questo per evitare che utenti malintenzionati possano modificare le impostazioni 2FA senza il tuo consenso.</string>
@@ -266,4 +268,5 @@
   <string name="account_doesnt_exist">L\'account non esiste</string>
   <string name="login_failed">Login fallito</string>
   <string name="no_change_email">Non puoi cambiare l\'indirizzo email mentre l\'autenticazione a due fattori via email è attiva</string>
+  <string name="hideNoEmailWarning">Nascondi avviso email</string>
 </resources>

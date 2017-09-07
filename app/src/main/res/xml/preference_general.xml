@@ -21,6 +21,10 @@
                 android:title="@string/EmailAddress">
     </Preference>
 
+    <CheckBoxPreference android:key="hideNoEmailWarning"
+        android:title="@string/hideNoEmailWarning"
+        android:defaultValue="false"/>
+
     <ListPreference
         android:key="fiat_key"
         android:title="@string/settings_currency" />

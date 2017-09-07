@@ -77,14 +77,17 @@
                     android:textAppearance="?android:attr/textAppearanceMedium"
                     android:text="@string/recoveryAndNotifications"
                     android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="30sp" />
+                    android:layout_marginTop="30sp"
+                    android:layout_margin="10sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/twoFacEmailChangeNotice"
                     android:layout_gravity="center_horizontal"
-                    android:layout_margin="10sp" />
+                    android:layout_margin="10sp"
+                    android:layout_marginLeft="10sp"
+                    android:layout_marginRight="10sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -100,6 +103,16 @@
                     android:layout_height="wrap_content"
                     android:text="@string/twoFacEmailWarningNotice"
                     android:layout_gravity="center_horizontal|start"
+                    android:layout_margin="10sp"
+                    android:layout_marginLeft="10sp"
+                    android:layout_marginRight="10sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/twoFacEmailProviderNotice"
+                    android:layout_gravity="center_horizontal|start"
+                    android:layout_margin="10sp"
                     android:layout_marginLeft="10sp"
                     android:layout_marginRight="10sp" />
             </LinearLayout>
