@@ -109,6 +109,7 @@
     <string name="invalidAmountAndAddress">Invalid amount and address</string>
     <string name="invalidAddress">Invalid address</string>
     <string name="invalidAmount">Invalid amount</string>
+    <string name="invalidPhoneNumber">Invalid phone number format</string>
     <string name="noBalanceFirstLine">Getting <a href="https://bitcoin.org/en/getting-started">started</a> with Bitcoin</string>
     <string name="noBalanceSecondLine">Where to <a href="http://howtobuybitcoins.info/">buy</a> them</string>
     <string name="noBalanceThirdLine">Read our <a href="https://greenaddress.it/faq">FAQ</a></string>
@@ -123,8 +124,6 @@
     <string name="btchipInvalidPIN">Invalid PIN. Remaining attempts: %1$d. Please reconnect your BTChip before trying again.</string>
     <string name="btchipNotSetup">BTChip is not set up. Please set it up using a desktop client to be able to use it.</string>
     <string name="instantConfirmation">Instant Confirmation</string>
-    <string name="trezor_login_failed">Hardware Wallet login failed</string>
-    <string name="trezor_login_failed_details">It probably means you need to pair your Hardware Wallet device with GreenAddress using the desktop app.</string>
     <string name="mnemonic_passphrase">Mnemonic passphrase</string>
     <string name="mnemonic_passphrase_not_available">Passphrase not available</string>
     <string name="autologout_time">Auto logout timeout</string>
@@ -161,6 +160,7 @@
     <string name="twoFacProvideGauthDetailsDescription">You need to provide one code from your new Google Authenticator. You can obtain it by scanning the QR code below in the Google Authenticator app.</string>
     <string name="twoFacProvideGauthDetails">Please provide your Google Authenticator code.</string>
     <string name="twoFacProvideDetails">Please provide your %1$s.</string>
+    <string name="twoFacPhoneHint">"+&lt;country code&gt;&lt;number&gt;"</string>
     <string name="twoFacEmailChangeNotice">Providing an email enables transactions recovery and notifications</string>
     <string name="twoFacEmailConfirmNotice">You will need to finish this process, otherwise you won\'t receive recovery data</string>
     <string name="twoFacEmailWarningNotice">You will need reccovery data to recover the funds if the service provider suddenly disappear</string>
@@ -206,6 +206,7 @@
     <string name="oldFeeText">Old Fee:</string>
     <string name="feeIncreaseTitle">Fee increase</string>
     <string name="insufficientFundsText">Insufficient funds</string>
+    <string name="instantUnavailable">Instant transactions are not available at this time. Please try again later.</string>
     <string name="app_version">Version %1$s %2$s</string>
     <string name="invalidWord">\'%1$s\' is an invalid word, do you want it corrected to %2$s?</string>
     <string name="app_description">GreenAddress Logo</string>
@@ -259,6 +260,8 @@
     <string name="advanced_options">Show advanced options</string>
     <string name="generating_address">Generating address…</string>
     <string name="loading_transactions">Loading transactions…</string>
+    <string name="request_nlocktime_email">Request nLocktime transactions</string>
+    <string name="nlocktime_request_sent">nLocktime transaction request sent</string>
 
     <!-- FontAwesome Glyphs -->
     <string name="fa_arrow_down" translatable="false">&#xf063;</string>

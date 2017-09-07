@@ -79,26 +79,23 @@ class Exchanger implements AmountFields.OnConversionFinishListener {
         }
     }
 
-    private static String formatFiat(final float fiatAmount) {
+    private static String formatFiat(final double fiatAmount) {
         return String.format(Locale.US, "%.2f", fiatAmount);
     }
 
-    void sellBtc(final float fiatAmount) {
+    void sellBtc(final double fiatAmount) {
         final String newFiatBill = formatFiat(getFiatInBill() + fiatAmount);
         mService.cfg().edit().putString("exchanger_fiat_in_bill", newFiatBill).apply();
     }
 
-    void buyBtc(final float fiatAmount) {
+    void buyBtc(final double fiatAmount) {
         final String newFiatBill = formatFiat(getFiatInBill() - fiatAmount);
         mService.cfg().edit().putString("exchanger_fiat_in_bill", newFiatBill).apply();
     }
 
-    float getFiatInBill() {
-        float fiatBill = 0;
+    double getFiatInBill() {
         final String fiatBillTxt = mService.cfg().getString("exchanger_fiat_in_bill", "");
-        if (!fiatBillTxt.isEmpty())
-            fiatBill = Float.valueOf(fiatBillTxt);
-        return fiatBill;
+        return fiatBillTxt.isEmpty() ? 0.0 : Double.valueOf(fiatBillTxt);
     }
 
     private String getCommissionConfig(final String suffix, final String def) {
@@ -107,8 +104,8 @@ class Exchanger implements AmountFields.OnConversionFinishListener {
         return value.isEmpty() ? def : value;
     }
 
-    public String getAmountWithCommission() {
-        return mAmountBtcWithCommission.getText().toString();
+    public double getAmountWithCommission() {
+        return Double.valueOf(UI.getText(mAmountBtcWithCommission));
     }
 
     private void calculateAmountWithCommission() {
@@ -117,31 +114,31 @@ class Exchanger implements AmountFields.OnConversionFinishListener {
         final Coin fixedCommissionBtc = Coin.valueOf(Long.valueOf(commission));
 
         // percentage commission
-        final String percentage = getCommissionConfig("percentage", "");
-        final Integer commissionPerc = percentage.isEmpty() ? 0 : Integer.valueOf(percentage);
+        final Double percentage = 100.0 - Double.valueOf(getCommissionConfig("percentage", "0"));
+
 
         if (GaService.IS_ELEMENTS) {
-            final String amountBtcTxt = mAmountBtcEdit.getText().toString();
+            final String amountBtcTxt = UI.getText(mAmountBtcEdit);
 
             final Coin coin = amountBtcTxt.isEmpty() ? Coin.ZERO : UI.parseCoinValue(mService, amountBtcTxt);
 
-            final long amountBtcWithCommission = coin.getValue() * (100 - commissionPerc) / 100 - fixedCommissionBtc.getValue();
+            final double amountBtcWithCommission = coin.getValue() * percentage / 100.0 - fixedCommissionBtc.getValue();
 
-            final Coin amountWithCommission = Coin.valueOf(amountBtcWithCommission);
+            final Coin amountWithCommission = Coin.valueOf((long) amountBtcWithCommission);
 
             final String value = UI.formatCoinValue(mService, amountWithCommission);
             mAmountBtcWithCommission.setText(value);
             mAmountFiatWithCommission.setText(value);
         } else {
-            final float fixedCommissionFiat = convertBtcToFiat(fixedCommissionBtc);
+            final double fixedCommissionFiat = convertBtcToFiat(fixedCommissionBtc);
 
             // amount fiat
-            final String amountFiatTxt = mAmountFiatEdit.getText().toString();
+            final String amountFiatTxt = UI.getText(mAmountFiatEdit);
             boolean isValid = !amountFiatTxt.isEmpty();
-            float amountFiat = 0;
+            double amountFiat = 0;
             try {
                 if (isValid)
-                    amountFiat = Float.valueOf(amountFiatTxt);
+                    amountFiat = Double.valueOf(amountFiatTxt);
             } catch (final Exception e) {
                 isValid = false;
             }
@@ -151,7 +148,7 @@ class Exchanger implements AmountFields.OnConversionFinishListener {
                 mAmountFiatWithCommission.setText("0");
                 return;
             }
-            final float amountFiatWithCommission = (amountFiat / 100) * (100 - commissionPerc) - fixedCommissionFiat;
+            final double amountFiatWithCommission = (amountFiat / 100.0) * percentage - fixedCommissionFiat;
             if (amountFiatWithCommission < 0) {
                 mAmountBtcWithCommission.setText("0");
                 mAmountFiatWithCommission.setText("0");
@@ -160,13 +157,13 @@ class Exchanger implements AmountFields.OnConversionFinishListener {
             mAmountFiatWithCommission.setText(formatFiat(amountFiatWithCommission));
 
             // amount btc
-            final String amountBtcTxt = mAmountBtcEdit.getText().toString();
+            final String amountBtcTxt = UI.getText(mAmountBtcEdit);
             if (amountBtcTxt.isEmpty())
                 return;
 
             final Coin coin = UI.parseCoinValue(mService, amountBtcTxt);
-            final long amountBtcWithCommission = (coin.getValue() / 100) * (100 - commissionPerc) - fixedCommissionBtc.getValue();
-            final Coin amountWithCommission = Coin.valueOf(amountBtcWithCommission);
+            final double amountBtcWithCommission = coin.getValue() / 100.0 * percentage - fixedCommissionBtc.getValue();
+            final Coin amountWithCommission = Coin.valueOf((long) amountBtcWithCommission);
             mAmountBtcWithCommission.setText(UI.formatCoinValue(mService, amountWithCommission));
         }
 
@@ -179,12 +176,12 @@ class Exchanger implements AmountFields.OnConversionFinishListener {
         calculateAmountWithCommission();
     }
 
-    private float convertBtcToFiat(final Coin btcValue) {
+    private double convertBtcToFiat(final Coin btcValue) {
         try {
             Fiat fiatValue = mService.getFiatRate().coinToFiat(btcValue);
             // strip extra decimals (over 2 places) because that's what the old JS client does
             fiatValue = fiatValue.subtract(fiatValue.divideAndRemainder((long) Math.pow(10, Fiat.SMALLEST_UNIT_EXPONENT - 2))[1]);
-            return Float.valueOf(fiatValue.toPlainString());
+            return Double.valueOf(fiatValue.toPlainString());
         } catch (final ArithmeticException | IllegalArgumentException e) {
             return -1;
         }

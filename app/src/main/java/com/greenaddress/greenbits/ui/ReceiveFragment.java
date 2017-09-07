@@ -130,6 +130,14 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         else
             mView = inflater.inflate(R.layout.fragment_receive, container, false);
 
+        mAddressText = UI.find(mView, R.id.receiveAddressText);
+        mAddressImage = UI.find(mView, R.id.receiveQrImageView);
+        mCopyIcon = UI.find(mView, R.id.receiveCopyIcon);
+        mAmountEdit = UI.find(mView, R.id.sendAmountEditText);
+        mAmountFiatEdit = UI.find(mView, R.id.sendAmountFiatEditText);
+
+        final View amountFields = UI.find(mView, R.id.amountFields);
+
         mAmountFields = new AmountFields(getGAService(), getContext(), mView, this);
         if (savedInstanceState != null) {
             final Boolean pausing = savedInstanceState.getBoolean("pausing", false);
@@ -137,10 +145,6 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         }
 
         mReceiveAddressLayout = UI.find(mView, R.id.receiveAddressLayout);
-        mAddressText = UI.find(mView, R.id.receiveAddressText);
-        mAddressImage = UI.find(mView, R.id.receiveQrImageView);
-
-        mCopyIcon = UI.find(mView, R.id.receiveCopyIcon);
         UI.disable(mCopyIcon);
         mCopyIcon.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -195,8 +199,6 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
                 generateNewAddress();
             }
         });
-        mAmountEdit = UI.find(mView, R.id.sendAmountEditText);
-        mAmountFiatEdit = UI.find(mView, R.id.sendAmountFiatEditText);
 
         if (mIsExchanger) {
             setPageSelected(true);
@@ -207,13 +209,13 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
                 @Override
                 public void onClick(final View view) {
                     final String amountStr = UI.getText(mAmountFiatWithCommission);
-                    final float amount = Float.valueOf(amountStr);
+                    final double amount = Double.valueOf(amountStr);
                     if (amount > mExchanger.getFiatInBill()) {
                         UI.toast(getGaActivity(), R.string.noEnoughMoneyInPocket, Toast.LENGTH_LONG);
                         return;
                     }
-                    final String amountBtc = mAmountEdit.getText().toString();
-                    if (amountBtc.isEmpty() || Float.valueOf(amountBtc) <= 0) {
+                    final String amountBtc = UI.getText(mAmountEdit);
+                    if (amountBtc.isEmpty() || Double.valueOf(amountBtc) <= 0.0) {
                         UI.toast(getGaActivity(), R.string.invalidAmount, Toast.LENGTH_LONG);
                         return;
                     }
@@ -324,9 +326,10 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
             UI.clear(mAmountEdit, mAmountFiatEdit);
         if (mIsExchanger && GaService.IS_ELEMENTS) {
             // TODO: non-fiat / non-assets values
-            if (mAmountEdit.getText().toString().isEmpty())
+            final String amountText = UI.getText(mAmountEdit);
+            if (amountText.isEmpty())
                 return;
-            amount = (long) (Float.valueOf(mAmountEdit.getText().toString()) * 100);
+            amount = (long) (Double.valueOf(amountText) * 100);
         }
         mCurrentAddress = "";
         UI.disable(mCopyIcon);
@@ -615,8 +618,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
                                         matches = receivedOn.equals(currentBtcAddress);
                                     }
                                     if (matches) {
-                                        final float amountFiat = Float.valueOf(mExchanger.getAmountWithCommission());
-                                        mExchanger.buyBtc(amountFiat);
+                                        mExchanger.buyBtc(mExchanger.getAmountWithCommission());
                                         getGaActivity().toast(R.string.transactionCompleted);
                                         getGaActivity().finish();
                                     }

@@ -445,7 +445,7 @@ public class SendFragment extends SubaccountFragment {
                                                 gaActivity.requestPermissions(perms, permsRequestCode);
                                             } else {
                                                 final Intent qrcodeScanner = new Intent(gaActivity, ScanActivity.class);
-                                                qrcodeScanner.putExtra("sendAmount", mAmountEdit.getText().toString());
+                                                qrcodeScanner.putExtra("sendAmount", UI.getText(mAmountEdit));
                                                 int requestCode = TabbedMainActivity.REQUEST_SEND_QR_SCAN;
                                                 if (mIsExchanger)
                                                     requestCode = TabbedMainActivity.REQUEST_SEND_QR_SCAN_EXCHANGER;
@@ -840,7 +840,9 @@ public class SendFragment extends SubaccountFragment {
                     underLimits.mData.remove("ephemeral_privkeys");
                     underLimits.mData.remove("blinding_pubkeys");
                 }
-                service.requestTwoFacCode(method, ptx == null ? "send_raw_tx" : "send_tx", underLimits.mData);
+                final Map<String, Object> twoFactorData;
+                twoFactorData = underLimits == null ? null : underLimits.mData;;
+                service.requestTwoFacCode(method, ptx == null ? "send_raw_tx" : "send_tx", twoFactorData);
             }
         }
 
@@ -938,14 +940,15 @@ public class SendFragment extends SubaccountFragment {
     private void onTransactionSent() {
         final GaActivity gaActivity = getGaActivity();
 
+        if (gaActivity == null)
+            return; // App was paused/deleted while callback ran
+
         gaActivity.runOnUiThread(new Runnable() {
             public void run() {
                 UI.toast(gaActivity, R.string.transactionCompleted, Toast.LENGTH_LONG);
 
-                if (mIsExchanger) {
-                    final float fiatAmount = Float.valueOf(mAmountFiatEdit.getText().toString());
-                    mExchanger.sellBtc(fiatAmount);
-                }
+                if (mIsExchanger)
+                    mExchanger.sellBtc(Double.valueOf(UI.getText(mAmountFiatEdit)));
 
                 if (mFromIntentURI) {
                     gaActivity.finish();
@@ -997,7 +1000,13 @@ public class SendFragment extends SubaccountFragment {
         final GaActivity gaActivity = getGaActivity();
         final GaService service = getGAService();
         final List<JSONMap> usedUtxos = new ArrayList<>();
-        final Coin feeRate = GATx.getFeeEstimate(service, privateData.getBool("instant"));
+
+        final Coin feeRate;
+        try {
+           feeRate = GATx.getFeeEstimate(service, privateData.getBool("instant"));
+        } catch (final GAException e) {
+            return R.string.instantUnavailable;
+        }
 
         final Transaction tx = new Transaction(Network.NETWORK);
         tx.addOutput(amount, Address.fromBase58(Network.NETWORK, recipient));
@@ -1095,7 +1104,12 @@ public class SendFragment extends SubaccountFragment {
         final GaActivity gaActivity = getGaActivity();
 
         final List<JSONMap> usedUtxos = new ArrayList<>();
-        final Coin feeRate = GATx.getFeeEstimate(service, privateData.getBool("instant"));
+        final Coin feeRate;
+        try {
+            feeRate = GATx.getFeeEstimate(service, privateData.getBool("instant"));
+        } catch (final GAException e) {
+            return R.string.instantUnavailable;
+        }
 
         final ElementsTransaction tx = new ElementsTransaction(Network.NETWORK);
 
@@ -1220,7 +1234,7 @@ public class SendFragment extends SubaccountFragment {
             final byte[] rangeproof = Wally.asset_rangeproof(
                     out.getUnblindedValue(), out.getBlindingPubKey(), ephemeral,
                     out.getAssetId(), out.getAbf(), out.getVbf(),
-                    out.getCommitment(), out.getAssetTag()
+                    out.getCommitment(), null, out.getAssetTag(), 1
             );
             final byte[] surjectionproof = Wally.asset_surjectionproof(
                     out.getAssetId(), out.getAbf(), out.getAssetTag(),

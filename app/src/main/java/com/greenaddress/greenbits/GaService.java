@@ -136,7 +136,7 @@ public class GaService extends Service implements INotificationHandler {
 
     private final SparseArray<Coin> mCoinBalances = new SparseArray<>();
 
-    private Float mFiatRate;
+    private Double mFiatRate;
     private String mFiatCurrency;
     private String mFiatExchange;
     private JSONMap mLimitsData;
@@ -547,19 +547,17 @@ public class GaService extends Service implements INotificationHandler {
         return loginImpl(mClient.login(signingWallet, mDeviceId, mnemonic));
     }
 
-    private ListenableFuture<LoginData> signup(final ISigningWallet signingWallet,
-                                               final String mnemonic,
-                                               final byte[] pubkey, final byte[] chaincode,
-                                               final byte[] pathPubkey, final byte[] pathChaincode) {
+    public ListenableFuture<LoginData> signup(final ISigningWallet signingWallet,
+                                              final String mnemonic, final String userAgent,
+                                              final byte[] pubkey, final byte[] chaincode) {
         mState.transitionTo(ConnState.LOGGINGIN);
 
         return mExecutor.submit(new Callable<LoginData>() {
                    @Override
                    public LoginData call() throws Exception {
                        try {
-                           mClient.registerUser(signingWallet, mnemonic,
+                           mClient.registerUser(signingWallet, mnemonic, userAgent,
                                                 pubkey, chaincode,
-                                                pathPubkey, pathChaincode,
                                                 mDeviceId);
                            onPostLogin(mClient.getLoginData());
                            return mClient.getLoginData();
@@ -574,14 +572,8 @@ public class GaService extends Service implements INotificationHandler {
 
     public ListenableFuture<LoginData> signup(final String mnemonic) {
         final SWWallet sw = new SWWallet(mnemonic);
-        return signup(sw, mnemonic, sw.getMasterKey().getPubKey(),
-                      sw.getMasterKey().getChainCode(), null, null);
-    }
-
-    public ListenableFuture<LoginData> signup(final ISigningWallet signingWallet,
-                                              final byte[] pubkey, final byte[] chaincode,
-                                              final byte[] pathPubkey, final byte[] pathChaincode) {
-        return signup(signingWallet, null, pubkey, chaincode, pathPubkey, pathChaincode);
+        return signup(sw, mnemonic, /*agent*/ null, sw.getMasterKey().getPubKey(),
+                      sw.getMasterKey().getChainCode());
     }
 
     public String getMnemonic() {
@@ -660,7 +652,7 @@ public class GaService extends Service implements INotificationHandler {
         mCoinBalances.put(subAccount, data.getCoin("satoshi"));
 
         try {
-            mFiatRate = data.getFloat("fiat_exchange");
+            mFiatRate = data.getDouble("fiat_exchange");
         } catch (final java.lang.NumberFormatException e) {
             Log.d(TAG, "No exchange rate returned by server");
         }
@@ -855,6 +847,7 @@ public class GaService extends Service implements INotificationHandler {
                                             getBlindingPrivKey(v),
                                             v.getBytes("range_proof"),
                                             v.getBytes("commitment"),
+                                            null,
                                             v.getBytes("asset_tag"),
                                             unblinded);
                 final byte[] assetId = unblinded.get(0);
@@ -1008,10 +1001,13 @@ public class GaService extends Service implements INotificationHandler {
                 final Integer pointer = input.getInt("pointer");
                 final byte[] script = input.getBytes("script");
                 final byte[] scriptHash;
-                if (isSegwitEnabled())
+                final String addrType = input.get("addr_type");
+                if (addrType.equals("p2wsh"))
                     scriptHash = Utils.sha256hash160(getSegWitScript(script));
-                else
+                else if (addrType.equals("p2sh"))
                     scriptHash = Utils.sha256hash160(script);
+                else
+                    throw new IllegalArgumentException("Unknown address type " + addrType);
 
                 final ListenableFuture<Boolean> verify;
                 if (isWatchOnly())
@@ -1339,6 +1335,10 @@ public class GaService extends Service implements INotificationHandler {
                                   final Map<String, String> twoFacData) throws Exception {
         mClient.setSpendingLimits(limitsData, twoFacData);
         mLimitsData = limitsData;
+    }
+
+    public void sendNLocktime() throws Exception {
+        mClient.sendNLocktime();
     }
 
     public JSONMap getSpendingLimits() {

@@ -5,6 +5,7 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -261,6 +262,14 @@ public abstract class GaActivity extends AppCompatActivity {
                 }
                 break;
         }
+    }
+
+    protected boolean isPermissionGranted(final int[] granted, final int msgId) {
+        if (granted == null || granted.length == 0 || granted[0] != PackageManager.PERMISSION_GRANTED) {
+            shortToast(msgId);
+            return false;
+        }
+        return true;
     }
 
 }

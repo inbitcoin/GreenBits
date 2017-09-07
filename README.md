@@ -2,6 +2,11 @@
 
 Build status: [![Build Status](https://api.travis-ci.org/inbitcoin/altana-android.png?branch=master)](https://travis-ci.org/inbitcoin/altana-android)
 
+<a href="https://f-droid.org/packages/com.greenaddress.greenbits_android_wallet/" target="_blank">
+<img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="90"/></a>
+<a href="https://play.google.com/store/apps/details?id=com.greenaddress.greenbits_android_wallet" target="_blank">
+<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" alt="Get it on Google Play" height="90"/></a>
+
 ## Build requirements
 
 You need to have the following Android developer tools installed:
@@ -14,7 +19,7 @@ You need to have the following Android developer tools installed:
 
 The above tools can be installed from the Android SDK manager.
 
-altana-android uses [libwally](https://github.com/jgriffiths/libwally-core) which
+altana-android uses [libwally](https://github.com/ElementsProject/libwally-core) which
 requires the following to be installed for building:
 
 - [SWIG](http://www.swig.org/). Most Linux distributions have this packaged,
@@ -34,6 +39,11 @@ This step requires the environment variables `ANDROID_NDK` and `JAVA_HOME` to
 be set correctly.
 
 `cd app && ./prepare_libwally_clang.sh && cd ..`
+
+Alternately, if you don't wish to install the wally build dependencies,
+you can simply use the released pre-built libraries:
+
+`./app/fetch_libwally_binaries.sh`
 
 #### Build the Android app
 

@@ -24,7 +24,7 @@ public abstract class HWWallet extends ISigningWallet {
 
         // Generate a path for the challenge.
         // We use "GA" + 0xB11E as the child path as this allows btchip to skip HID auth.
-        final HWWallet child = (HWWallet) this.derive(0x4741b11e); // 0x4741 = Ascii G << 8 + A
+        final HWWallet child = (HWWallet) derive(0x4741b11e); // 0x4741 = Ascii G << 8 + A
 
         // Generate a message to sign from the challenge
         final String challenge = "greenaddress.it      login " + challengeString;
@@ -47,15 +47,13 @@ public abstract class HWWallet extends ISigningWallet {
     }
 
     private HWWallet getMyKey(final int subAccount) {
-        ISigningWallet parent = this;
         if (subAccount != 0)
-            parent = parent.derive(ISigningWallet.HARDENED | 3)
-                           .derive(ISigningWallet.HARDENED | subAccount);
-        return (HWWallet) parent;
+            return (HWWallet) derive(HARDENED | 3).derive(HARDENED | subAccount);
+        return this;
     }
 
     public byte[] getLocalEncryptionPassword() {
-        final byte[] pubkey = this.derive(PASSWORD_PATH).getPubKey().getPubKey();
+        final byte[] pubkey = derive(PASSWORD_PATH).getPubKey().getPubKey();
         return CryptoHelper.pbkdf2_hmac_sha512(pubkey, PASSWORD_SALT);
     }
 
@@ -70,5 +68,10 @@ public abstract class HWWallet extends ISigningWallet {
         // FIXME app crash on signMessage with ledger nano
         //return HDKey.deriveBitidKey(this, uri, index);
         throw new UnsupportedOperationException();
+    }
+
+    public byte[] getGAPath() {
+        final HWWallet hdkey = (HWWallet) derive(GA_PATH);
+        return extendedKeyToPath(hdkey.getPubKey().getPubKey(), hdkey.getPubKey().getChainCode());
     }
 }

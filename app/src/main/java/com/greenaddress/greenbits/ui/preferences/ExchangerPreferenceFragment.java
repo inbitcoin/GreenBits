@@ -25,6 +25,12 @@ public class ExchangerPreferenceFragment extends GAPreferenceFragment implements
     @Override
     public void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (mService == null) {
+            // Logged out, let our holding activity bounce us back to login
+            return;
+        }
+
         addPreferencesFromResource(R.xml.preference_exchanger);
         setHasOptionsMenu(true);
 
@@ -80,8 +86,8 @@ public class ExchangerPreferenceFragment extends GAPreferenceFragment implements
     private boolean commissionPerc(final String value) {
         if (value.isEmpty())
             return true;
-        final float floatValue = Float.valueOf(value);
-        if (floatValue < 0 || floatValue > 100) {
+        final double percentage = Double.valueOf(value);
+        if (percentage < 0.0 || percentage > 100.0) {
             UI.popup(getActivity(), R.string.enterValidValue, android.R.string.ok)
                     .content(R.string.enterValidPerc).build().show();
             return false;

@@ -10,6 +10,10 @@ AH_TOP([#ifndef LIBWALLYCORE_CONFIG_H
 AH_BOTTOM([#include "ccan_config.h"
 #endif /*LIBWALLYCORE_CONFIG_H*/])
 
+# Remove any optimisation/debug flags from CFLAGS, these are controlled
+# only by --enable-debug, in order to only use tested configurations
+CFLAGS=`echo $CFLAGS | sed 's/-[Og][0-9]*[ $$]*//'`
+
 LDPATH_VAR=LD_LIBRARY_PATH
 case $host_os in
 *darwin*)
@@ -23,20 +27,65 @@ AC_SUBST([LDPATH_VAR])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 LT_INIT([disable-static])
 
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
 AC_PROG_CC
 
-# Prefer gccs ar/ranlib as they handle flto files properly
-AC_CHECK_PROG(HAVE_GCC_AR,gcc-ar,yes,no)
-if test "x$HAVE_GCC_AR" == "xyes"; then
-    AR=gcc-ar
-    AC_SUBST([AR])
+# Prefer the compilers native ar/ranlib if available (to better handle lto)
+# We have to manually loop to test these as autoconf inexplicably does
+# not provide an AC_PATH_TOOLS macro for this purpose.
+candidate_ars="ar"
+candidate_ranlibs="ranlib"
+case $CC in
+*gcc*)
+    candidate_ars="gcc-ar ar"
+    candidate_ranlibs="gcc-ranlib ranlib"
+    ;;
+*clang*)
+    ver=$($CC --version | head -n 1 | cut -d' '  -f3 | cut -d'.' -f1,2)
+    candidate_ars="llvm-ar-$ver llvm-ar ar"
+    candidate_ranlibs="llvm-ranlib-$ver llvm-ranlib ranlib"
+    ;;
+esac
+
+if test "x$is_osx" == "xyes"; then
+    candidate_ars="libtool $candidate_ars"
+    CCDIR=`dirname $CC`
+    if test x"$CCDIR" != x"."; then
+        if test -x $CCDIR/libtool; then
+            # Use libtool from the same directory as our clang
+            AR=$CCDIR/libtool
+            candidate_ars=""
+        fi
+    fi
 fi
 
-AC_CHECK_PROG(HAVE_GCC_RANLIB,gcc-ranlib,yes,no)
-if test "x$HAVE_GCC_RANLIB" == "xyes"; then
-    RANLIB=gcc-ranlib
-    AC_SUBST([RANLIB])
+if test -n "$candidate_ars"; then
+    for candidate in $candidate_ars; do
+        AC_PATH_TOOL(AR, $candidate)
+        if test "x$HAVE_AR" == "xyes"; then
+            break
+        fi
+    done
 fi
+case $AR in
+*libtool)
+    ARFLAGS="-static -o"
+    AR_FLAGS="-static -o"
+    AC_SUBST([ARFLAGS])
+    AC_SUBST([AR_FLAGS])
+    ;;
+esac
+
+for candidate in $candidate_ranlibs; do
+    AC_PATH_TOOL(RANLIB, $candidate)
+    if test "x$HAVE_RANLIB" == "xyes"; then
+        break
+    fi
+done
+
+AC_SUBST([AR])
+AC_SUBST([RANLIB])
 
 GNU_SED=sed
 AC_CHECK_PROG(HAVE_GSED,gsed,yes,no)
@@ -58,8 +107,9 @@ AC_ARG_ENABLE(debug,
 AC_ARG_ENABLE(coverage,
     AS_HELP_STRING([--enable-coverage],[enable code coverage (default: no)]),
     [coverage=$enableval], [coverage=no])
-
-CFLAGS=`echo $CFLAGS | $GNU_SED -e 's/-O2//g' | $GNU_SED -e 's/-g//g'`
+AC_ARG_ENABLE(lto,
+    AS_HELP_STRING([--enable-lto],[enable link time optimisation (default: yes if not debugging)]),
+    [lto=$enableval], [lto=yes])
 
 AC_C_BIGENDIAN()
 AC_C_INLINE
@@ -87,28 +137,40 @@ else
     AX_CHECK_COMPILE_FLAG([-fstack-protector-strong], [AM_CFLAGS="$AM_CFLAGS -fstack-protector-strong"])
     AX_CHECK_COMPILE_FLAG([-DNDEBUG=1], [AM_CFLAGS="$AM_CFLAGS -DNDEBUG=1"])
     AX_CHECK_LINK_FLAG([-O3], [LDFLAGS="$LDFLAGS -O3"])
-    AX_CHECK_LINK_FLAG([-flto], [LDFLAGS="$LDFLAGS -flto"])
-    AX_CHECK_LINK_FLAG([-flto], [AM_CFLAGS="$AM_CFLAGS -flto"])
+    if test "x$lto" == "xyes"; then
+        AX_CHECK_LINK_FLAG([-flto], [LDFLAGS="$LDFLAGS -flto"])
+        AX_CHECK_LINK_FLAG([-flto], [AM_CFLAGS="$AM_CFLAGS -flto"])
+    fi
     AX_CHECK_LINK_FLAG([-Wl,-z,relro], [LDFLAGS="$LDFLAGS -Wl,-z,relro"])
 fi
 
 # -flax-vector-conversions is needed for our arm assembly
 AX_CHECK_COMPILE_FLAG([-flax-vector-conversions], [AM_CFLAGS="$AM_CFLAGS -flax-vector-conversions"])
+AX_CHECK_COMPILE_FLAG([-fno-strict-aliasing], [NOALIAS_CFLAGS="$AM_CFLAGS -fno-strict-aliasing $AM_CFLAGS"])
 
-AX_CHECK_COMPILE_FLAG([-Wall], [AM_CFLAGS="$AM_CFLAGS -Wall"])
-AX_CHECK_COMPILE_FLAG([-Wextra], [AM_CFLAGS="$AM_CFLAGS -Wextra"])
-AX_CHECK_COMPILE_FLAG([-Wpedantic], [AM_CFLAGS="$AM_CFLAGS -Wpedantic"])
-AX_CHECK_COMPILE_FLAG([-Wcast-align], [AM_CFLAGS="$AM_CFLAGS -Wcast-align"])
-AX_CHECK_COMPILE_FLAG([-Wnested-externs], [AM_CFLAGS="$AM_CFLAGS -Wnested-externs"])
-AX_CHECK_COMPILE_FLAG([-Wshadow], [AM_CFLAGS="$AM_CFLAGS -Wshadow"])
-AX_CHECK_COMPILE_FLAG([-Wstrict-prototypes], [AM_CFLAGS="$AM_CFLAGS -Wstrict-prototypes"])
+AX_CHECK_COMPILE_FLAG([-Wformat-nonliteral], [AM_CFLAGS="-Wformat-nonliteral $AM_CFLAGS"])
+AX_CHECK_COMPILE_FLAG([-Wformat-security], [AM_CFLAGS="-Wformat-security $AM_CFLAGS"])
+AX_CHECK_COMPILE_FLAG([-Wformat], [AM_CFLAGS="-Wformat $AM_CFLAGS"])
+AX_CHECK_COMPILE_FLAG([-Wstrict-prototypes], [AM_CFLAGS="-Wstrict-prototypes $AM_CFLAGS"])
+AX_CHECK_COMPILE_FLAG([-Wshadow], [AM_CFLAGS="-Wshadow $AM_CFLAGS"])
+AX_CHECK_COMPILE_FLAG([-Wnested-externs], [AM_CFLAGS="-Wnested-externs $AM_CFLAGS"])
+AX_CHECK_COMPILE_FLAG([-Wcast-align], [AM_CFLAGS="-Wcast-align $AM_CFLAGS"])
+AX_CHECK_COMPILE_FLAG([-Wpedantic], [AM_CFLAGS="-Wpedantic $AM_CFLAGS"])
+AX_CHECK_COMPILE_FLAG([-Wextra], [AM_CFLAGS="-Wextra $AM_CFLAGS"])
+AX_CHECK_COMPILE_FLAG([-Wall], [AM_CFLAGS="-Wall $AM_CFLAGS"])
+
+# Disable some unhelpful errors from those enabled above
 AX_CHECK_COMPILE_FLAG([-Wno-unused-function], [AM_CFLAGS="$AM_CFLAGS -Wno-unused-function"])
 AX_CHECK_COMPILE_FLAG([-Wno-long-long], [AM_CFLAGS="$AM_CFLAGS -Wno-long-long"])
 AX_CHECK_COMPILE_FLAG([-Wno-overlength-strings], [AM_CFLAGS="$AM_CFLAGS -Wno-overlength-strings"])
-AX_CHECK_COMPILE_FLAG([-Wformat], [AM_CFLAGS="$AM_CFLAGS -Wformat"])
-AX_CHECK_COMPILE_FLAG([-Wformat-security], [AM_CFLAGS="$AM_CFLAGS -Wformat-security"])
-AX_CHECK_COMPILE_FLAG([-Wformat-nonliteral], [AM_CFLAGS="$AM_CFLAGS -Wformat-nonliteral"])
-AX_CHECK_COMPILE_FLAG([-fno-strict-aliasing], [NOALIAS_CFLAGS="-fno-strict-aliasing"])
+AX_CHECK_COMPILE_FLAG([-Wno-variadic-macros], [AM_CFLAGS="$AM_CFLAGS -Wno-variadic-macros"])
+
+if [[ "$CC" == *"clang"* ]]; then
+    AX_CHECK_COMPILE_FLAG([-Wno-gnu-statement-expression], [AM_CFLAGS="$AM_CFLAGS -Wno-gnu-statement-expression"])
+    AX_CHECK_COMPILE_FLAG([-Wno-zero-length-array], [AM_CFLAGS="$AM_CFLAGS -Wno-zero-length-array"])
+    AX_CHECK_COMPILE_FLAG([-Wno-language-extension-token], [AM_CFLAGS="$AM_CFLAGS -Wno-language-extension-token"])
+    AX_CHECK_COMPILE_FLAG([-Wno-unknown-attributes], [AM_CFLAGS="$AM_CFLAGS -Wno-unknown-attributes"])
+fi
 AC_SUBST([NOALIAS_CFLAGS])
 
 # Under OSX the compiler accepts this flag but the linker then fails.
@@ -133,8 +195,9 @@ if test "x$export_all" != "xyes"; then
 fi
 
 # Assume we have no unaligned access if cross-compiling
-AC_RUN_IFELSE([AC_LANG_SOURCE([int main(void){static int a[2];return *((int*)(((char*)a)+1)) != 0;}])],
-              [AC_DEFINE([HAVE_UNALIGNED_ACCESS], 1, [Define if we have unaligned access])],,[foo=1])
+AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(void){static int a[2];return *((int*)(((char*)a)+1)) != 0;}]])],
+              have_unaligned=1, have_unaligned=0, have_unaligned=0)
+AC_DEFINE_UNQUOTED([HAVE_UNALIGNED_ACCESS], [$have_unaligned], [Define if we have unaligned access])
 
 if test "x$is_osx" != "xyes"; then
     # Assume we are using gcc (i.e. have this attribute) if cross-compiling
@@ -151,7 +214,7 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <stdlib.h>]],[[return posix_memalign(
 AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <string.h>]],[[int x[1]; memset_s(x, 1, 0, 1)]])],
                [AC_DEFINE(HAVE_MEMSET_S, 1, [Define if we have memset_s])])
 
-AC_CHECK_HEADERS([byteswap.h])
+AC_CHECK_HEADERS([byteswap.h, sys/mman.h])
 
 AX_PTHREAD([ac_have_pthread=yes], [ac_have_pthread=no])
 AM_CONDITIONAL([USE_PTHREAD], [test "x$ac_have_pthread" == "xyes"])
@@ -189,7 +252,7 @@ AC_SUBST([LIBADD_SECP256K1])
 #
 AX_PYTHON_DEVEL([>= '2.7.0'])
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != ""])
-AM_CONDITIONAL([RUN_PYTHON_TESTS], [test "x$pythonexists" == "xyes"])
+AM_CONDITIONAL([RUN_PYTHON_TESTS], [test "$PYTHON" != "" -a "x$pythonexists" == "xyes"])
 
 #
 # SWIG
@@ -209,13 +272,51 @@ if test "x$swig_python" == "xyes"; then
     AX_CHECK_COMPILE_FLAG([-DSWIG_PYTHON_BUILD=1], [AM_CFLAGS="$AM_CFLAGS -DSWIG_PYTHON_BUILD=1"])
 fi
 
+AC_ARG_ENABLE(js-wrappers,
+    AS_HELP_STRING([--enable-js-wrappers],[enable the Javascript interface wrappers (default: no)]),
+    [js_wrappers=$enableval], [js_wrappers=no])
+AM_CONDITIONAL([USE_JS_WRAPPERS], [test "x$js_wrappers" == "xyes"])
+
+if test "x$js_wrappers" == "xyes"; then
+    if test "x$pythonexists" != "xyes"; then
+        AC_MSG_FAILURE([ERROR: No usable python was found for generating js wrappers])
+    fi
+    if test "x$swig_python" != "xyes"; then
+        SWIG_PYTHON
+    fi
+    AX_CHECK_COMPILE_FLAG([-DSWIG_JAVASCRIPT_BUILD=1], [AM_CFLAGS="$AM_CFLAGS -DSWIG_JAVASCRIPT_BUILD=1"])
+    AC_CHECK_PROG(HAVE_NPM,npm,yes,no)
+    if test "x$HAVE_NPM" != "xyes"; then
+        AC_MSG_FAILURE([ERROR: No usable npm was found, please install npm before re-running])
+    fi
+    npm install --prefix ./src/wrap_js node-gyp nan tape big-integer
+fi
+
+# Set node-gyp flags regardless of  JS enablement; they are used for wrapper
+# generation which can be usefully run without enabling JS/requiring npm
+NODE_GYP_DIR="Release"
+if test "x$debug" == "xyes"; then
+    NODE_GYP_FLAGS="--debug"
+    NODE_GYP_DIR="Debug"
+fi
+AC_SUBST([NODE_GYP_FLAGS])
+AC_SUBST([NODE_GYP_DIR])
+
 AC_ARG_ENABLE(swig-java,
     AS_HELP_STRING([--enable-swig-java],[enable the SWIG java (JNI) interface (default: no)]),
     [swig_java=$enableval], [swig_java=no])
 AM_CONDITIONAL([USE_SWIG_JAVA], [test "x$swig_java" == "xyes"])
 
 if test "x$swig_java" == "xyes"; then
+    saved_JAVA_HOME=$JAVA_HOME
+    if test x"$cross_compiling" = "xyes"; then
+        # For cross compiling we assume the users host O/S Java install is not
+        # usable and that they have provided suitable FLAGS/LDFLAGS
+        JAVA_HOME=/does_not_exist
+    fi
+    export JAVA_HOME
     AX_JNI_INCLUDE_DIR
+    export JAVA_HOME=$saved_JAVA_HOME
     for JNI_DIR in $JNI_INCLUDE_DIRS; do
         SWIG_JAVA_CPPFLAGS="$SWIG_JAVA_CPPFLAGS -I$JNI_DIR"
     done
@@ -258,17 +359,32 @@ if test "x$enable_static" == "xyes"; then
 fi
 AC_SUBST([CTEST_EXTRA_STATIC])
 
+AM_CONDITIONAL([SHARED_BUILD_ENABLED], [test "x$enable_shared" == "xyes"])
+
 AC_CONFIG_FILES([
  Makefile
  src/Makefile
+ src/wallycore.pc
 ])
 
 secp_jni="--disable-jni"
 if test "x$swig_java" == "xyes"; then
     secp_jni="--enable-jni"
 fi
-ac_configure_args="${ac_configure_args} --disable-shared ${secp_jni} --with-pic --with-bignum=no --enable-experimental --enable-module-ecdh --enable-openssl-tests=no --disable-dependency-tracking"
-ac_configure_args="${ac_configure_args} --disable-shared ${secp_jni} --with-pic --with-bignum=no --enable-experimental --enable-module-ecdh --enable-module-rangeproof --enable-module-surjectionproof --enable-module-whitelist --enable-module-generator --enable-openssl-tests=no --enable-tests=no --disable-dependency-tracking"
+
+if test x"$cross_compiling" = "xyes"; then
+    # For cross compiling we assume the users host O/S Java install is not
+    # usable and that they have provided suitable FLAGS/LDFLAGS
+    export JAVA_HOME=/does_not_exist
+fi
+export CC
+export CFLAGS
+export AR
+export ARFLAGS
+export AR_FLAGS
+export LD
+export LDFLAGS
+ac_configure_args="${ac_configure_args} --disable-shared ${secp_jni} --with-pic --with-bignum=no --enable-experimental --enable-module-ecdh --enable-module-rangeproof --enable-module-surjectionproof --enable-module-whitelist --enable-module-generator --enable-openssl-tests=no --enable-tests=no --enable-exhaustive-tests=no --disable-dependency-tracking"
 AC_CONFIG_SUBDIRS([src/secp256k1])
 
 

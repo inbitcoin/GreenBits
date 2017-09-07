@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef WALLY_CORE_API
 # if defined(_WIN32)
 #  ifdef WALLY_CORE_BUILD
@@ -168,6 +172,10 @@ typedef void *(*wally_malloc_t)(
 typedef void (*wally_free_t)(
     void *ptr);
 
+/** The type of an overridable function to clear memory */
+typedef void (*wally_bzero_t)(
+    void *ptr, size_t len);
+
 /** The type of an overridable function to generate an EC nonce */
 typedef int (*wally_ec_nonce_t)(
     unsigned char *nonce32,
@@ -182,6 +190,7 @@ typedef int (*wally_ec_nonce_t)(
 struct wally_operations {
     wally_malloc_t malloc_fn;
     wally_free_t free_fn;
+    wally_bzero_t bzero_fn;
     wally_ec_nonce_t ec_nonce_fn;
 };
 
@@ -202,5 +211,9 @@ WALLY_CORE_API int wally_set_operations(
     const struct wally_operations *ops);
 
 #endif /* SWIG */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* WALLY_CORE_H */

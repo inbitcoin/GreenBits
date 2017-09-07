@@ -2,6 +2,7 @@
 from setuptools import setup
 from setuptools import Distribution
 import os
+import platform
 import subprocess
 from distutils.command.build_clib import build_clib as _build_clib
 
@@ -17,14 +18,17 @@ class build_clib(_build_clib):
                     './configure --enable-swig-python',
                     'make'):
             subprocess.check_call(cmd.split(' '), cwd=abs_path)
+        if platform.system() == 'Darwin':
+            cmd = 'cp src/.libs/libwallycore.dylib src/.libs/libwallycore.so'
+            subprocess.check_call(cmd.split(' '), cwd=abs_path)
 
 setup(
     name='wallycore',
 
-    version='0.2.0',
+    version='0.4.0',
     description='libwally Bitcoin library',
     long_description='Python bindings for the libwally Bitcoin library',
-    url='https://github.com/jgriffiths/libwally-core',
+    url='https://github.com/ElementsProject/libwally-core',
     author='Jon Griffiths',
     author_email='jon_p_griffiths@yahoo.com',
     license='MIT',
