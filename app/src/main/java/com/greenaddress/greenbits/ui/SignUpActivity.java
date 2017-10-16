@@ -5,22 +5,30 @@ import android.app.Dialog;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.v7.widget.GridLayout;
 import android.support.v7.widget.Toolbar;
 import android.text.method.LinkMovementMethod;
+import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.CheckBox;
 import android.widget.ImageView;
+import android.widget.Space;
 import android.widget.TextView;
 
 import com.afollestad.materialdialogs.MaterialDialog;
@@ -31,6 +39,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.greenaddress.greenapi.LoginData;
 import com.greenaddress.greenbits.NfcWriteMnemonic;
+import com.journeyapps.barcodescanner.Util;
+import com.wefika.flowlayout.FlowLayout;
 
 import java.util.ArrayList;
 import java.util.Currency;
@@ -67,6 +77,10 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     private Boolean mFromSettingsPage = false;
 
     private String mMnemonic;
+    /** text size in SP */
+    private final static int WORDS_TEXT_SIZE = 14;
+    /** padding in pixel */
+    private final static int WORDS_PADDING = 5;
 
     @Override
     protected int getMainViewId() { return R.layout.activity_sign_up; }
@@ -89,7 +103,11 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         mContinueButton = UI.find(this, R.id.signupContinueButton);
         mNfcSignupIcon = UI.find(this, R.id.signupNfcIcon);
 
-        mMnemonic = mService.getSignUpMnemonic();
+        if (mFromSettingsPage) {
+            mMnemonic = mService.getMnemonic();
+        } else {
+            mMnemonic = mService.getSignUpMnemonic();
+        }
         mMnemonicText.setText(mMnemonic.replace(" ", "  "));
 
         if (mOnSignUp != null) {
@@ -180,13 +198,8 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     }
 
     private void onContinueButtonClicked() {
-        if (mFromSettingsPage) {
-            mService.cfg().edit().putBoolean("backup_done", true).apply();
-            finish();
-            return;
-        }
         int errorId = 0;
-        if (!mService.isConnected())
+        if (!mService.isConnected() && !mService.isLoggedOrLoggingIn())
             errorId = R.string.notConnected;
         //else if (!mAcceptCheckBox.isChecked())
         //    errorId = R.string.securePassphraseMsg;
@@ -201,6 +214,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         mContinueButton.setIndeterminateProgressMode(true);
         mContinueButton.setProgress(50);
         //UI.hide(mMnemonicText, mQrCodeIcon);
+        mMnemonicText.setVisibility(View.INVISIBLE);
 
         // Create a random shuffle of word orders; the user will be asked
         // to verify the first VERIFY_COUNT words.
@@ -209,7 +223,6 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         for (int i = 0; i < mChoiceIsValid.length; ++i)
             mChoiceIsValid[i] = false;
 
-        /*
         // Show the verification dialog
         final View v = getLayoutInflater().inflate(R.layout.dialog_verify_words, null, false);
         mVerifyDialog = new MaterialDialog.Builder(SignUpActivity.this)
@@ -218,20 +231,121 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
                 .titleColorRes(R.color.textColor)
                 .contentColorRes(android.R.color.white)
                 .theme(Theme.LIGHT)
+                .negativeText(R.string.cancel)
                 .build();
         UI.setDialogCloseHandler(mVerifyDialog, mVerifyDialogCB, false);
         final String[] words = mMnemonic.split(" ");
-        setupWord(v, R.id.verify_label_1, R.id.verify_word_1, words, 0);
-        setupWord(v, R.id.verify_label_2, R.id.verify_word_2, words, 1);
-        setupWord(v, R.id.verify_label_3, R.id.verify_word_3, words, 2);
-        setupWord(v, R.id.verify_label_4, R.id.verify_word_4, words, 3);
-        mVerifyDialog.show();
-        */
+
+        final int index0 = mWordChoices.get(0);
+        final int index1 = mWordChoices.get(1);
+        final int index2 = mWordChoices.get(2);
+        final int index3 = mWordChoices.get(3);
+        final FlowLayout flowLayout = UI.find(v, R.id.flowLayout);
+        flowLayout.setGravity(Gravity.CENTER);
+        int col = 0;
+        boolean firstFound = false;
+        FlowLayout.LayoutParams params = new FlowLayout.LayoutParams(FlowLayout.LayoutParams.WRAP_CONTENT,
+                FlowLayout.LayoutParams.WRAP_CONTENT);
+
+        ArrayList <AutoCompleteTextView> autoCompleteTextViewList = new ArrayList<>();
+        for (int i = 0; i < 24; ++i) {
+            if (col == 3)
+                col = 0;
+            boolean first = false;
+            if (i == index0) {
+                if (!firstFound) {
+                    first = true;
+                    firstFound = true;
+                }
+                autoCompleteTextViewList.add(setupWord(words[i], flowLayout, 0, first));
+            } else if (i == index1) {
+                if (!firstFound) {
+                    first = true;
+                    firstFound = true;
+                }
+                autoCompleteTextViewList.add(setupWord(words[i], flowLayout, 1, first));
+            } else if (i == index2) {
+                if (!firstFound) {
+                    first = true;
+                    firstFound = true;
+                }
+                autoCompleteTextViewList.add(setupWord(words[i], flowLayout, 2, first));
+            } else if (i == index3) {
+                if (!firstFound) {
+                    first = true;
+                    firstFound = true;
+                }
+                autoCompleteTextViewList.add(setupWord(words[i], flowLayout, 3, first));
+            } else {
+                final AutoCompleteTextView textView = new AutoCompleteTextView(this);
+                textView.setText(words[i]);
+                textView.setFocusable(false);
+                textView.setBackgroundColor(Color.TRANSPARENT);
+                textView.setTextSize(WORDS_TEXT_SIZE);
+                textView.setSingleLine();
+                textView.setTextColor(getResources().getColor(R.color.secondaryTextColor));
+
+                float density = getResources().getDisplayMetrics().density;
+                int paddingDp = (int)(WORDS_PADDING * density);
+
+                textView.setPadding(textView.getPaddingLeft() + paddingDp, textView.getPaddingTop(),
+                        textView.getPaddingRight() + paddingDp, textView.getPaddingBottom());
+                textView.setLayoutParams(params);
+                //final GridLayout.Spec spec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+                //final GridLayout.LayoutParams param = new GridLayout.LayoutParams(spec, spec);
+                //textView.setLayoutParams(param);
+                /*if (col == 0)
+                    textView.setGravity(Gravity.CENTER | Gravity.END);
+                else if (col == 1)*/
+                    textView.setGravity(Gravity.CENTER);
+                //else
+                //    textView.setGravity(Gravity.CENTER | Gravity.START);
+                flowLayout.addView(textView);
+            }
+            //final TextView space = new TextView(this);
+            //space.setPadding(20,0,20,0);
+            //space.setLayoutParams(params);
+            //flowLayout.addView(space);
+            col++;
+            /*setupWord(v, R.id.verify_label_2, R.id.verify_word_2, words, 1);
+            setupWord(v, R.id.verify_label_3, R.id.verify_word_3, words, 2);
+            setupWord(v, R.id.verify_label_4, R.id.verify_word_4, words, 3);*/
+        }
+
+        setUniqueId(autoCompleteTextViewList.get(0));
+        setUniqueId(autoCompleteTextViewList.get(1));
+        setUniqueId(autoCompleteTextViewList.get(2));
+        setUniqueId(autoCompleteTextViewList.get(3));
+        autoCompleteTextViewList.get(0).setNextFocusForwardId(autoCompleteTextViewList.get(1).getId());
+        autoCompleteTextViewList.get(1).setNextFocusForwardId(autoCompleteTextViewList.get(2).getId());
+        autoCompleteTextViewList.get(2).setNextFocusForwardId(autoCompleteTextViewList.get(3).getId());
+
+        UI.showDialog(mVerifyDialog, true);
         // TODO FIXME temp code, verification will be enabled in the future
-        onMnemonicVerified();
+        //onMnemonicVerified();
+    }
+
+    private void setUniqueId(final View view) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            int id = 0;
+            View v;
+            do {
+                ++id;
+                v = findViewById(id);
+            } while (v != null);
+            view.setId(id);
+        } else {
+            view.setId(View.generateViewId());
+            Log.d("TEMP_", "ID: " + view.getId());
+        }
     }
 
     private void onMnemonicVerified() {
+        if (mFromSettingsPage) {
+            mService.cfg().edit().putBoolean("backup_done", true).apply();
+            finish();
+            return;
+        }
         mOnSignUp = mService.signup(mMnemonic);
         Futures.addCallback(mOnSignUp, new FutureCallback<LoginData>() {
             @Override
@@ -364,15 +478,33 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         }
     }
 
-    void setupWord(final View v, final int labelId, final int spinnerId,
-                   final String[] words, final int index) {
-        final int wordIndex = mWordChoices.get(index);
-        final String validWord = words[wordIndex];
+    private AutoCompleteTextView setupWord(final String validWord, final FlowLayout flowLayout, final int index, final boolean first)  {
+        final AutoCompleteTextView text = new AutoCompleteTextView(this);
+        //final GridLayout.Spec spec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        //final GridLayout.LayoutParams param = new GridLayout.LayoutParams(spec, spec);
+        //text.setLayoutParams(param);
+        text.setGravity(Gravity.CENTER);
+        text.setSingleLine();
+        float density = getResources().getDisplayMetrics().density;
+        int paddingDp = (int)(WORDS_PADDING * density);
 
-        final TextView label = UI.find(v, labelId);
-        final AutoCompleteTextView text = UI.find(v, spinnerId);
+        text.setPadding(text.getPaddingLeft() + paddingDp, text.getPaddingTop(),
+                text.getPaddingRight() + paddingDp, text.getPaddingBottom());
 
-        label.setText(getString(R.string.hash_number, wordIndex + 1));
+        int px = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, WORDS_TEXT_SIZE, getResources().getDisplayMetrics());
+        text.setWidth((px * validWord.length()) + paddingDp);  // FIXME: calcolo empirico
+        text.setDropDownWidth(px * validWord.length() + paddingDp + 100);
+
+        text.setTextSize(WORDS_TEXT_SIZE);
+        //text.setText(validWord);
+        if (first)
+            text.requestFocus();
+
+        FlowLayout.LayoutParams params = new FlowLayout.LayoutParams(FlowLayout.LayoutParams.WRAP_CONTENT,
+                FlowLayout.LayoutParams.WRAP_CONTENT);
+        text.setLayoutParams(params);
+
+        flowLayout.addView(text);
         final ArrayAdapter<String> adapter;
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, MnemonicHelper.mWordsArray);
         text.setAdapter(adapter);
@@ -381,27 +513,34 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
             @Override
             public void onTextChanged(final CharSequence t, final int start,
                                       final int before, final int count) {
-                final AutoCompleteTextView tv = UI.find(v, spinnerId);
-                onWordChanged(label, tv, index, validWord, true);
+                final AutoCompleteTextView tv = text;
+                onWordChanged(tv, index, validWord, true);
             }
         });
         text.setOnItemClickListener(new OnItemClickListener() {
             @Override
             public void onItemClick(final AdapterView<?> parent, final View view, final int position, final long id) {
-                final AutoCompleteTextView tv = UI.find(v, spinnerId);
-                onWordChanged(label, tv, index, validWord, false);
+                final AutoCompleteTextView tv = text;
+                onWordChanged(text, index, validWord, false);
             }
         });
+        return text;
     }
 
-    private void onWordChanged(final TextView label, final AutoCompleteTextView text,
+    private void onWordChanged(final AutoCompleteTextView text,
                                final int index, final String validWord, final boolean isTextChange) {
         if (isTextChange && text.isPerformingCompletion())
             return; // Let the call from onItemClick handle it
         final boolean isValid = UI.getText(text).equals(validWord);
         mChoiceIsValid[index] = isValid;
         if (isValid) {
-            UI.hide(label, text);
+            //UI.hide(label, text);
+            text.dismissDropDown();
+            if (text.getNextFocusForwardId() != View.NO_ID) {
+                View nextElement = UI.find((View) text.getParent(), text.getNextFocusForwardId());
+                nextElement.requestFocus();
+            }
+            UI.disable(text);
             if (areAllChoicesValid())
                 UI.dismiss(this, mVerifyDialog); // Dismiss callback will continue
         }
