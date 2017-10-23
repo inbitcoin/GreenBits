@@ -33,6 +33,7 @@ public class SetEmailActivity extends GaActivity {
     private ProgressBar mProgressBar;
     private EditText mCodeText;
     private Activity mActivity;
+    private TextView mRecapEmail;
 
     private void setView(final int id) {
         setContentView(id);
@@ -40,6 +41,7 @@ public class SetEmailActivity extends GaActivity {
         mPromptText = UI.find(this, R.id.prompt);
         mProgressBar = UI.find(this, R.id.progressBar);
         mCodeText = UI.find(this, R.id.code);
+        mRecapEmail = UI.find(this, R.id.recapEmail);
     }
 
     private String getTypeString(final String fmt, final String type) {
@@ -59,13 +61,13 @@ public class SetEmailActivity extends GaActivity {
         mEnabledMethods = mService.getEnabledTwoFactorMethods();
         switch (mEnabledMethods.size()) {
             case 0:
-                mNumSteps = 2;
-                break;
-            case 1:
                 mNumSteps = 3;
                 break;
-            default:
+            case 1:
                 mNumSteps = 4;
+                break;
+            default:
+                mNumSteps = 5;
         }
         Log.d(TAG, "numSteps: " + mNumSteps);
         showProvideEmailAddress();
@@ -268,9 +270,29 @@ public class SetEmailActivity extends GaActivity {
                                     // Ignore, user can send again if email fails to arrive
                                     Log.e(TAG, "sendNLocktime: " + e.getMessage());
                                 }
-                                finishOnUiThread();
+                                showRecap(stepNum + 1);
                             }
                         });
+            }
+        });
+    }
+
+    private void showRecap(final int stepNum) {
+        Log.d(TAG, "Start showRecap");
+
+        runOnUiThread(new Runnable() {
+            public void run() {
+                setView(R.layout.activity_set_email_recap);
+                mRecapEmail.setText(mNewEmailAddress);
+                mProgressBar.setProgress(stepNum);
+                mProgressBar.setMax(mNumSteps);
+
+                mContinueButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(final View v) {
+                        finishOnUiThread();
+                    }
+                });
             }
         });
     }
