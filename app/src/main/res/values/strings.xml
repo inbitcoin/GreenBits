@@ -462,6 +462,10 @@
     <string name="login_failed">Login failed</string>
     <string name="no_change_email">You can\'t change your email address while you have email 2FA enabled</string>
     <string name="hideNoEmailWarning">Hide email warning</string>
+    <string name="emailRecapShowAddress">The setted up email address is</string>
+    <string name="emailRecapTransactionsRecoveryEmails">You will receive now an email with transactions recovery. After every transaction (sent and received) you will receive by email the updated version of transactions recovery. Do not delete them</string>
+    <string name="emailRecapTransactionsRecoveryWhy">You will need recovery data only if the service provider GreenAddress will cancel the service without notice</string>
+    <string name="iGetIt">I get it</string>
     <string name="networkFee">Network fee</string>
     <string name="feePriorityHurry">In a hurry</string>
     <string name="forcedRbf">RBF is required for economic and custom and will be enabled for this transition</string>
