@@ -255,6 +255,13 @@ public class SetEmailActivity extends GaActivity {
                                 setResult(RESULT_OK);
                                 // Update 2FA setting in whole app
                                 mService.getAvailableTwoFactorMethods();
+                                // Send nLockTime email now
+                                try {
+                                    mService.sendNLocktime();
+                                } catch (final Exception e) {
+                                    // Ignore, user can send again if email fails to arrive
+                                    Log.e(TAG, "sendNLocktime: " + e.getMessage());
+                                }
                                 finishOnUiThread();
                             }
                         });
