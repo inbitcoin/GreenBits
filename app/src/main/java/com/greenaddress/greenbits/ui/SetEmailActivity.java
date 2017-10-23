@@ -1,5 +1,6 @@
 package com.greenaddress.greenbits.ui;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -9,6 +10,7 @@ import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -30,6 +32,7 @@ public class SetEmailActivity extends GaActivity {
     private TextView mPromptText;
     private ProgressBar mProgressBar;
     private EditText mCodeText;
+    private Activity mActivity;
 
     private void setView(final int id) {
         setContentView(id);
@@ -46,6 +49,7 @@ public class SetEmailActivity extends GaActivity {
     @Override
     protected void onCreateWithService(final Bundle savedInstanceState) {
 
+        mActivity = this;
         if (mService.getTwoFactorConfig() == null) {
             finish();
             return;
@@ -243,8 +247,10 @@ public class SetEmailActivity extends GaActivity {
             @Override
             public void onClick(final View v) {
                 final String enteredCode = UI.getText(mCodeText).trim();
-                if (enteredCode.length() != 6)
+                if (enteredCode.length() != 6) {
+                    UI.toast(mActivity, R.string.err_code_wrong_length, Toast.LENGTH_LONG);
                     return;
+                }
                 // Print update 2fa config
                 Log.d(TAG, "2fa config: " + mService.getTwoFactorConfig());
                 mContinueButton.setEnabled(false);

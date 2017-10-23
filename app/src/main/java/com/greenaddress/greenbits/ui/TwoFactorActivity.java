@@ -1,5 +1,6 @@
 package com.greenaddress.greenbits.ui;
 
+import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -14,6 +15,7 @@ import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.greenaddress.greenbits.QrBitmap;
 import com.google.common.collect.ImmutableMap;
@@ -32,6 +34,7 @@ public class TwoFactorActivity extends GaActivity {
     private TextView mPromptText;
     private ProgressBar mProgressBar;
     private EditText mCodeText;
+    private Activity mActivity;
 
     private void setView(final int id) {
         setContentView(id);
@@ -48,6 +51,7 @@ public class TwoFactorActivity extends GaActivity {
     @Override
     protected void onCreateWithService(final Bundle savedInstanceState) {
 
+        mActivity = this;
         if (mService.getTwoFactorConfig() == null) {
             finish();
             return;
@@ -245,8 +249,10 @@ public class TwoFactorActivity extends GaActivity {
             @Override
             public void onClick(final View v) {
                 final String enteredCode = UI.getText(mCodeText).trim();
-                if (enteredCode.length() != 6)
+                if (enteredCode.length() != 6) {
+                    UI.toast(mActivity, R.string.err_code_wrong_length, Toast.LENGTH_LONG);
                     return;
+                }
                 mContinueButton.setEnabled(false);
                 CB.after(mService.enableTwoFactor(mMethod, enteredCode, null),
                          new CB.Toast<Boolean>(TwoFactorActivity.this, mContinueButton) {

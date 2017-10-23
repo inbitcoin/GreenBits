@@ -170,6 +170,9 @@
     <string name="err_mnemonic_activity_logout_required">Occure fare il logout prima dell\'accesso.</string>
     <string name="err_mnemonic_activity_invalid_mnemonic">Frase mnemonica invalida (deve essere di 24 o 27 parole)</string>
     <string name="err_pin_save_wrong_length">Il PIN deve essere tra 4 e 15 numeri</string>
+    <string name="all">Tutto</string>
+    <string name="err_code_wrong_length">Il codice deve essere di 6 cifre</string>
+    <string name="send_max_amount">TOTALE</string>
     <string name="send_all">TOTALE</string>
     <string name="err_sign_up_nfc_not_writable">Errore: tag nfc non scrivibile</string>
     <string name="err_sign_up_nfc_too_small">Errore: tag nfc troppo piccola</string>
@@ -198,7 +201,7 @@
     <string name="remember_warn_content">Lasciare il nome utente sul dispositivo potrebbe essere un problema; se qualcuno ha accesso alla vostra memoria potrebbe leggere il vostro nome utente in chiaro. Se decidi di continuare premi "OK".</string>
     <string name="generating_address">Generazione indirizzo…</string>
     <string name="loading_transactions">Caricamento transazioni…</string>
-    <string name="transactionSubmitted">Transazione inviata con successo</string>
+    <string name="transactionCompleted">Transazione completata con successo</string>
     <string name="unable_to_connect_to_service">GreenBits non riesce a collegarsi, per favore verifica la connessione a internet</string>
     <string name="nfcDialogMessage">Tieni la tag NFC vicino al dispositivo</string>
     <string name="securePassphraseMsg">Metti al sicuro la passphrase e conferma di accettare i Termini di Servizio</string>
@@ -271,6 +274,11 @@
   <string name="login_failed">Login fallito</string>
   <string name="no_change_email">Non puoi cambiare l\'indirizzo email mentre l\'autenticazione a due fattori via email è attiva</string>
   <string name="hideNoEmailWarning">Nascondi avviso email</string>
+  <string name="emailRecapShowAddress">L\'indirizzo email è stato impostato a</string>
+  <string name="emailRecapTransactionsRecoveryEmails">Ora riceverai un\'email con le transazioni di recupero. Dopo ogni transazione (inviata o ricevuta) riceverai la versione aggiornata delle transazioni di recupero. Non cancellarle</string>
+  <string name="emailRecapTransactionsRecoveryWhy">Le transazioni di recupero servono solo nel caso in cui il fornitore del servizio GreenAddress dismetta il servizio senza preavviso</string>
+  <string name="iGetIt">Ho capito</string>
+  <string name="transactionSubmitted">Transazione inviata con successo</string>
     <string name="networkFee">Spese network</string>
     <string name="feePriorityHurry">Ho fretta</string>
     <string name="forcedRbf">RBF è necessario per le transazioni economiche e custom, verrà abilitato per questa transazione</string>
