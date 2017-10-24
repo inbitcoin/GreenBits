@@ -17,6 +17,7 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.common.primitives.Booleans;
 import com.greenaddress.greenbits.QrBitmap;
 import com.google.common.collect.ImmutableMap;
 
@@ -35,6 +36,7 @@ public class TwoFactorActivity extends GaActivity {
     private ProgressBar mProgressBar;
     private EditText mCodeText;
     private Activity mActivity;
+    private Map<?, ?> mTwoFactorConfig;
 
     private void setView(final int id) {
         setContentView(id);
@@ -52,7 +54,8 @@ public class TwoFactorActivity extends GaActivity {
     protected void onCreateWithService(final Bundle savedInstanceState) {
 
         mActivity = this;
-        if (mService.getTwoFactorConfig() == null) {
+        mTwoFactorConfig = mService.getTwoFactorConfig();
+        if (mTwoFactorConfig == null) {
             finish();
             return;
         }
@@ -114,8 +117,15 @@ public class TwoFactorActivity extends GaActivity {
         final String type = getString(resId);
 
         mPromptText.setText(getTypeString(UI.getText(mPromptText), type));
-        if (!isEmail) {
-            UI.hide(UI.find(this, R.id.emailNotices));
+        if (isEmail) {
+            final String emailAddr = (String) mTwoFactorConfig.get("email_addr");
+            if (emailAddr != null) {
+                detailsText.setText(emailAddr);
+                // TODO: avoid the email change if the email is confirmed?
+                // final Boolean emailConfirmed = (Boolean) mTwoFactorConfig.get("email_confirmed");
+            }
+        } else {
+            UI.hide((View) UI.find(this, R.id.emailNotices));
             detailsText.setHint(R.string.twoFacPhoneHint);
         }
 
