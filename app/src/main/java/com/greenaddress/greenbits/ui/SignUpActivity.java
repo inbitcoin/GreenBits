@@ -189,7 +189,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
 
         mContinueButton.setIndeterminateProgressMode(true);
         mContinueButton.setProgress(50);
-        UI.hide(mMnemonicText, mQrCodeIcon);
+        //UI.hide(mMnemonicText, mQrCodeIcon);
 
         // Create a random shuffle of word orders; the user will be asked
         // to verify the first VERIFY_COUNT words.
@@ -198,6 +198,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         for (int i = 0; i < mChoiceIsValid.length; ++i)
             mChoiceIsValid[i] = false;
 
+        /*
         // Show the verification dialog
         final View v = getLayoutInflater().inflate(R.layout.dialog_verify_words, null, false);
         mVerifyDialog = new MaterialDialog.Builder(SignUpActivity.this)
@@ -214,6 +215,9 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         setupWord(v, R.id.verify_label_3, R.id.verify_word_3, words, 2);
         setupWord(v, R.id.verify_label_4, R.id.verify_word_4, words, 3);
         mVerifyDialog.show();
+        */
+        // TODO FIXME temp code, verification will be enabled in the future
+        onMnemonicVerified();
     }
 
     private void onMnemonicVerified() {
