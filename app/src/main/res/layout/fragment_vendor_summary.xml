@@ -156,6 +156,32 @@
         </RelativeLayout>
     </LinearLayout>
 
+    <LinearLayout
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/priority_label" />
+
+        <Spinner
+            android:id="@+id/feeTargetCombo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <EditText
+            android:id="@+id/feerateTextEdit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/textColor"
+            android:hint="@string/sat_per_kb"
+            android:inputType="numberDecimal" />
+
+    </LinearLayout>
+
     <com.dd.CircularProgressButton
         android:id="@+id/sendSendButton"
         style="@style/myButtonCircle"

@@ -293,6 +293,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
         // Transaction priority, i.e. default fees
         final ListPreference defaultTxPriority = find("default_tx_priority");
+        getPreferenceScreen().removePreference(defaultTxPriority);
         if (GaService.IS_ELEMENTS)
             removePreference(defaultTxPriority);
         else {
@@ -317,6 +318,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
         // Default custom feerate
         mFeeRate = find("default_feerate");
+        getPreferenceScreen().removePreference(mFeeRate);
         if (GaService.IS_ELEMENTS)
             removePreference(mFeeRate);
         else {
