@@ -227,6 +227,8 @@
     <string name="total">Totale</string>
     <string name="sellBitcoin">Vendi bitcoin</string>
     <string name="sweep_wait_message">Questa operazione può richiedere alcuni secondi…</string>
+  <string name="sweep_are_you_sure">Sei sicuro di voler prelevare <b>tutti</b> i fondi (%s) da questo indirizzo?</string>
+  <string name="sweep_bip38_are_you_sure">Sei sicuro di voler prelevare <b>tutti</b> i fondi da questa chiave BIP38 protetta da password?</string>
     <string name="sharedVia">Condiviso via</string>
     <string name="shareAddress">Condividi</string>
     <string name="action_sweep">Leggi paperwallet</string>

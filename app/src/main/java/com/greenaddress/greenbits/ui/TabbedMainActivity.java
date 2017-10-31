@@ -591,14 +591,16 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                             for (final TransactionOutput output : txNonBip38.getOutputs())
                                 outputsValue = outputsValue.add(output.getValue());
                             final String valueStr = formatValuePostfix(outputsValue);
-                            mainText.setText(Html.fromHtml("Are you sure you want to sweep <b>all</b> ("
-                                    + valueStr + ") funds from the address below?"));
+                            final String areYouSureText = String.format(
+                                    getResources().getText(R.string.sweep_are_you_sure).toString(),
+                                    valueStr);
+                            mainText.setText(Html.fromHtml(areYouSureText));
                             address = keyNonBip38.toAddress(Network.NETWORK).toString();
                         } else {
                             passwordPrompt.setText(R.string.sweep_bip38_passphrase_prompt);
                             txNonBip38 = null;
                             // amount not known until decrypted
-                            mainText.setText(Html.fromHtml("Are you sure you want to sweep <b>all</b> funds from the password protected BIP38 key below?"));
+                            mainText.setText(Html.fromHtml(getResources().getText(R.string.sweep_bip38_are_you_sure).toString()));
                             address = qrText;
                         }
 

@@ -412,6 +412,8 @@
     <string name="enter_matching_words">Enter The Matching Words</string>
     <string name="hash_number"># %1$d</string>
     <string name="sweep_wait_message">This operation may take several seconds…</string>
+    <string name="sweep_are_you_sure">Are you sure you want to sweep <b>all</b> funds (%s) from the address below?</string>
+    <string name="sweep_bip38_are_you_sure">Are you sure you want to sweep <b>all</b> funds from the password protected BIP38 key below?</string>
     <string name="doubleTilde" translatable="false">≈</string>
     <string name="sharedVia">Shared via</string>
     <string name="shareAddress">Share</string>
