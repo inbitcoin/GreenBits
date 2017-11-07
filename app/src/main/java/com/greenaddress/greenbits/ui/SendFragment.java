@@ -209,7 +209,7 @@ public class SendFragment extends SubaccountFragment {
                 mRecipientEdit.setText(URI.getAddress().toString());
                 amount = URI.getAmount();
             }
-            if (amount == null)
+            if (amount == null || amount.isZero() || amount.isNegative())
                 return;
 
             final Coin uriAmount = amount;
