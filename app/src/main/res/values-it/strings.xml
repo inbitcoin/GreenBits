@@ -271,4 +271,5 @@
   <string name="hideNoEmailWarning">Nascondi avviso email</string>
     <string name="networkFee">Spese network</string>
     <string name="feePriorityEco">Economiche</string>
+    <string name="forcedRbf">RBF è necessario per le transazioni economiche e custom, verrà abilitato per questa transazione</string>
 </resources>

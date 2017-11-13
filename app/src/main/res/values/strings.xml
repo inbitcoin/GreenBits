@@ -447,4 +447,5 @@
     <string name="hideNoEmailWarning">Hide email warning</string>
     <string name="networkFee">Network fee</string>
     <string name="feePriorityEco">Economy</string>
+    <string name="forcedRbf">RBF is required for economic and custom and will be enabled for this transition</string>
 </resources>

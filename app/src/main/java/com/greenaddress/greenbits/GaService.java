@@ -796,6 +796,9 @@ public class GaService extends Service implements INotificationHandler {
         privateData.mData.put("prevouts_mode", fetchPrev ? fetchMode : "skip");
 
         final Object rbf_optin = getUserConfig("replace_by_fee");
+        final Boolean preSetRbf = (Boolean) privateData.mData.get("rbf_optin");
+        if (preSetRbf != null)
+            return;
         if (rbf_optin != null)
             privateData.mData.put("rbf_optin", rbf_optin);
     }

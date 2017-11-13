@@ -870,6 +870,14 @@ public class SendFragment extends SubaccountFragment {
         final String bip70Script;
         final String bip70MerchantData;
         final String bip70PayreqUrl;
+        if (feeTarget.equals(UI.FEE_TARGET.CUSTOM) || feeTarget.equals(UI.FEE_TARGET.ECONOMY)) {
+            final Object rbf_optin = service.getUserConfig("replace_by_fee");
+            if (rbf_optin == null || !((Boolean) rbf_optin)) {
+                gaActivity.toast(R.string.forcedRbf);
+                privateData.mData.put("rbf_optin", true);
+            }
+        }
+
 
         final String fRecipient;
         final Coin fAmount;
@@ -942,13 +950,13 @@ public class SendFragment extends SubaccountFragment {
         final Coin feeRate;
         try {
             final String userRate = UI.getText(mFeeTargetEdit);
-            if (feeTarget.equals(UI.FEE_TARGET.CUSTOM)) {
+            /*if (feeTarget.equals(UI.FEE_TARGET.CUSTOM)) {
                 final Object rbf_optin = service.getUserConfig("replace_by_fee");
                 if (rbf_optin == null || !((Boolean) rbf_optin)) {
                     gaActivity.toast(R.string.custom_requires_rbf, mSendButton);
                     return;
                 }
-            }
+            }*/
 
             if (feeTarget.equals(UI.FEE_TARGET.CUSTOM) &&
                 (userRate.isEmpty() || !service.isValidFeeRate(userRate))) {
