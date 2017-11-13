@@ -461,4 +461,5 @@
     <string name="networkFee">Network fee</string>
     <string name="feePriorityHurry">In a hurry</string>
     <string name="forcedRbf">RBF is required for economic and custom and will be enabled for this transition</string>
+    <string name="qr_core_reader_prompt">Focus a qr code in the rectangle to scan it</string>
 </resources>

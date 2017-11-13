@@ -34,6 +34,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.zxing.integration.android.IntentResult;
 import com.greenaddress.greenapi.CryptoHelper;
 import com.greenaddress.greenapi.LoginData;
 
@@ -321,7 +322,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
     private void onScanClicked() {
         final String[] perms = { "android.permission.CAMERA" };
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1 &&
-            checkSelfPermission(perms[0]) != PackageManager.PERMISSION_GRANTED)
+                checkSelfPermission(perms[0]) != PackageManager.PERMISSION_GRANTED)
             requestPermissions(perms, CAMERA_PERMISSION);
         else {
             final Intent scanner = new Intent(MnemonicActivity.this, ScanActivity.class);
@@ -379,8 +380,18 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
                 onLoginSuccess();
                 break;
             case QRSCANNER:
-                if (data != null && data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT) != null) {
-                    mMnemonicText.setText(data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT));
+                if (data == null)
+                    break;
+
+                final String scanned;
+                if (Build.VERSION.SDK_INT >= 23) {
+                    final IntentResult result = GaIntentIntegrator.parseActivityResult(resultCode, data);
+                    scanned = result.getContents();
+                } else {
+                    scanned = data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT);
+                }
+                if (scanned != null) {
+                    mMnemonicText.setText(scanned);
                     doLogin();
                 }
                 break;
@@ -401,9 +412,18 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
     }
 
     @Override
-    public void onRequestPermissionsResult(final int requestCode, final String[] permissions, final int[] granted) {
-        if (requestCode == CAMERA_PERMISSION &&
-            isPermissionGranted(granted, R.string.err_qrscan_requires_camera_permissions))
-            startActivityForResult(new Intent(this, ScanActivity.class), QRSCANNER);
+    public void onRequestPermissionsResult(final int permsRequestCode, final String[] permissions, final int[] granted) {
+        switch (permsRequestCode) {
+
+            case CAMERA_PERMISSION:
+
+                if (isPermissionGranted(granted, R.string.err_qrscan_requires_camera_permissions)) {
+                    if (Build.VERSION.SDK_INT >= 23) {
+                        GaIntentIntegrator.scanQRCode(this, QRSCANNER);
+                    } else {
+                        startActivityForResult(new Intent(this, ScanActivity.class), QRSCANNER);
+                    }
+                }
+        }
     }
 }

@@ -12,6 +12,8 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.google.zxing.integration.android.IntentResult;
+
 import org.bitcoinj.uri.BitcoinURI;
 import org.bitcoinj.uri.BitcoinURIParseException;
 
@@ -163,18 +165,15 @@ public class VendorFragmentMain extends SubaccountFragment {
                     getGaActivity().toast(R.string.invalidAmount);
                     return;
                 }
-                //New Marshmallow permissions paradigm
-                final String[] perms = {"android.permission.CAMERA"};
-                if (Build.VERSION.SDK_INT>Build.VERSION_CODES.LOLLIPOP_MR1 &&
-                        gaActivity.checkSelfPermission(perms[0]) != PackageManager.PERMISSION_GRANTED) {
-                    final int permsRequestCode = 100;
-                    gaActivity.requestPermissions(perms, permsRequestCode);
+
+                final String scanned;
+                if (Build.VERSION.SDK_INT >= 23) {
+                    GaIntentIntegrator.scanQRCode(gaActivity, TabbedMainActivity.REQUEST_SEND_QR_SCAN_VENDOR);
                 } else {
                     backFromSummaryPay = false;
                     final Intent qrcodeScanner = new Intent(gaActivity, ScanActivity.class);
                     gaActivity.startActivityForResult(qrcodeScanner, TabbedMainActivity.REQUEST_SEND_QR_SCAN_VENDOR);
                 }
-
             }
         });
 

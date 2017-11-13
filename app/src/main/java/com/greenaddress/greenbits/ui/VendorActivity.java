@@ -1,11 +1,14 @@
 package com.greenaddress.greenbits.ui;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 import android.view.WindowManager;
+
+import com.google.zxing.integration.android.IntentResult;
 
 import de.schildbach.wallet.ui.ScanActivity;
 
@@ -57,10 +60,17 @@ public class VendorActivity extends GaActivity {
     public void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
         switch (requestCode) {
             case TabbedMainActivity.REQUEST_SEND_QR_SCAN_VENDOR:
-                if (data != null && data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT) != null) {
-                    String scanned = data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT);
-                    vendorFragmentMain.scanResult(scanned);
+                if (data == null)
+                    break;
+
+                final String scanned;
+                if (Build.VERSION.SDK_INT >= 23) {
+                    final IntentResult result = GaIntentIntegrator.parseActivityResult(resultCode, data);
+                    scanned = result.getContents();
+                } else {
+                    scanned = data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT);
                 }
+                vendorFragmentMain.scanResult(scanned);
                 break;
         }
     }

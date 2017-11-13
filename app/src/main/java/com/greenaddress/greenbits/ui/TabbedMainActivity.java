@@ -37,6 +37,7 @@ import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.blockstream.libwally.Wally;
 import com.google.common.util.concurrent.FutureCallback;
+import com.google.zxing.integration.android.IntentResult;
 import com.greenaddress.bitid.BitID;
 import com.greenaddress.bitid.BitidSignIn;
 import com.greenaddress.bitid.SignInResponse;
@@ -530,9 +531,17 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                 break;
             case REQUEST_SWEEP_PRIVKEY:
                 if (data == null)
-                    return;
+                    break;
+
+                final String qrText;
+                if (Build.VERSION.SDK_INT >= 23) {
+                    final IntentResult result = GaIntentIntegrator.parseActivityResult(resultCode, data);
+                    qrText = result.getContents();
+                } else {
+                    qrText = data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT);
+                }
+
                 ECKey keyNonFinal = null;
-                final String qrText = data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT);
                 try {
                     keyNonFinal = DumpedPrivateKey.fromBase58(Network.NETWORK,
                             qrText).getKey();
@@ -541,7 +550,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                         Wally.bip38_to_private_key(qrText, null, Wally.BIP38_KEY_COMPRESSED | Wally.BIP38_KEY_QUICK_CHECK);
                     } catch (final IllegalArgumentException e2) {
 
-                        String qrTextPaperwallet = data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT);
+                        String qrTextPaperwallet = qrText;
                         if (qrTextPaperwallet.startsWith("bitcoin:")) {
                             qrTextPaperwallet = qrTextPaperwallet.replaceFirst("^bitcoin:", "").replace("?.*$", "");
                         }
@@ -590,7 +599,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                             txNonBip38 = null;
                             // amount not known until decrypted
                             mainText.setText(Html.fromHtml("Are you sure you want to sweep <b>all</b> funds from the password protected BIP38 key below?"));
-                            address = data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT);
+                            address = qrText;
                         }
 
 
@@ -831,16 +840,10 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                 startActivity(new Intent(caller, MainExchanger.class));
                 return true;
             case R.id.action_sweep:
-                final Intent scanner = new Intent(caller, ScanActivity.class);
-                //New Marshmallow permissions paradigm
-                final String[] perms = {"android.permission.CAMERA"};
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1 &&
-                        checkSelfPermission(perms[0]) != PackageManager.PERMISSION_GRANTED) {
-                    if (item.getItemId() == R.id.action_sweep)
-                        requestPermissions(perms, /*permsRequestCode*/ 200);
-                    else
-                        requestPermissions(perms, /*permsRequestCode*/ 300);
+                if (Build.VERSION.SDK_INT >= 23) {
+                    GaIntentIntegrator.scanQRCode(TabbedMainActivity.this, REQUEST_SWEEP_PRIVKEY);
                 } else {
+                    final Intent scanner = new Intent(caller, ScanActivity.class);
                     startActivityForResult(scanner, REQUEST_SWEEP_PRIVKEY);
                 }
                 return true;

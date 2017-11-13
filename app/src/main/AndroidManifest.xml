@@ -4,7 +4,8 @@
     package="com.greenaddress.greenbits_android_wallet"
 -->
 <manifest package="com.greenaddress.greenbits.ui"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <supports-screens
         android:anyDensity="true"
@@ -193,7 +194,6 @@
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="stateAlwaysHidden"
             android:label="@string/verify_paperwallet" />
-
         <activity android:name=".MainExchanger"
             android:configChanges="orientation|screenSize"
             android:label="@string/exchanger"
@@ -222,6 +222,11 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainExchanger" />
         </activity>
+
+        <activity
+            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            android:screenOrientation="fullSensor"
+            tools:replace="screenOrientation" />
 
     </application>
 

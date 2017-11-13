@@ -567,12 +567,9 @@ public class SendFragment extends SubaccountFragment {
         mScanIcon.setOnClickListener(new View.OnClickListener() {
                                         @Override
                                         public void onClick(final View v) {
-                                            //New Marshmallow permissions paradigm
-                                            final String[] perms = {"android.permission.CAMERA"};
-                                            if (Build.VERSION.SDK_INT>Build.VERSION_CODES.LOLLIPOP_MR1 &&
-                                                    gaActivity.checkSelfPermission(perms[0]) != PackageManager.PERMISSION_GRANTED) {
-                                                final int permsRequestCode = 100;
-                                                gaActivity.requestPermissions(perms, permsRequestCode);
+
+                                            if (Build.VERSION.SDK_INT >= 23) {
+                                                GaIntentIntegrator.scanQRCode(gaActivity, TabbedMainActivity.REQUEST_SEND_QR_SCAN);
                                             } else {
                                                 final Intent qrcodeScanner = new Intent(gaActivity, ScanActivity.class);
                                                 qrcodeScanner.putExtra("sendAmount", UI.getText(mAmountEdit));

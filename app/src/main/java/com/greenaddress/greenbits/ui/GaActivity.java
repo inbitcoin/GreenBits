@@ -20,6 +20,7 @@ import android.widget.Toast;
 
 import com.dd.CircularProgressButton;
 import com.google.common.util.concurrent.Futures;
+import com.google.zxing.integration.android.IntentResult;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.GreenAddressApplication;
 
@@ -124,19 +125,14 @@ public abstract class GaActivity extends AppCompatActivity {
         switch(item.getItemId()) {
             case R.id.action_qr_no_login:
             case R.id.action_qr:
-                //New Marshmallow permissions paradigm
-                final String[] perms1 = {"android.permission.CAMERA"};
-                if (Build.VERSION.SDK_INT>Build.VERSION_CODES.LOLLIPOP_MR1 &&
-                        checkSelfPermission(perms1[0]) != PackageManager.PERMISSION_GRANTED) {
-                    final int permsRequestCode = 100;
-                    requestPermissions(perms1, permsRequestCode);
+                final int requestCode = item.getItemId() == R.id.action_qr_no_login ?
+                        TabbedMainActivity.REQUEST_SEND_QR_SCAN_NO_LOGIN :
+                        TabbedMainActivity.REQUEST_SEND_QR_SCAN;
+                if (Build.VERSION.SDK_INT >= 23) {
+                    GaIntentIntegrator.scanQRCode(GaActivity.this, requestCode);
                 } else {
                     final Intent qrcodeScanner = new Intent(this, ScanActivity.class);
-                    if (item.getItemId() == R.id.action_qr_no_login) {
-                        startActivityForResult(qrcodeScanner, TabbedMainActivity.REQUEST_SEND_QR_SCAN_NO_LOGIN);
-                    } else {
-                        startActivityForResult(qrcodeScanner, TabbedMainActivity.REQUEST_SEND_QR_SCAN);
-                    }
+                    startActivityForResult(qrcodeScanner, requestCode);
                 }
                 return true;
         }
@@ -191,8 +187,17 @@ public abstract class GaActivity extends AppCompatActivity {
         switch (requestCode) {
             case TabbedMainActivity.REQUEST_SEND_QR_SCAN_NO_LOGIN:
             case TabbedMainActivity.REQUEST_SEND_QR_SCAN:
-                if (data != null && data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT) != null) {
-                    String scanned = data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT);
+                if (data == null)
+                    break;
+
+                final String scanned;
+                if (Build.VERSION.SDK_INT >= 23) {
+                    final IntentResult result = GaIntentIntegrator.parseActivityResult(resultCode, data);
+                    scanned = result.getContents();
+                } else {
+                    scanned = data.getStringExtra(ScanActivity.INTENT_EXTRA_RESULT);
+                }
+                if (scanned != null) {
                     if (scanned.length() >= 11
                             && (scanned.toLowerCase().startsWith("http://") || scanned.toLowerCase().startsWith("https://"))) {
                         String url = scanned;
