@@ -269,4 +269,6 @@
   <string name="login_failed">Login fallito</string>
   <string name="no_change_email">Non puoi cambiare l\'indirizzo email mentre l\'autenticazione a due fattori via email è attiva</string>
   <string name="hideNoEmailWarning">Nascondi avviso email</string>
+    <string name="networkFee">Spese network</string>
+    <string name="feePriorityEco">Economiche</string>
 </resources>

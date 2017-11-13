@@ -6,10 +6,12 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.content.res.Resources;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.support.annotation.IdRes;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.util.Pair;
@@ -24,6 +26,8 @@ import android.view.WindowManager;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -116,6 +120,8 @@ public class SendFragment extends SubaccountFragment {
     private boolean mIsExchanger;
     private boolean mIsVendor;
     private Exchanger mExchanger;
+
+    RadioGroup mRadioGroupFee;
 
     private void processBitcoinURI(final BitcoinURI URI) {
         processBitcoinURI(URI, null, null);
@@ -292,7 +298,124 @@ public class SendFragment extends SubaccountFragment {
         mNoteIcon = UI.find(mView, R.id.sendToNoteIcon);
         mFeeTargetEdit = UI.find(mView, R.id.feerateTextEdit);
         mFeeTargetCombo = UI.find(mView, R.id.feeTargetCombo);
+
+        final RadioButton customIcon = UI.find(mView, R.id.customIcon);
+        final RadioButton instantIcon = UI.find(mView, R.id.instantIcon);
+        instantIcon.setTextColor(Color.parseColor("#46d150"));
+        final RadioButton btnEco = UI.find(mView, R.id.btnEco);
+        final RadioButton btnLow = UI.find(mView, R.id.btnLow);
+        final RadioButton btnNormal= UI.find(mView, R.id.btnNormal);
+        final RadioButton btnHi = UI.find(mView, R.id.btnHi);
+        final Typeface typeface = Typeface.createFromAsset(getActivity().getAssets(), "fonts/fontawesome-webfont.ttf");
+        customIcon.setTypeface(typeface);
+        instantIcon.setTypeface(typeface);
+        btnEco.setTypeface(typeface);
+        btnLow.setTypeface(typeface);
+        btnNormal.setTypeface(typeface);
+        btnHi.setTypeface(typeface);
+
+        final String[] prioritySummaries = getResources().getStringArray(R.array.fee_target_summaries);
+        final TextView feeDescEco = UI.find(mView, R.id.feeDescEco);
+        feeDescEco.setText(prioritySummaries[3]);
+        final Switch sendEcoFee = UI.find(mView, R.id.sendEcoFee);
+        sendEcoFee.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                if (b) {
+                    // set economy
+                    mFeeTargetCombo.setSelection(3);
+                    onNewFeeTargetSelected(3);
+                    UI.show(feeDescEco);
+                } else {
+                    // set normal priority
+                    mFeeTargetCombo.setSelection(1);
+                    onNewFeeTargetSelected(1);
+                    feeDescEco.setVisibility(View.INVISIBLE);
+                }
+            }
+        });
+
+
+        Boolean advancedOptionsValue = service.cfg("advanced_options").getBoolean("enabled", false);
+        mRadioGroupFee = UI.find(mView, R.id.radiogroupFee);
+        final TextView showFeeSelector = UI.find(mView, R.id.showFeeSelector);
+        showFeeSelector.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mRadioGroupFee.getVisibility() == View.VISIBLE) {
+                    if (mRadioGroupFee.getCheckedRadioButtonId() == R.id.customIcon) {
+                        mRadioGroupFee.setVisibility(View.GONE);
+                        UI.show(mFeeTargetEdit);
+                    } else {
+                        mRadioGroupFee.setVisibility(View.INVISIBLE);
+                    }
+                } else {
+                    mRadioGroupFee.setVisibility(View.VISIBLE);
+                    UI.hide(mFeeTargetEdit);
+                }
+            }
+        });
+        final TextView feeDesc = UI.find(mView, R.id.feeDesc);
+        mRadioGroupFee.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup radioGroup, @IdRes int i) {
+                radioGroup.setVisibility(View.INVISIBLE);
+                feeDesc.setTextColor(getResources().getColor(R.color.secondaryTextColor));
+                switch (i) {
+                    case R.id.btnHi:
+                        mFeeTargetCombo.setSelection(0);
+                        onNewFeeTargetSelected(0);
+                        showFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[0]);
+                        feeDesc.setText(prioritySummaries[0]);
+                        break;
+                    case R.id.btnNormal:
+                        mFeeTargetCombo.setSelection(1);
+                        onNewFeeTargetSelected(1);
+                        showFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[1]);
+                        feeDesc.setText(prioritySummaries[1]);
+                        break;
+                    case R.id.btnLow:
+                        mFeeTargetCombo.setSelection(2);
+                        onNewFeeTargetSelected(2);
+                        showFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[2]);
+                        feeDesc.setText(prioritySummaries[2]);
+                        break;
+                    case R.id.btnEco:
+                        mFeeTargetCombo.setSelection(3);
+                        onNewFeeTargetSelected(3);
+                        showFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[3]);
+                        feeDesc.setText(prioritySummaries[3]);
+                        feeDesc.setTextColor(getResources().getColor(R.color.lightRed));
+                        break;
+                    case R.id.customIcon:
+                        mFeeTargetCombo.setSelection(4);
+                        onNewFeeTargetSelected(4);
+                        showFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[4]);
+                        feeDesc.setText("");
+                        radioGroup.setVisibility(View.GONE);
+                        break;
+                    case R.id.instantIcon:
+                        mFeeTargetCombo.setSelection(5);
+                        onNewFeeTargetSelected(5);
+                        showFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[5]);
+                        feeDesc.setText("");
+                        break;
+                }
+            }
+        });
         populateFeeCombo();
+
+        if (advancedOptionsValue) {
+            UI.show(UI.find(mView, R.id.layoutFeePro));
+            UI.hide(UI.find(mView, R.id.layoutFeeBase));
+        } else {
+            UI.show(UI.find(mView, R.id.layoutFeeBase));
+            UI.hide(UI.find(mView, R.id.layoutFeePro));
+            // set normal priority
+            mFeeTargetCombo.setSelection(1);
+            onNewFeeTargetSelected(1);
+        }
+
 
         if (mIsVendor) {
             address = this.getArguments().getString("address");
@@ -512,7 +635,7 @@ public class SendFragment extends SubaccountFragment {
         UI.setCoinText(service, sendSubAccountBalanceUnit, sendSubAccountBalance, balance);
 
         final int nChars = sendSubAccountBalance.getText().length() + sendSubAccountBalanceUnit.getText().length();
-        final int size = Math.min(50 - nChars, 34);
+        final int size = Math.min(50 - nChars, 24);
         sendSubAccountBalance.setTextSize(TypedValue.COMPLEX_UNIT_SP, size);
         sendSubAccountBalanceUnit.setTextSize(TypedValue.COMPLEX_UNIT_SP, size);
         if (service.showBalanceInTitle())
@@ -605,6 +728,7 @@ public class SendFragment extends SubaccountFragment {
         final GaService service = getGAService();
         final boolean is2of3 = service.findSubaccountByType(mSubaccount, "2of3") != null;
         final int id = is2of3 ? R.array.send_fee_target_choices : R.array.send_fee_target_choices_instant;
+        UI.showIf(!is2of3, UI.find(mView, R.id.instantIcon));
         final ArrayAdapter<CharSequence> a;
         a = ArrayAdapter.createFromResource(getActivity(), id, android.R.layout.simple_spinner_item);
         a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -613,7 +737,7 @@ public class SendFragment extends SubaccountFragment {
         mFeeTargetCombo.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View v, int pos, long id) {
-                onNewFeeTargetSelected(pos);
+                //onNewFeeTargetSelected(pos);
             }
             @Override
             public void onNothingSelected(AdapterView<?> parent) { }
@@ -622,8 +746,29 @@ public class SendFragment extends SubaccountFragment {
         // Default priority to the users default priority from settings
         final int currentPriority = service.getDefaultTransactionPriority();
         for (int i = 0; i < UI.FEE_TARGET_VALUES.length; ++i) {
-            if (currentPriority == UI.FEE_TARGET_VALUES[i].getBlock())
+            if (currentPriority == UI.FEE_TARGET_VALUES[i].getBlock()) {
                 mFeeTargetCombo.setSelection(i);
+                switch (i) {
+                    case 0:
+                        mRadioGroupFee.check(R.id.btnHi);
+                        break;
+                    case 1:
+                        mRadioGroupFee.check(R.id.btnNormal);
+                        break;
+                    case 2:
+                        mRadioGroupFee.check(R.id.btnLow);
+                        break;
+                    case 3:
+                        mRadioGroupFee.check(R.id.btnEco);
+                        break;
+                    case 4:
+                        mRadioGroupFee.check(R.id.customIcon);
+                        break;
+                    case 5:
+                        mRadioGroupFee.check(R.id.instantIcon);
+                        break;
+                }
+            }
         }
     }
 

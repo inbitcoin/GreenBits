@@ -336,6 +336,8 @@
     <string name="fa_usd" translatable="false">&#xf155;</string>
     <string name="fa_trash" translatable="false">&#xf1f8;</string>
     <string name="fa_ubtc_space" translatable="false">\u00b5&#xf15a;\u0020</string>
+    <string name="fa_bolt" translatable="false">&#xf0e7;</string>
+    <string name="fa_pencil_square_o" translatable="false">&#xf044;</string>
 
     <string name="transactionSubmitted">Transaction successfully submitted</string>
     <string name="unable_to_create_change">Unable to create change output</string>
@@ -443,4 +445,6 @@
     <string name="login_failed">Login failed</string>
     <string name="no_change_email">You can\'t change your email address while you have email 2FA enabled</string>
     <string name="hideNoEmailWarning">Hide email warning</string>
+    <string name="networkFee">Network fee</string>
+    <string name="feePriorityEco">Economy</string>
 </resources>
