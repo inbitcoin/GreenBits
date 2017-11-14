@@ -289,6 +289,241 @@
                 android:layout_height="wrap_content">
 
                 <LinearLayout
+                    android:visibility="visible"
+                    android:id="@+id/layoutFeeBase"
+                    android:padding="@dimen/activity_horizontal_margin"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content">
+                    <TextView
+                        android:textStyle="italic"
+                        android:textColor="@color/secondaryTextColor"
+                        android:text="@string/networkFee"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                    <LinearLayout
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content">
+
+                        <CheckedTextView
+                            android:checkMark="?android:attr/listChoiceIndicatorSingle"
+                            android:gravity="center"
+                            android:textAlignment="center"
+                            android:id="@+id/checkHurryFee"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/feePriorityHurry" />
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:visibility="invisible"
+                        android:id="@+id/feeDescHurry"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:textSize="12sp"
+                        android:paddingBottom="5dp"
+                        android:textColor="@color/textColor"
+                        android:textStyle="italic"
+                        android:text=""/>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:visibility="visible"
+                    android:id="@+id/layoutFeePro"
+                    android:paddingTop="5dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:orientation="horizontal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:textColor="@color/secondaryTextColor"
+                            android:textStyle="italic"
+                            android:text="@string/networkFee"/>
+
+                        <TextView
+                            android:textSize="18sp"
+                            android:id="@+id/showFeeSelector"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:padding="4dp"
+                            android:textColor="@color/colorAccent"
+                            android:textStyle="italic"
+                            android:text=""/>
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/feeDesc"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:textSize="12sp"
+                        android:paddingBottom="5dp"
+                        android:textColor="@color/secondaryTextColor"
+                        android:textStyle="italic"
+                        android:minLines="2"
+                        android:text=""/>
+
+                    <LinearLayout
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:layout_gravity="center"
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content">
+
+                        <RadioGroup
+                            android:layout_margin="4dp"
+                            android:id="@+id/radiogroupFee"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/custom_radio_border"
+                            android:orientation="horizontal" >
+
+                            <RadioButton
+                                android:visibility="gone"
+                                android:id="@+id/customIcon"
+                                android:layout_width="50dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:textColor="@color/textColor"
+                                android:background="@drawable/custom_radio"
+                                android:button="@android:color/transparent"
+                                android:gravity="center"
+                                android:padding="5dp"
+                                android:singleLine="true"
+                                android:checked="true"
+                                android:text="@string/fa_pencil_square_o" />
+
+                            <View
+                                android:layout_width="1dp"
+                                android:layout_height="match_parent"
+                                android:background="@color/colorAccent"
+                                android:visibility="visible" />
+
+                            <RadioButton
+                                android:id="@+id/btnSuperEco"
+                                android:layout_width="50dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:textColor="@color/cpb_red"
+                                android:background="@drawable/custom_radio"
+                                android:button="@android:color/transparent"
+                                android:gravity="center"
+                                android:padding="5dp"
+                                android:singleLine="true"
+                                android:text="@string/fa_flask" />
+
+                            <View
+                                android:id="@+id/vSep1"
+                                android:layout_width="1dp"
+                                android:layout_height="match_parent"
+                                android:background="@color/colorAccent"
+                                android:visibility="visible" />
+
+                            <RadioButton
+                                android:id="@+id/btnEco"
+                                android:layout_width="50dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:textColor="@color/textColor"
+                                android:background="@drawable/custom_radio"
+                                android:button="@android:color/transparent"
+                                android:gravity="center"
+                                android:padding="5dp"
+                                android:singleLine="true"
+                                android:text="@string/fa_clock_o" />
+
+                            <View
+                                android:id="@+id/vSep2"
+                                android:layout_width="1dp"
+                                android:layout_height="match_parent"
+                                android:background="@color/colorAccent"
+                                android:visibility="visible" />
+
+                            <RadioButton
+                                android:id="@+id/btnNormal"
+                                android:layout_width="50dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:textColor="@color/textColor"
+                                android:background="@drawable/custom_radio"
+                                android:button="@android:color/transparent"
+                                android:gravity="center"
+                                android:padding="5dp"
+                                android:singleLine="true"
+                                android:text="@string/fa_space_shuttle" />
+
+                            <View
+                                android:id="@+id/vSep3"
+                                android:layout_width="1dp"
+                                android:layout_height="match_parent"
+                                android:background="@color/colorAccent"
+                                android:visibility="visible" />
+
+                            <RadioButton
+                                android:visibility="gone"
+                                android:id="@+id/btnHi"
+                                android:layout_width="50dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:textColor="#000000"
+                                android:background="@drawable/custom_radio"
+                                android:button="@android:color/transparent"
+                                android:gravity="center"
+                                android:padding="5dp"
+                                android:singleLine="true"
+                                android:text="@string/fa_bolt" />
+
+                            <View
+                                android:layout_width="1dp"
+                                android:layout_height="match_parent"
+                                android:background="@color/colorAccent"
+                                android:visibility="visible" />
+
+                            <RadioButton
+                                android:visibility="gone"
+                                android:id="@+id/instantIcon"
+                                android:layout_width="50dp"
+                                android:layout_height="40dp"
+                                android:layout_weight="1"
+                                android:textColor="@color/textColor"
+                                android:background="@drawable/custom_radio"
+                                android:button="@android:color/transparent"
+                                android:gravity="center"
+                                android:padding="5dp"
+                                android:textStyle="bold"
+                                android:singleLine="true"
+                                android:text="G" />
+                        </RadioGroup>
+
+                        <EditText
+                            android:visibility="invisible"
+                            android:textAlignment="center"
+                            android:id="@+id/feerateTextEdit"
+                            android:layout_width="200dp"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/textColor"
+                            android:hint="@string/sat_per_kb"
+                            android:inputType="numberDecimal" />
+
+                    </LinearLayout>
+                </LinearLayout>
+                <LinearLayout
                     android:visibility="gone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -303,14 +538,6 @@
                         android:id="@+id/feeTargetCombo"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
-
-                    <EditText
-                        android:id="@+id/feerateTextEdit"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/textColor"
-                        android:hint="@string/sat_per_kb"
-                        android:inputType="numberDecimal" />
 
                 </LinearLayout>
 

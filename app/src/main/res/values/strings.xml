@@ -79,24 +79,35 @@
     </string-array>
     <string-array name="fee_target_summaries">
         <item>Confirmation in 3 blocks, up to 30 minutes on average</item>
+        <item>Buying diamonds in a dark alley? ;-)\nConfirmation in 6 blocks, up to one hour on average</item>
+        <item>Confirmation in 12 blocks, up to two hours on average</item>
+        <item>We know each other, I\'ll take my time.\nConfirmation in 24 blocks or later, 4 hours or longer on average</item>
+        <item>Allora scusa, sei mejo te</item>
+        <item>The truth is out there, the network will decide\n10000 satoshi/kB</item>
+        <item>Panic sell /o\\</item>
+    </string-array>
+    <string-array name="fee_target_summaries_ga">
+        <item>Confirmation in 3 blocks, up to 30 minutes on average</item>
         <item>Confirmation in 6 blocks, up to one hour on average</item>
         <item>Confirmation in 12 blocks, up to two hours on average</item>
         <item>Confirmation in 24 blocks or later, 4 hours or longer on average</item>
     </string-array>
     <string-array name="send_fee_target_choices">
         <item>High</item>
-        <item>Normal</item>
+        <item>In a hurry</item>
         <item>Low</item>
-        <item>Economy</item>
+        <item>I can wait</item>
         <item>Custom</item>
+        <item>I want to believe</item>
     </string-array>
     <string-array name="send_fee_target_choices_instant">
         <item>High</item>
-        <item>Normal</item>
+        <item>In a hurry</item>
         <item>Low</item>
-        <item>Economy</item>
+        <item>I can wait</item>
         <item>Custom</item>
-        <item>Instant</item>
+        <item>I want to believe</item>
+        <item>GreenAddress Instant</item>
     </string-array>
 
     <string name="custom_requires_rbf">Custom fees require transaction replacement functionality to be enabled.</string>
@@ -338,6 +349,8 @@
     <string name="fa_ubtc_space" translatable="false">\u00b5&#xf15a;\u0020</string>
     <string name="fa_bolt" translatable="false">&#xf0e7;</string>
     <string name="fa_pencil_square_o" translatable="false">&#xf044;</string>
+    <string name="fa_flask" translatable="false">&#xf0c3;</string>
+    <string name="fa_space_shuttle" translatable="false">&#xf197;</string>
 
     <string name="transactionSubmitted">Transaction successfully submitted</string>
     <string name="unable_to_create_change">Unable to create change output</string>
@@ -446,6 +459,6 @@
     <string name="no_change_email">You can\'t change your email address while you have email 2FA enabled</string>
     <string name="hideNoEmailWarning">Hide email warning</string>
     <string name="networkFee">Network fee</string>
-    <string name="feePriorityEco">Economy</string>
+    <string name="feePriorityHurry">In a hurry</string>
     <string name="forcedRbf">RBF is required for economic and custom and will be enabled for this transition</string>
 </resources>

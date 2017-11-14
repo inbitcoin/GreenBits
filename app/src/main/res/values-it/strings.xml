@@ -270,6 +270,23 @@
   <string name="no_change_email">Non puoi cambiare l\'indirizzo email mentre l\'autenticazione a due fattori via email è attiva</string>
   <string name="hideNoEmailWarning">Nascondi avviso email</string>
     <string name="networkFee">Spese network</string>
-    <string name="feePriorityEco">Economiche</string>
+    <string name="feePriorityHurry">Ho fretta</string>
     <string name="forcedRbf">RBF è necessario per le transazioni economiche e custom, verrà abilitato per questa transazione</string>
+    <string-array name="send_fee_target_choices">
+        <item>High</item>
+        <item>Ho fretta</item>
+        <item>Low</item>
+        <item>Posso aspettare</item>
+        <item>Custom</item>
+        <item>Voglio crederci</item>
+    </string-array>
+    <string-array name="send_fee_target_choices_instant">
+        <item>High</item>
+        <item>Ho fretta</item>
+        <item>Low</item>
+        <item>Posso aspettare</item>
+        <item>Custom</item>
+        <item>Voglio crederci</item>
+        <item>GreenAddress Instant</item>
+    </string-array>
 </resources>

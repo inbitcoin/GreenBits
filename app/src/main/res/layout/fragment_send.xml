@@ -251,7 +251,7 @@
             </LinearLayout>
 
             <LinearLayout
-                android:visibility="gone"
+                android:visibility="visible"
                 android:id="@+id/layoutFeeBase"
                 android:padding="@dimen/activity_horizontal_margin"
                 android:gravity="center"
@@ -270,29 +270,26 @@
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content">
 
-                    <TextView
-                        android:text="@string/feePriorityEco"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-
-                    <Switch
-                        android:id="@+id/sendEcoFee"
+                    <CheckedTextView
+                        android:checkMark="?android:attr/listChoiceIndicatorSingle"
+                        android:gravity="center"
+                        android:textAlignment="center"
+                        android:id="@+id/checkHurryFee"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textOff="@string/send_all"
-                        android:textOn="@string/send_all"
-                        />
+                        android:text="@string/feePriorityHurry" />
+
                 </LinearLayout>
 
                 <TextView
                     android:visibility="invisible"
-                    android:id="@+id/feeDescEco"
+                    android:id="@+id/feeDescHurry"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:textSize="12sp"
                     android:paddingBottom="5dp"
-                    android:textColor="@color/lightRed"
+                    android:textColor="@color/textColor"
                     android:textStyle="italic"
                     android:text=""/>
 
@@ -323,13 +320,13 @@
                     <TextView
                         android:textSize="18sp"
                         android:id="@+id/showFeeSelector"
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:gravity="center"
                         android:padding="4dp"
                         android:textColor="@color/colorAccent"
                         android:textStyle="italic"
-                        android:text="Economy"/>
+                        android:text=""/>
                 </LinearLayout>
 
                 <TextView
@@ -341,6 +338,7 @@
                     android:paddingBottom="5dp"
                     android:textColor="@color/secondaryTextColor"
                     android:textStyle="italic"
+                    android:minLines="2"
                     android:text=""/>
 
                 <LinearLayout
@@ -359,6 +357,7 @@
                         android:orientation="horizontal" >
 
                         <RadioButton
+                            android:visibility="gone"
                             android:id="@+id/customIcon"
                             android:layout_width="50dp"
                             android:layout_height="40dp"
@@ -379,17 +378,17 @@
                             android:visibility="visible" />
 
                         <RadioButton
-                            android:id="@+id/btnEco"
+                            android:id="@+id/btnSuperEco"
                             android:layout_width="50dp"
                             android:layout_height="40dp"
                             android:layout_weight="1"
-                            android:textColor="#e1e1e1"
+                            android:textColor="@color/cpb_red"
                             android:background="@drawable/custom_radio"
                             android:button="@android:color/transparent"
                             android:gravity="center"
                             android:padding="5dp"
                             android:singleLine="true"
-                            android:text="@string/fa_bolt" />
+                            android:text="@string/fa_flask" />
 
                         <View
                             android:id="@+id/vSep1"
@@ -399,17 +398,17 @@
                             android:visibility="visible" />
 
                         <RadioButton
-                            android:id="@+id/btnLow"
+                            android:id="@+id/btnEco"
                             android:layout_width="50dp"
                             android:layout_height="40dp"
                             android:layout_weight="1"
-                            android:textColor="#b8b8b8"
+                            android:textColor="@color/textColor"
                             android:background="@drawable/custom_radio"
                             android:button="@android:color/transparent"
                             android:gravity="center"
                             android:padding="5dp"
                             android:singleLine="true"
-                            android:text="@string/fa_bolt" />
+                            android:text="@string/fa_clock_o" />
 
                         <View
                             android:id="@+id/vSep2"
@@ -423,13 +422,13 @@
                             android:layout_width="50dp"
                             android:layout_height="40dp"
                             android:layout_weight="1"
-                            android:textColor="#808080"
+                            android:textColor="@color/textColor"
                             android:background="@drawable/custom_radio"
                             android:button="@android:color/transparent"
                             android:gravity="center"
                             android:padding="5dp"
                             android:singleLine="true"
-                            android:text="@string/fa_bolt" />
+                            android:text="@string/fa_space_shuttle" />
 
                         <View
                             android:id="@+id/vSep3"
@@ -439,6 +438,7 @@
                             android:visibility="visible" />
 
                         <RadioButton
+                            android:visibility="gone"
                             android:id="@+id/btnHi"
                             android:layout_width="50dp"
                             android:layout_height="40dp"
@@ -468,8 +468,9 @@
                             android:button="@android:color/transparent"
                             android:gravity="center"
                             android:padding="5dp"
+                            android:textStyle="bold"
                             android:singleLine="true"
-                            android:text="@string/fa_bolt" />
+                            android:text="G" />
                     </RadioGroup>
 
                     <EditText

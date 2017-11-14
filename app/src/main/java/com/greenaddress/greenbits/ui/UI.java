@@ -60,11 +60,14 @@ public abstract class UI {
         LOW(12),
         ECONOMY(24),
         CUSTOM(-1),
+        SUPER_ECONOMY(-3),
         INSTANT(-2);
         private final int mBlock;
         FEE_TARGET(int block) { mBlock = block; }
         public int getBlock() { return mBlock; }
     }
+    // fixed super economy fee rate
+    public static final String SUPER_ECONOMY_FEERATE = "10000";
     public static final FEE_TARGET[] FEE_TARGET_VALUES = FEE_TARGET.values();
 
     private static final String MICRO_BTC = "\u00B5BTC";

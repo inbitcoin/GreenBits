@@ -23,6 +23,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.view.WindowManager;
+import android.widget.CheckedTextView;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -71,8 +72,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import de.schildbach.wallet.ui.ScanActivity;
 
@@ -121,7 +120,12 @@ public class SendFragment extends SubaccountFragment {
     private boolean mIsVendor;
     private Exchanger mExchanger;
 
-    RadioGroup mRadioGroupFee;
+    private RadioGroup mRadioGroupFee;
+    private TextView mFeeDesc;
+    private TextView mShowFeeSelector;
+    private String[] mPrioritySummaries;
+    private CheckedTextView mCheckHurryFee;
+    private TextView mFeeDescHurry;
 
     private void processBitcoinURI(final BitcoinURI URI) {
         processBitcoinURI(URI, null, null);
@@ -303,43 +307,46 @@ public class SendFragment extends SubaccountFragment {
         final RadioButton instantIcon = UI.find(mView, R.id.instantIcon);
         instantIcon.setTextColor(Color.parseColor("#46d150"));
         final RadioButton btnEco = UI.find(mView, R.id.btnEco);
-        final RadioButton btnLow = UI.find(mView, R.id.btnLow);
+        final RadioButton btnSuperEco = UI.find(mView, R.id.btnSuperEco);
         final RadioButton btnNormal= UI.find(mView, R.id.btnNormal);
         final RadioButton btnHi = UI.find(mView, R.id.btnHi);
         final Typeface typeface = Typeface.createFromAsset(getActivity().getAssets(), "fonts/fontawesome-webfont.ttf");
         customIcon.setTypeface(typeface);
-        instantIcon.setTypeface(typeface);
         btnEco.setTypeface(typeface);
-        btnLow.setTypeface(typeface);
+        btnSuperEco.setTypeface(typeface);
         btnNormal.setTypeface(typeface);
         btnHi.setTypeface(typeface);
 
-        final String[] prioritySummaries = getResources().getStringArray(R.array.fee_target_summaries);
-        final TextView feeDescEco = UI.find(mView, R.id.feeDescEco);
-        feeDescEco.setText(prioritySummaries[3]);
-        final Switch sendEcoFee = UI.find(mView, R.id.sendEcoFee);
-        sendEcoFee.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        final boolean isDev = service.cfg("dev_mode").getBoolean("enabled", false);
+        UI.showIf(isDev, customIcon);
+
+        mPrioritySummaries = getResources().getStringArray(R.array.fee_target_summaries);
+        mFeeDescHurry = UI.find(mView, R.id.feeDescHurry);
+        mFeeDescHurry.setText(mPrioritySummaries[1]);
+        mCheckHurryFee = UI.find(mView, R.id.checkHurryFee);
+        mCheckHurryFee.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                if (b) {
-                    // set economy
+            public void onClick(View view) {
+                if (mCheckHurryFee.isChecked()) {
+                    mCheckHurryFee.setChecked(false);
+                    // set eco
                     mFeeTargetCombo.setSelection(3);
                     onNewFeeTargetSelected(3);
-                    UI.show(feeDescEco);
+                    mFeeDescHurry.setVisibility(View.INVISIBLE);
                 } else {
-                    // set normal priority
+                    mCheckHurryFee.setChecked(true);
+                    // set hurry
                     mFeeTargetCombo.setSelection(1);
                     onNewFeeTargetSelected(1);
-                    feeDescEco.setVisibility(View.INVISIBLE);
+                    UI.show(mFeeDescHurry);
                 }
             }
         });
 
-
-        Boolean advancedOptionsValue = service.cfg("advanced_options").getBoolean("enabled", false);
+        final Boolean advancedOptionsValue = service.cfg("advanced_options").getBoolean("enabled", false);
         mRadioGroupFee = UI.find(mView, R.id.radiogroupFee);
-        final TextView showFeeSelector = UI.find(mView, R.id.showFeeSelector);
-        showFeeSelector.setOnClickListener(new View.OnClickListener() {
+        mShowFeeSelector = UI.find(mView, R.id.showFeeSelector);
+        mShowFeeSelector.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (mRadioGroupFee.getVisibility() == View.VISIBLE) {
@@ -355,65 +362,61 @@ public class SendFragment extends SubaccountFragment {
                 }
             }
         });
-        final TextView feeDesc = UI.find(mView, R.id.feeDesc);
+        mFeeDesc = UI.find(mView, R.id.feeDesc);
         mRadioGroupFee.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup radioGroup, @IdRes int i) {
                 radioGroup.setVisibility(View.INVISIBLE);
-                feeDesc.setTextColor(getResources().getColor(R.color.secondaryTextColor));
+                mFeeDesc.setTextColor(getResources().getColor(R.color.secondaryTextColor));
                 switch (i) {
                     case R.id.btnHi:
                         mFeeTargetCombo.setSelection(0);
                         onNewFeeTargetSelected(0);
-                        showFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[0]);
-                        feeDesc.setText(prioritySummaries[0]);
+                        mShowFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[0]);
+                        mFeeDesc.setText(mPrioritySummaries[0]);
                         break;
                     case R.id.btnNormal:
                         mFeeTargetCombo.setSelection(1);
                         onNewFeeTargetSelected(1);
-                        showFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[1]);
-                        feeDesc.setText(prioritySummaries[1]);
-                        break;
-                    case R.id.btnLow:
-                        mFeeTargetCombo.setSelection(2);
-                        onNewFeeTargetSelected(2);
-                        showFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[2]);
-                        feeDesc.setText(prioritySummaries[2]);
+                        mShowFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[1]);
+                        mFeeDesc.setText(mPrioritySummaries[1]);
                         break;
                     case R.id.btnEco:
-                        mFeeTargetCombo.setSelection(3);
-                        onNewFeeTargetSelected(3);
-                        showFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[3]);
-                        feeDesc.setText(prioritySummaries[3]);
-                        feeDesc.setTextColor(getResources().getColor(R.color.lightRed));
+                        setDefaultFee();
                         break;
                     case R.id.customIcon:
                         mFeeTargetCombo.setSelection(4);
                         onNewFeeTargetSelected(4);
-                        showFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[4]);
-                        feeDesc.setText("");
+                        mShowFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[4]);
+                        mFeeDesc.setText(mPrioritySummaries[4]);
                         radioGroup.setVisibility(View.GONE);
                         break;
-                    case R.id.instantIcon:
+                    case R.id.btnSuperEco:
                         mFeeTargetCombo.setSelection(5);
                         onNewFeeTargetSelected(5);
-                        showFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[5]);
-                        feeDesc.setText("");
+                        mShowFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[5]);
+                        mFeeDesc.setText(mPrioritySummaries[5]);
+                        mFeeDesc.setTextColor(getResources().getColor(R.color.lightRed));
+                        break;
+                    case R.id.instantIcon:
+                        mFeeTargetCombo.setSelection(6);
+                        onNewFeeTargetSelected(6);
+                        mShowFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[6]);
+                        mFeeDesc.setText(mPrioritySummaries[6]);
                         break;
                 }
             }
         });
         populateFeeCombo();
 
+        // set eco priority
+        setDefaultFee();
         if (advancedOptionsValue) {
             UI.show(UI.find(mView, R.id.layoutFeePro));
             UI.hide(UI.find(mView, R.id.layoutFeeBase));
         } else {
             UI.show(UI.find(mView, R.id.layoutFeeBase));
             UI.hide(UI.find(mView, R.id.layoutFeePro));
-            // set normal priority
-            mFeeTargetCombo.setSelection(1);
-            onNewFeeTargetSelected(1);
         }
 
 
@@ -744,7 +747,7 @@ public class SendFragment extends SubaccountFragment {
         });
 
         // Default priority to the users default priority from settings
-        final int currentPriority = service.getDefaultTransactionPriority();
+        /*final int currentPriority = service.getDefaultTransactionPriority();
         for (int i = 0; i < UI.FEE_TARGET_VALUES.length; ++i) {
             if (currentPriority == UI.FEE_TARGET_VALUES[i].getBlock()) {
                 mFeeTargetCombo.setSelection(i);
@@ -754,9 +757,6 @@ public class SendFragment extends SubaccountFragment {
                         break;
                     case 1:
                         mRadioGroupFee.check(R.id.btnNormal);
-                        break;
-                    case 2:
-                        mRadioGroupFee.check(R.id.btnLow);
                         break;
                     case 3:
                         mRadioGroupFee.check(R.id.btnEco);
@@ -769,7 +769,9 @@ public class SendFragment extends SubaccountFragment {
                         break;
                 }
             }
-        }
+        }*/
+        // ignore user default priority and use eco
+        mRadioGroupFee.check(R.id.btnEco);
     }
 
     private void onNewFeeTargetSelected(final int index) {
@@ -778,6 +780,10 @@ public class SendFragment extends SubaccountFragment {
         UI.showIf(isCustom, mFeeTargetEdit);
         if (isCustom)
             mFeeTargetEdit.setText(getGAService().cfg().getString("default_feerate", ""));
+
+        final boolean isSuperEco = UI.FEE_TARGET_VALUES[index].equals(UI.FEE_TARGET.SUPER_ECONOMY);
+        if (isSuperEco)
+            mFeeTargetEdit.setText(UI.SUPER_ECONOMY_FEERATE);
     }
 
     public void showVendorSnackbar() {
@@ -827,6 +833,14 @@ public class SendFragment extends SubaccountFragment {
 
         mMerchantInvoiceData = null;
         mPayreqData = null;
+
+        UI.clear(mFeeTargetEdit);
+        UI.hide(mFeeTargetEdit);
+        mFeeDescHurry.setVisibility(View.INVISIBLE);
+        mCheckHurryFee.setChecked(false);
+        mRadioGroupFee.setVisibility(View.INVISIBLE);
+        mFeeDesc.setTextColor(getResources().getColor(R.color.secondaryTextColor));
+        setDefaultFee();
     }
 
     private Coin getSendAmount() {
@@ -870,7 +884,7 @@ public class SendFragment extends SubaccountFragment {
         final String bip70Script;
         final String bip70MerchantData;
         final String bip70PayreqUrl;
-        if (feeTarget.equals(UI.FEE_TARGET.CUSTOM) || feeTarget.equals(UI.FEE_TARGET.ECONOMY)) {
+        if (feeTarget.equals(UI.FEE_TARGET.CUSTOM) || feeTarget.equals(UI.FEE_TARGET.ECONOMY) || feeTarget.equals(UI.FEE_TARGET.SUPER_ECONOMY)) {
             final Object rbf_optin = service.getUserConfig("replace_by_fee");
             if (rbf_optin == null || !((Boolean) rbf_optin)) {
                 gaActivity.toast(R.string.forcedRbf);
@@ -958,14 +972,21 @@ public class SendFragment extends SubaccountFragment {
                 }
             }*/
 
-            if (feeTarget.equals(UI.FEE_TARGET.CUSTOM) &&
+            if ((feeTarget.equals(UI.FEE_TARGET.CUSTOM) || (feeTarget.equals(UI.FEE_TARGET.SUPER_ECONOMY))) &&
                 (userRate.isEmpty() || !service.isValidFeeRate(userRate))) {
                 // Change invalid feerates to the minimum
                 feeRate = service.getMinFeeRate();
                 final String message = getString(R.string.feerate_changed, feeRate.longValue());
                 gaActivity.toast(message);
-            } else
-                feeRate = getFeeRate(feeTarget);
+            } else {
+                if (feeTarget.equals(UI.FEE_TARGET.NORMAL)) {
+                    // add 10% on the normal TX to be different from GA xD
+                    feeRate = Coin.valueOf((long)(getFeeRate(feeTarget).getValue() * 1.1));
+                } else {
+                    feeRate = getFeeRate(feeTarget);
+
+                }
+            }
         } catch (final GAException e) {
             gaActivity.toast(R.string.instantUnavailable, mSendButton);
             return;
@@ -1242,7 +1263,7 @@ public class SendFragment extends SubaccountFragment {
     }
 
     Coin getFeeRate(final UI.FEE_TARGET feeTarget) throws GAException {
-        if (!GaService.IS_ELEMENTS && feeTarget.equals(UI.FEE_TARGET.CUSTOM)) {
+        if (!GaService.IS_ELEMENTS && (feeTarget.equals(UI.FEE_TARGET.CUSTOM) || feeTarget.equals(UI.FEE_TARGET.SUPER_ECONOMY))) {
             // FIXME: Custom fees for elements
             final Double feeRate = Double.valueOf(UI.getText(mFeeTargetEdit));
             return Coin.valueOf(feeRate.longValue());
@@ -1563,5 +1584,16 @@ public class SendFragment extends SubaccountFragment {
 
     public void setIsExchanger(final boolean isExchanger) {
         mIsExchanger = isExchanger;
+    }
+
+    /**
+     * Set the default fee for the wallet
+     */
+    private void setDefaultFee() {
+        mFeeTargetCombo.setSelection(3);
+        onNewFeeTargetSelected(3);
+        mShowFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[3]);
+        mFeeDesc.setText(mPrioritySummaries[3]);
+        mRadioGroupFee.check(R.id.btnEco);
     }
 }
