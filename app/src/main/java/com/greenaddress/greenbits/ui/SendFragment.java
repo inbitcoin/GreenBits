@@ -21,7 +21,6 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.view.WindowManager;
-import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -106,10 +105,9 @@ public class SendFragment extends SubaccountFragment {
     private Integer commission = 10; //TODO
     private String address;
     private String fiat_amount;
+    private String mBip70Memo;
 
     public static final int VENDOR_MESSAGE_MAX = 5;
-
-
 
     private int mSubaccount;
     private int mTwoFactorAttemptsRemaining;
@@ -683,6 +681,7 @@ public class SendFragment extends SubaccountFragment {
         mSendButton.setEnabled(true);
 
         mMerchantInvoiceData = null;
+        mPayreqData = null;
     }
 
     private Coin getSendAmount() {
@@ -694,7 +693,7 @@ public class SendFragment extends SubaccountFragment {
         }
     }
 
-    private void onSendButtonClicked(final String recipient) {
+    private void onSendButtonClicked(String recipient) {
         final GaService service = getGAService();
         final GaActivity gaActivity = getGaActivity();
 
@@ -718,25 +717,52 @@ public class SendFragment extends SubaccountFragment {
         if (feeTarget.equals(UI.FEE_TARGET.INSTANT))
             privateData.mData.put("instant", true);
 
-        final Coin amount = getSendAmount();
+        Coin amount = getSendAmount();
 
-        if (mPayreqData != null) {
-            final ListenableFuture<PreparedTransaction> ptxFn;
-            ptxFn = service.preparePayreq(amount, mPayreqData, privateData);
+        final boolean isBip70 = mPayreqData != null;
+        final Integer bip70Amount;
+        final String bip70Recipient;
+        final String bip70Script;
+        final String bip70MerchantData;
+        final String bip70PayreqUrl;
 
-            mSendButton.setProgress(50);
-            CB.after(ptxFn, new CB.Toast<PreparedTransaction>(gaActivity, mSendButton) {
-                @Override
-                public void onSuccess(final PreparedTransaction ptx) {
-                    onTransactionPrepared(ptx, recipient, amount, privateData);
-                }
-            });
-            return;
+        final String fRecipient;
+        final Coin fAmount;
+
+        if (isBip70) {
+
+            ArrayList outputs = (ArrayList) mPayreqData.get("outputs");
+            if (outputs.size() != 1) {
+                // gaActivity.toast("Only payment requests with 1 output are supported", mSendButton);
+                Log.e(TAG, "Only bip70 payment requests with 1 output are supported");
+                return;
+            }
+            final HashMap output = (HashMap) outputs.get(0);
+            bip70Amount = (Integer) output.get("amount");
+            bip70Recipient = (String) output.get("address");
+            bip70Script = (String) output.get("script");
+
+            mBip70Memo = (String) mPayreqData.get("memo");
+            bip70MerchantData = (String) mPayreqData.get("merchant_data");
+            bip70PayreqUrl = (String) mPayreqData.get("payreq_url");
+
+            fRecipient = bip70Recipient;
+            fAmount = Coin.valueOf(bip70Amount);
+        } else {
+            bip70Amount = null;
+            bip70Recipient = null;
+            bip70Script = null;
+            mBip70Memo = null;
+            bip70MerchantData = null;
+            bip70PayreqUrl = null;
+
+            fRecipient = recipient;
+            fAmount = amount;
         }
 
         final boolean sendAll = mMaxButton.isChecked();
-        final boolean validAddress = GaService.isValidAddress(recipient);
-        final boolean validAmount = sendAll || amount.isGreaterThan(Coin.ZERO);
+        final boolean validAddress = GaService.isValidAddress(fRecipient);
+        final boolean validAmount = sendAll || fAmount.isGreaterThan(Coin.ZERO);
 
         int messageId = 0;
         if (!validAddress && !validAmount)
@@ -799,12 +825,12 @@ public class SendFragment extends SubaccountFragment {
                 int ret = R.string.insufficientFundsText;
                 if (!utxos.isEmpty()) {
                     GATx.sortUtxos(utxos, minimizeInputs);
-                    ret = createRawTransaction(utxos, recipient, amount, privateData, sendAll, feeRate);
+                    ret = createRawTransaction(utxos, fRecipient, fAmount, privateData, sendAll, feeRate);
                     if (ret == R.string.insufficientFundsText && !minimizeInputs && utxos.size() > 1) {
                         // Not enough money using nlocktime outputs first:
                         // Try again using the largest values first
                         GATx.sortUtxos(utxos, true);
-                        ret = createRawTransaction(utxos, recipient, amount, privateData, sendAll, feeRate);
+                        ret = createRawTransaction(utxos, fRecipient, fAmount, privateData, sendAll, feeRate);
                     }
                 }
                 if (ret != 0)
@@ -955,8 +981,11 @@ public class SendFragment extends SubaccountFragment {
                         }
 
                         final ListenableFuture<String> sendFn;
-                        if (signedRawTx != null)
+                        if (signedRawTx != null) {
+                            if (mBip70Memo != null)
+                                privateData.mData.put("memo", mBip70Memo);
                             sendFn = service.sendRawTransaction(signedRawTx, twoFacData, privateData);
+                        }
                         else
                             sendFn = service.signAndSendTransaction(ptx, twoFacData);
 
