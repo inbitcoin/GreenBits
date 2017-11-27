@@ -17,12 +17,15 @@ import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.view.WindowManager;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -83,7 +86,8 @@ public class SendFragment extends SubaccountFragment {
     private TextView mAmountBtcWithCommission;
     private EditText mRecipientEdit;
     private EditText mNoteText;
-    private CheckBox mInstantConfirmationCheckbox;
+    private Spinner mFeeTargetCombo;
+    private EditText mFeeTargetEdit;
     private TextView mNoteIcon;
     private CircularProgressButton mSendButton;
     private Switch mMaxButton;
@@ -93,6 +97,7 @@ public class SendFragment extends SubaccountFragment {
     private String [] mMerchantInvoiceData = null;
     private Map<?, ?> mPayreqData;
     private boolean mFromIntentURI;
+    private final boolean mSummaryInBtc[] = new boolean[1]; // State for fiat/btc toggle
 
     // vendor
     private FontFitEditText amountFieldFiat;
@@ -287,7 +292,9 @@ public class SendFragment extends SubaccountFragment {
         mMaxLabel = UI.find(mView, R.id.sendMaxLabel);
         mNoteText = UI.find(mView, R.id.sendToNoteText);
         mNoteIcon = UI.find(mView, R.id.sendToNoteIcon);
-        mInstantConfirmationCheckbox = UI.find(mView, R.id.instantConfirmationCheckBox);
+        mFeeTargetEdit = UI.find(mView, R.id.feerateTextEdit);
+        mFeeTargetCombo = UI.find(mView, R.id.feeTargetCombo);
+        populateFeeCombo();
 
         if (mIsVendor) {
             address = this.getArguments().getString("address");
@@ -326,8 +333,7 @@ public class SendFragment extends SubaccountFragment {
             UI.hide(mAmountFiatEdit);
         }
 
-        final TextView bitcoinUnitText = UI.find(mView, R.id.sendBitcoinUnitText);
-
+        final FontAwesomeTextView bitcoinUnitText = UI.find(mView, R.id.sendBitcoinUnitText);
         UI.setCoinText(service, bitcoinUnitText, null, null);
 
         if (container.getTag(R.id.tag_amount) != null)
@@ -397,7 +403,7 @@ public class SendFragment extends SubaccountFragment {
 
         if (GaService.IS_ELEMENTS) {
             UI.disable(mMaxButton); // FIXME: Sweeping not available in elements
-            UI.hide(mMaxButton, mMaxLabel, mInstantConfirmationCheckbox);
+            UI.hide(mMaxButton, mMaxLabel, mFeeTargetCombo);
         } else {
 
             // warning dialog about max amount
@@ -409,7 +415,7 @@ public class SendFragment extends SubaccountFragment {
                         public void onClick(final MaterialDialog dialog, final DialogAction which) {
                             final Boolean isChecked = mMaxButton.isChecked();
                             UI.disableIf(isChecked, mAmountEdit, mAmountFiatEdit);
-                            mAmountEdit.setText(getString(R.string.send_max_amount));
+                            mAmountEdit.setText(getString(R.string.all));
                         }
                     })
                     .onNegative(new MaterialDialog.SingleButtonCallback() {
@@ -426,7 +432,7 @@ public class SendFragment extends SubaccountFragment {
                     final Boolean isChecked = mMaxButton.isChecked();
                     UI.disableIf(isChecked, mAmountEdit, mAmountFiatEdit);
                     if (!isChecked) {
-                        mAmountEdit.setText("");
+                        mAmountEdit.setText(R.string.empty);
                         return;
                     }
                     UI.showDialog(maxDialog);
@@ -481,8 +487,6 @@ public class SendFragment extends SubaccountFragment {
             }
         });
 
-        hideInstantIf2of3();
-
         makeBalanceObserver(mSubaccount);
         if (service.getCoinBalance(mSubaccount) != null)
             onBalanceUpdated();
@@ -501,20 +505,10 @@ public class SendFragment extends SubaccountFragment {
             mExchanger.conversionFinish();
     }
 
-    private void hideInstantIf2of3() {
-        if (getGAService().findSubaccountByType(mSubaccount, "2of3") == null) {
-            if (!GaService.IS_ELEMENTS)
-                UI.show(mInstantConfirmationCheckbox);
-            return;
-        }
-        UI.hide(mInstantConfirmationCheckbox);
-        mInstantConfirmationCheckbox.setChecked(false);
-    }
-
     @Override
     protected void onBalanceUpdated() {
         final GaService service = getGAService();
-        final TextView sendSubAccountBalanceUnit = UI.find(mView, R.id.sendSubAccountBalanceUnit);
+        final FontAwesomeTextView sendSubAccountBalanceUnit = UI.find(mView, R.id.sendSubAccountBalanceUnit);
         final TextView sendSubAccountBalance = UI.find(mView, R.id.sendSubAccountBalance);
         final Coin balance = service.getCoinBalance(mSubaccount);
         UI.setCoinText(service, sendSubAccountBalanceUnit, sendSubAccountBalance, balance);
@@ -537,13 +531,6 @@ public class SendFragment extends SubaccountFragment {
 
         if (mAmountFields != null)
             mAmountFields.setIsPausing(false);
-
-        final GaService service = getGAService();
-        Boolean advancedOptionsValue = service.cfg("advanced_options").getBoolean("enabled", false);
-        if (!advancedOptionsValue) {
-            UI.hide(mInstantConfirmationCheckbox);
-            mInstantConfirmationCheckbox.setChecked(false);
-        }
     }
 
     @Override
@@ -574,7 +561,7 @@ public class SendFragment extends SubaccountFragment {
     protected void onSubaccountChanged(final int newSubAccount) {
         mSubaccount = newSubAccount;
 
-        if (!IsPageSelected()) {
+        if (!isPageSelected()) {
             Log.d(TAG, "Subaccount changed while page hidden");
             setIsDirty(true);
             return;
@@ -587,18 +574,9 @@ public class SendFragment extends SubaccountFragment {
         if (isZombie())
             return;
 
-        // disable and hide instant confirmation on advanced options disabled
-        final GaService service = getGAService();
-        Boolean advancedOptionsValue = service.cfg("advanced_options").getBoolean("enabled", false);
-        if (!advancedOptionsValue) {
-            UI.hide(mInstantConfirmationCheckbox);
-            mInstantConfirmationCheckbox.setChecked(false);
-        } else {
-            hideInstantIf2of3();
-        }
-
         makeBalanceObserver(mSubaccount);
         getGAService().updateBalance(mSubaccount);
+        populateFeeCombo();
     }
 
     public void setPageSelected(final boolean isSelected) {
@@ -619,6 +597,44 @@ public class SendFragment extends SubaccountFragment {
                 getGAService().cfgEdit("vendor_message").putInt("count", vendorMessageCount + 1).apply();
             }
         }
+    }
+
+    private void populateFeeCombo() {
+        if (GaService.IS_ELEMENTS)
+            return; // FIXME: No custom fees for elements
+
+        // Make the dropdown exclude instant if not available
+        final GaService service = getGAService();
+        final boolean is2of3 = service.findSubaccountByType(mSubaccount, "2of3") != null;
+        final int id = is2of3 ? R.array.send_fee_target_choices : R.array.send_fee_target_choices_instant;
+        final ArrayAdapter<CharSequence> a;
+        a = ArrayAdapter.createFromResource(getActivity(), id, android.R.layout.simple_spinner_item);
+        a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mFeeTargetCombo.setAdapter(a);
+
+        mFeeTargetCombo.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View v, int pos, long id) {
+                onNewFeeTargetSelected(pos);
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) { }
+        });
+
+        // Default priority to the users default priority from settings
+        final int currentPriority = service.getDefaultTransactionPriority();
+        for (int i = 0; i < UI.FEE_TARGET_VALUES.length; ++i) {
+            if (currentPriority == UI.FEE_TARGET_VALUES[i].getBlock())
+                mFeeTargetCombo.setSelection(i);
+        }
+    }
+
+    private void onNewFeeTargetSelected(final int index) {
+        // Show custom fee entry when custom fee is selected
+        final boolean isCustom = UI.FEE_TARGET_VALUES[index].equals(UI.FEE_TARGET.CUSTOM);
+        UI.showIf(isCustom, mFeeTargetEdit);
+        if (isCustom)
+            mFeeTargetEdit.setText(getGAService().cfg().getString("default_feerate", ""));
     }
 
     public void showVendorSnackbar() {
@@ -698,8 +714,8 @@ public class SendFragment extends SubaccountFragment {
         if (mSubaccount != 0)
             privateData.mData.put("subaccount", mSubaccount);
 
-        final boolean isInstant = mInstantConfirmationCheckbox.isChecked();
-        if (isInstant)
+        final UI.FEE_TARGET feeTarget = UI.FEE_TARGET_VALUES[mFeeTargetCombo.getSelectedItemPosition()];
+        if (feeTarget.equals(UI.FEE_TARGET.INSTANT))
             privateData.mData.put("instant", true);
 
         final Coin amount = getSendAmount();
@@ -738,7 +754,7 @@ public class SendFragment extends SubaccountFragment {
 
         mSendButton.setProgress(50);
         final int numConfs;
-        if (isInstant)
+        if (feeTarget.equals(UI.FEE_TARGET.INSTANT))
             numConfs = 6; // Instant requires at least 6 confs
         else if (Network.NETWORK == MainNetParams.get())
             numConfs = 1; // Require 1 conf before spending on mainnet
@@ -752,6 +768,30 @@ public class SendFragment extends SubaccountFragment {
         final boolean minimizeInputs = is2Of3;
         final boolean filterAsset = true;
 
+        final Coin feeRate;
+        try {
+            final String userRate = UI.getText(mFeeTargetEdit);
+            if (feeTarget.equals(UI.FEE_TARGET.CUSTOM)) {
+                final Object rbf_optin = service.getUserConfig("replace_by_fee");
+                if (rbf_optin == null || !((Boolean) rbf_optin)) {
+                    gaActivity.toast(R.string.custom_requires_rbf, mSendButton);
+                    return;
+                }
+            }
+
+            if (feeTarget.equals(UI.FEE_TARGET.CUSTOM) &&
+                (userRate.isEmpty() || !service.isValidFeeRate(userRate))) {
+                // Change invalid feerates to the minimum
+                feeRate = service.getMinFeeRate();
+                final String message = getString(R.string.feerate_changed, feeRate.longValue());
+                gaActivity.toast(message);
+            } else
+                feeRate = getFeeRate(feeTarget);
+        } catch (final GAException e) {
+            gaActivity.toast(R.string.instantUnavailable, mSendButton);
+            return;
+        }
+
         CB.after(service.getAllUnspentOutputs(numConfs, mSubaccount, filterAsset),
                  new CB.Toast<List<JSONMap>>(gaActivity, mSendButton) {
             @Override
@@ -759,12 +799,12 @@ public class SendFragment extends SubaccountFragment {
                 int ret = R.string.insufficientFundsText;
                 if (!utxos.isEmpty()) {
                     GATx.sortUtxos(utxos, minimizeInputs);
-                    ret = createRawTransaction(utxos, recipient, amount, privateData, sendAll);
+                    ret = createRawTransaction(utxos, recipient, amount, privateData, sendAll, feeRate);
                     if (ret == R.string.insufficientFundsText && !minimizeInputs && utxos.size() > 1) {
                         // Not enough money using nlocktime outputs first:
                         // Try again using the largest values first
                         GATx.sortUtxos(utxos, true);
-                        ret = createRawTransaction(utxos, recipient, amount, privateData, sendAll);
+                        ret = createRawTransaction(utxos, recipient, amount, privateData, sendAll, feeRate);
                     }
                 }
                 if (ret != 0)
@@ -847,12 +887,35 @@ public class SendFragment extends SubaccountFragment {
         }
 
         final View v = gaActivity.getLayoutInflater().inflate(R.layout.dialog_new_transaction, null, false);
-
-        UI.setCoinText(service, v, R.id.newTxAmountUnitText, R.id.newTxAmountText, amount);
-        UI.setCoinText(service, v, R.id.newTxFeeUnit, R.id.newTxFeeText, fee);
-
+        final Button showFiatBtcButton = UI.find(v, R.id.newTxShowFiatBtcButton);
         final TextView recipientText = UI.find(v, R.id.newTxRecipientText);
         final EditText newTx2FACodeText = UI.find(v, R.id.newTx2FACodeText);
+        final String fiatAmount = service.coinToFiat(amount);
+        final String fiatFee = service.coinToFiat(fee);
+        final String fiatCurrency = service.getFiatCurrency();
+
+        mSummaryInBtc[0] = true;
+        UI.setCoinText(service, v, R.id.newTxAmountUnitText, R.id.newTxAmountText, amount);
+        UI.setCoinText(service, v, R.id.newTxFeeUnit, R.id.newTxFeeText, fee);
+        if (!GaService.IS_ELEMENTS) {
+            showFiatBtcButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(final View btn) {
+                    // Toggle display between fiat and BTC
+                    if (mSummaryInBtc[0]) {
+                        AmountFields.changeFiatIcon((FontAwesomeTextView) UI.find(v, R.id.newTxAmountUnitText), fiatCurrency, false);
+                        AmountFields.changeFiatIcon((FontAwesomeTextView) UI.find(v, R.id.newTxFeeUnit), fiatCurrency, false);
+                        UI.setAmountText((TextView) UI.find(v, R.id.newTxAmountText), fiatAmount);
+                        UI.setAmountText((TextView) UI.find(v, R.id.newTxFeeText), fiatFee);
+                    } else {
+                        UI.setCoinText(service, v, R.id.newTxAmountUnitText, R.id.newTxAmountText, amount);
+                        UI.setCoinText(service, v, R.id.newTxFeeUnit, R.id.newTxFeeText, fee);
+                    }
+                    mSummaryInBtc[0] = !mSummaryInBtc[0];
+                    showFiatBtcButton.setText(mSummaryInBtc[0] ? R.string.show_fiat : R.string.show_btc);
+                }
+            });
+        }
 
         if (mPayreqData != null)
             recipientText.setText(recipient);
@@ -882,8 +945,14 @@ public class SendFragment extends SubaccountFragment {
                     @Override
                     public void onClick(final MaterialDialog dialog, final DialogAction which) {
                         mSendButton.setProgress(50);
-                        if (twoFacData != null && !method.equals("limit"))
-                            twoFacData.put("code", UI.getText(newTx2FACodeText));
+                        final String code = UI.getText(newTx2FACodeText);
+                        if (twoFacData != null && !method.equals("limit")) {
+                            if (code.length() < 6) {
+                                UI.toast(getActivity(), getString(R.string.malformed_code), mSendButton);
+                                return;
+                            }
+                            twoFacData.put("code", code);
+                        }
 
                         final ListenableFuture<String> sendFn;
                         if (signedRawTx != null)
@@ -945,7 +1014,7 @@ public class SendFragment extends SubaccountFragment {
 
         gaActivity.runOnUiThread(new Runnable() {
             public void run() {
-                UI.toast(gaActivity, R.string.transactionCompleted, Toast.LENGTH_LONG);
+                UI.toast(gaActivity, R.string.transactionSubmitted, Toast.LENGTH_LONG);
 
                 if (mIsExchanger)
                     mExchanger.sellBtc(Double.valueOf(UI.getText(mAmountFiatEdit)));
@@ -972,7 +1041,7 @@ public class SendFragment extends SubaccountFragment {
                     final ViewPager viewPager = UI.find(gaActivity, R.id.container);
                     viewPager.setCurrentItem(1);
                 } else {
-                    gaActivity.toast(R.string.transactionCompleted);
+                    gaActivity.toast(R.string.transactionSubmitted);
                     if (mIsVendor)
                         goBack();
                     else
@@ -990,23 +1059,33 @@ public class SendFragment extends SubaccountFragment {
         getFragmentManager().popBackStack();
     }
 
+    Coin getFeeRate(final UI.FEE_TARGET feeTarget) throws GAException {
+        if (!GaService.IS_ELEMENTS && feeTarget.equals(UI.FEE_TARGET.CUSTOM)) {
+            // FIXME: Custom fees for elements
+            final Double feeRate = Double.valueOf(UI.getText(mFeeTargetEdit));
+            return Coin.valueOf(feeRate.longValue());
+        }
+
+        // 1 is not possible yet as we always get 2 as the fastest estimate,
+        // but try it anyway in case that improves in the future.
+        final int forBlock;
+        if (GaService.IS_ELEMENTS)
+            forBlock = 6; // FIXME: feeTarget for elements
+        else
+            forBlock = feeTarget.equals(UI.FEE_TARGET.INSTANT) ? 1 : feeTarget.getBlock();
+        return GATx.getFeeEstimate(getGAService(), feeTarget.equals(UI.FEE_TARGET.INSTANT), forBlock);
+    }
+
     private int createRawTransaction(final List<JSONMap> utxos, final String recipient,
                                      final Coin amount, final JSONMap privateData,
-                                     final boolean sendAll) {
+                                     final boolean sendAll, final Coin feeRate) {
 
         if (GaService.IS_ELEMENTS)
-            return createRawElementsTransaction(utxos, recipient, amount, privateData, sendAll);
+            return createRawElementsTransaction(utxos, recipient, amount, privateData, sendAll, feeRate);
 
         final GaActivity gaActivity = getGaActivity();
         final GaService service = getGAService();
         final List<JSONMap> usedUtxos = new ArrayList<>();
-
-        final Coin feeRate;
-        try {
-           feeRate = GATx.getFeeEstimate(service, privateData.getBool("instant"));
-        } catch (final GAException e) {
-            return R.string.instantUnavailable;
-        }
 
         final Transaction tx = new Transaction(Network.NETWORK);
         tx.addOutput(amount, Address.fromBase58(Network.NETWORK, recipient));
@@ -1069,7 +1148,7 @@ public class SendFragment extends SubaccountFragment {
         ptx = GATx.signTransaction(service, tx, usedUtxos, mSubaccount, changeOutput);
 
         final int changeIndex = changeOutput == null ? -1 : (randomizedChange ? 0 : 1);
-        final JSONMap underLimits = GATx.makeLimitsData(amount.add(fee), fee, changeIndex);
+        final JSONMap underLimits = GATx.makeLimitsData(actualAmount.add(fee), fee, changeIndex);
 
         final boolean skipChoice = service.isUnderLimit(underLimits.getCoin("amount"));
         final Coin sendFee = fee;
@@ -1098,18 +1177,12 @@ public class SendFragment extends SubaccountFragment {
 
     private int createRawElementsTransaction(final List<JSONMap> utxos, final String recipient,
                                              final Coin amount, final JSONMap privateData,
-                                             final boolean sendAll) {
+                                             final boolean sendAll, final Coin feeRate) {
         // FIXME: sendAll
         final GaService service = getGAService();
         final GaActivity gaActivity = getGaActivity();
 
         final List<JSONMap> usedUtxos = new ArrayList<>();
-        final Coin feeRate;
-        try {
-            feeRate = GATx.getFeeEstimate(service, privateData.getBool("instant"));
-        } catch (final GAException e) {
-            return R.string.instantUnavailable;
-        }
 
         final ElementsTransaction tx = new ElementsTransaction(Network.NETWORK);
 

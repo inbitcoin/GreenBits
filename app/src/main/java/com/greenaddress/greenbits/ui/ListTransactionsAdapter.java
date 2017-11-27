@@ -187,7 +187,7 @@ public class ListTransactionsAdapter extends
         public final TextView textValue;
         public final TextView textWhen;
         public final TextView textReplaceable;
-        public final TextView unitText;
+        public final FontAwesomeTextView unitText;
         public final TextView textWho;
         public final TextView paymentProcessorInfo;
         public final TextView inOutIcon;

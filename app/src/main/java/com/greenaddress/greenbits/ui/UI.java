@@ -54,6 +54,19 @@ import java.util.Map;
 public abstract class UI {
     public static final int INVALID_RESOURCE_ID = 0;
     public static final ArrayList<String> UNITS = Lists.newArrayList("BTC", "mBTC", "\u00B5BTC", "bits");
+    public enum FEE_TARGET {
+        HIGH(3),
+        NORMAL(6),
+        LOW(12),
+        ECONOMY(24),
+        CUSTOM(-1),
+        INSTANT(-2);
+        private final int mBlock;
+        FEE_TARGET(int block) { mBlock = block; }
+        public int getBlock() { return mBlock; }
+    }
+    public static final FEE_TARGET[] FEE_TARGET_VALUES = FEE_TARGET.values();
+
     private static final String MICRO_BTC = "\u00B5BTC";
     private static final MonetaryFormat BTC = new MonetaryFormat().shift(0).minDecimals(8).noCode();
     private static final MonetaryFormat MBTC = new MonetaryFormat().shift(3).minDecimals(5).noCode();
@@ -391,10 +404,10 @@ public abstract class UI {
         return getUnitFormat(service).parse(value);
     }
 
-    public static String setCoinText(final GaService service,
-                                     final TextView symbol, final TextView amount,
-                                     final Coin value) {
+    public static String setCoinText(final GaService service, final FontAwesomeTextView symbol,
+                                     final TextView amount, final Coin value) {
         if (symbol != null) {
+            symbol.setAwesomeTypeface();
             if (GaService.IS_ELEMENTS)
                 symbol.setText(service.getAssetSymbol());
             else
@@ -411,14 +424,14 @@ public abstract class UI {
     public static String setCoinText(final GaService service, final View v,
                                      final int symbolId, final int amountId,
                                      final Coin value) {
-        return setCoinText(service, (TextView) find(v, symbolId),
+        return setCoinText(service, (FontAwesomeTextView) find(v, symbolId),
                            (TextView) find(v, amountId), value);
     }
 
     public static String setCoinText(final GaActivity activity,
                                      final int symbolId, final int amountId,
                                      final Coin value) {
-        return setCoinText(activity.mService, (TextView) find(activity, symbolId),
+        return setCoinText(activity.mService, (FontAwesomeTextView) find(activity, symbolId),
                            (TextView) find(activity, amountId), value);
     }
 

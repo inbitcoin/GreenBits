@@ -51,6 +51,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
     private static final int PINSAVE = 1337;
     private Preference mToggleSW;
     private static final int PASSWORD_LENGTH = 12;
+    private Preference mFeeRate;
     private boolean mPassphraseVisible = false;
     private Observer mEmailSummaryObserver;
 
@@ -58,10 +59,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
     public void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (mService == null || !mService.isLoggedIn()) {
-            // If we are restored and our service has not been destroyed, its
-            // state is unreliable and our parent activity should shortly
-            // be calling finish(). Avoid accessing the service in this case.
+        if (!verifyServiceOK()) {
             Log.d(TAG, "Avoiding create on logged out service");
             return;
         }
@@ -293,6 +291,53 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
             }
         });
 
+        // Transaction priority, i.e. default fees
+        final ListPreference defaultTxPriority = find("default_tx_priority");
+        if (GaService.IS_ELEMENTS)
+            removePreference(defaultTxPriority);
+        else {
+            final String[] prioritySummaries = getResources().getStringArray(R.array.fee_target_summaries);
+            final String[] priorityValues = getResources().getStringArray(R.array.fee_target_values);
+
+            defaultTxPriority.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                @Override
+                public boolean onPreferenceChange(final Preference preference, final Object o) {
+                    final String newValue = o.toString();
+                    final int index = defaultTxPriority.findIndexOfValue(newValue);
+                    preference.setSummary(prioritySummaries[index]);
+                    mService.setDefaultTransactionPriority(Integer.valueOf(newValue));
+                    return true;
+                }
+            });
+            final int currentPriority = mService.getDefaultTransactionPriority();
+            for (int index =0; index < priorityValues.length; index++)
+                if (Integer.valueOf(priorityValues[index]) == currentPriority)
+                    defaultTxPriority.setSummary(prioritySummaries[index]);
+        }
+
+        // Default custom feerate
+        mFeeRate = find("default_feerate");
+        if (GaService.IS_ELEMENTS)
+            removePreference(mFeeRate);
+        else {
+            setFeeRateSummary(mService.cfg().getString("default_feerate", ""));
+            final long minFeeRate = mService.getMinFeeRate().longValue();
+            mFeeRate.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                @Override
+                public boolean onPreferenceChange(final Preference preference, final Object newValue) {
+                    final String feeRate = newValue.toString();
+                    final boolean isValid = mService.isValidFeeRate(feeRate);
+                    if (isValid)
+                        setFeeRateSummary(feeRate);
+                    else {
+                        final String message = getString(R.string.invalid_feerate, minFeeRate);
+                        UI.toast(getActivity(), message, Toast.LENGTH_LONG);
+                    }
+                    return isValid;
+                }
+            });
+        }
+
         Futures.addCallback(mService.getCurrencyExchangePairs(), new CB.Op<List<List<String>>>() {
             @Override
             public void onSuccess(final List<List<String>> result) {
@@ -405,6 +450,9 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         }
     }
 
+    private void setFeeRateSummary(final String feeRate) {
+        mFeeRate.setSummary(feeRate.isEmpty() ? "" : feeRate + " sat/kB");
+    }
 
     @Override
     public boolean onPreferenceClick(final Preference preference) {

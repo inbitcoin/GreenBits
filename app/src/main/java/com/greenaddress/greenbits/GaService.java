@@ -169,9 +169,30 @@ public class GaService extends Service implements INotificationHandler {
         return unit == null ? "bits" : (String) unit;
     }
 
+    public void setDefaultTransactionPriority(final int priority) {
+        setUserConfig("required_num_blocks", priority, true);
+    }
+
+    public int getDefaultTransactionPriority() {
+        try {
+            return (int) getUserConfig("required_num_blocks");
+        } catch (final Exception e) {
+            return 6; // Not logged in/not set, default to Normal/6 confs
+        }
+    }
+
+    public boolean isValidFeeRate(final String feeRate) {
+        try {
+            return feeRate.isEmpty() || Double.valueOf(feeRate) >= mMinFeeRate.longValue();
+        } catch (final Exception e) {
+            return false;
+        }
+    }
+
     public int getAutoLogoutMinutes() {
         try {
-            return (int)getUserConfig("altimeout");
+            final int timeout = (int)getUserConfig("altimeout");
+            return timeout < 1 ? 1 : timeout;
         } catch (final Exception e) {
             return 5; // Not logged in/not set, default to 5 min
         }
@@ -1152,11 +1173,14 @@ public class GaService extends Service implements INotificationHandler {
     public String getFiatBalance(final int subAccount) {
         if (!hasFiatRate())
             return "N/A";
-        final Coin coinBalance = getCoinBalance(subAccount);
-        Fiat balance = getFiatRate().coinToFiat(coinBalance);
-        // Strip extra decimals (over 2 places) because that's what the old JS client does
-        balance = balance.subtract(balance.divideAndRemainder((long) Math.pow(10, Fiat.SMALLEST_UNIT_EXPONENT - 2))[1]);
-        return MonetaryFormat.FIAT.minDecimals(2).noCode().format(balance).toString();
+        return coinToFiat(getCoinBalance(subAccount));
+    }
+
+    public String coinToFiat(final Coin btcValue) {
+        Fiat fiatValue = getFiatRate().coinToFiat(btcValue);
+        // strip extra decimals (over 2 places) because that's what the old JS client does
+        fiatValue = fiatValue.subtract(fiatValue.divideAndRemainder((long) Math.pow(10, Fiat.SMALLEST_UNIT_EXPONENT - 2))[1]);
+        return MonetaryFormat.FIAT.minDecimals(2).noCode().format(fiatValue).toString();
     }
 
     public boolean hasFiatRate() {

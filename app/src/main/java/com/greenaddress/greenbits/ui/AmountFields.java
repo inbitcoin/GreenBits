@@ -24,6 +24,8 @@ class AmountFields {
 
     private static final String TAG = AmountFields.class.getSimpleName();
 
+
+
     interface OnConversionFinishListener {
         void conversionFinish();
     }
@@ -39,6 +41,7 @@ class AmountFields {
         mAmountFiatEdit = UI.find(view, R.id.sendAmountFiatEditText);
         mFiatView = UI.find(view, R.id.sendFiatIcon);
 
+        final FontAwesomeTextView bitcoinUnitText = UI.find(view, R.id.sendBitcoinUnitText);
         // FIXME useful???
         if (!mGaService.isLoggedOrLoggingIn()) {
             Log.d(TAG, "not logged in, return");
@@ -46,7 +49,6 @@ class AmountFields {
         }
 
 
-        final TextView bitcoinUnitText = UI.find(view, R.id.sendBitcoinUnitText);
         UI.setCoinText(mGaService, bitcoinUnitText, null, null);
 
         mAmountFiatEdit.addTextChangedListener(new UI.TextWatcher() {
@@ -98,15 +100,16 @@ class AmountFields {
     public static void changeFiatIcon(final FontAwesomeTextView fiatIcon, final String currency, final boolean useStaticFontSize) {
         final String symbol;
         switch (currency) {
-            case "USD": symbol = "&#xf155; "; break;
             case "AUD": symbol = "&#xf155; "; break;
+            case "BRL": symbol = "R&#xf155; "; break;
             case "CAD": symbol = "&#xf155; "; break;
-            case "EUR": symbol = "&#xf153; "; break;
             case "CNY": symbol = "&#xf157; "; break;
+            case "EUR": symbol = "&#xf153; "; break;
             case "GBP": symbol = "&#xf154; "; break;
             case "ILS": symbol = "&#xf20b; "; break;
+            case "NZD": symbol = "&#xf155; "; break;
             case "RUB": symbol = "&#xf158; "; break;
-            case "BRL": symbol = "R&#xf155; "; break;
+            case "USD": symbol = "&#xf155; "; break;
             default:
                 fiatIcon.setText(currency);
                 fiatIcon.setDefaultTypeface();
@@ -162,12 +165,9 @@ class AmountFields {
 
         try {
             final Coin btcValue = UI.parseCoinValue(mGaService, UI.getText(mAmountEdit));
-            Fiat fiatValue = mGaService.getFiatRate().coinToFiat(btcValue);
-            // strip extra decimals (over 2 places) because that's what the old JS client does
-            fiatValue = fiatValue.subtract(fiatValue.divideAndRemainder((long) Math.pow(10, Fiat.SMALLEST_UNIT_EXPONENT - 2))[1]);
-            mAmountFiatEdit.setText(fiatValue.toPlainString());
+            mAmountFiatEdit.setText(mGaService.coinToFiat(btcValue));
         } catch (final ArithmeticException | IllegalArgumentException e) {
-            final String maxAmount = mContext.getString(R.string.send_max_amount);
+            final String maxAmount = mContext.getString(R.string.all);
             if (UI.getText(mAmountEdit).equals(maxAmount))
                 mAmountFiatEdit.setText(maxAmount);
             else

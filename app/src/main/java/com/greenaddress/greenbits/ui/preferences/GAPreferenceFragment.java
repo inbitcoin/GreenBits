@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +15,8 @@ import com.greenaddress.greenbits.GreenAddressApplication;
 import com.greenaddress.greenbits.ui.R;
 
 public class GAPreferenceFragment extends PreferenceFragment {
+    private static final String TAG = GAPreferenceFragment.class.getSimpleName();
+
     protected GaService mService;
 
     @Override
@@ -74,5 +77,21 @@ public class GAPreferenceFragment extends PreferenceFragment {
         final ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) listView.getLayoutParams();
         int margin = getResources().getDimensionPixelSize(R.dimen.activity_content_margin);
         layoutParams.setMargins(margin, margin, margin, margin);
+    }
+
+    protected boolean verifyServiceOK() {
+        if (mService == null || !mService.isLoggedIn()) {
+            // If we are restored and our service has not been destroyed, its
+            // state is unreliable and our parent activity should shortly
+            // be calling finish(). Avoid accessing the service in this case,
+            // and help the activity along in case it needs prompting to die.
+            final GaPreferenceActivity activity = (GaPreferenceActivity) getActivity();
+            if (activity != null) {
+                activity.toast(R.string.err_send_not_connected_will_resume);
+                activity.finish();
+            }
+            return false;
+        }
+        return true;
     }
 }
