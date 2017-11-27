@@ -12,6 +12,8 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.params.MainNetParams;
 
+import android.util.Pair;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -39,21 +41,19 @@ public class TrezorHWWallet extends HWWallet {
 
     @Override
     public ECKey.ECDSASignature signMessage(final String message) {
-        final Integer[] intArray = new Integer[addrn.size()];
-        return trezor.MessageSignMessage(addrn.toArray(intArray), message);
+        return trezor.signMessage(addrn, message);
     }
 
     @Override
     public DeterministicKey getPubKey() {
-        final Integer[] intArray = new Integer[addrn.size()];
-        final String[] xpub = trezor.MessageGetPublicKey(addrn.toArray(intArray)).split("%", -1);
-        return HDKey.createMasterKey(xpub[xpub.length - 4], xpub[xpub.length - 2]);
+        final Pair<byte[], byte[]> xpub = trezor.getUserKey(addrn);
+        return HDKey.createMasterKey(xpub.second, xpub.first);
     }
 
     @Override
     public List<byte[]> signTransaction(final PreparedTransaction ptx) {
         final boolean isMainnet = Network.NETWORK.getId().equals(MainNetParams.ID_MAINNET);
-        return trezor.MessageSignTx(ptx, isMainnet ? "Bitcoin": "Testnet");
+        return trezor.signTransaction(ptx, isMainnet ? "Bitcoin": "Testnet");
     }
 
     @Override

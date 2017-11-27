@@ -60,7 +60,6 @@ import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.Utils;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.params.RegTestParams;
 import org.bitcoinj.script.Script;
@@ -415,17 +414,25 @@ public class GaService extends Service implements INotificationHandler {
             reconnect();
     }
 
-    public byte[] createOutScript(final int subAccount, final Integer pointer) {
+    public static byte[] createOutScript(final int subAccount, final Integer pointer,
+                                         final byte[] backupPubkey, final byte[] backupChaincode) {
         final List<ECKey> pubkeys = new ArrayList<>();
         pubkeys.add(HDKey.getGAPublicKeys(subAccount, pointer)[1]);
         pubkeys.add(HDClientKey.getMyPublicKey(subAccount, pointer));
-
-        final Map<String, Object> m = findSubaccountByType(subAccount, "2of3");
-        if (m != null)
-            pubkeys.add(HDKey.getRecoveryKeys((String) m.get("2of3_backup_chaincode"),
-                                              (String) m.get("2of3_backup_pubkey"), pointer)[1]);
-
+        if (backupPubkey != null && backupChaincode != null)
+            pubkeys.add(HDKey.getRecoveryKeys(backupChaincode, backupPubkey, pointer)[1]);
         return Script.createMultiSigOutputScript(2, pubkeys);
+    }
+
+    public byte[] createOutScript(final int subAccount, final Integer pointer) {
+        byte[] backupPubkey = null;
+        byte[] backupChaincode = null;
+        final Map<String, Object> m = findSubaccountByType(subAccount, "2of3");
+        if (m != null) {
+            backupPubkey = Wally.hex_to_bytes((String) m.get("2of3_backup_pubkey"));
+            backupChaincode = Wally.hex_to_bytes((String) m.get("2of3_backup_chaincode"));
+        }
+        return createOutScript(subAccount, pointer, backupPubkey, backupChaincode);
     }
 
     private ListenableFuture<Boolean> verifyP2SHSpendableBy(final Script scriptHash, final int subAccount, final Integer pointer) {
@@ -438,9 +445,9 @@ public class GaService extends Service implements INotificationHandler {
             public Boolean call() {
                 final byte[] multisig = createOutScript(subAccount, pointer);
                 if (isSegwitEnabled() &&
-                    Arrays.equals(gotP2SH, Utils.sha256hash160(getSegWitScript(multisig))))
+                    Arrays.equals(gotP2SH, Wally.hash160(getSegWitScript(multisig))))
                     return true;
-                return Arrays.equals(gotP2SH, Utils.sha256hash160(multisig));
+                return Arrays.equals(gotP2SH, Wally.hash160(multisig));
             }
         });
     }
@@ -918,7 +925,8 @@ public class GaService extends Service implements INotificationHandler {
         return mClient.changeMemo(txHashHex, memo);
     }
 
-    private static byte[] getSegWitScript(final byte[] input) {
+    // FIXME: Put this and other script stuff in wally
+    public static byte[] getSegWitScript(final byte[] input) {
         final ByteArrayOutputStream bits = new ByteArrayOutputStream();
         bits.write(0);
         try {
@@ -1024,9 +1032,9 @@ public class GaService extends Service implements INotificationHandler {
                 final byte[] scriptHash;
                 final String addrType = input.get("addr_type");
                 if (addrType.equals("p2wsh"))
-                    scriptHash = Utils.sha256hash160(getSegWitScript(script));
+                    scriptHash = Wally.hash160(getSegWitScript(script));
                 else if (addrType.equals("p2sh"))
-                    scriptHash = Utils.sha256hash160(script);
+                    scriptHash = Wally.hash160(script);
                 else
                     throw new IllegalArgumentException("Unknown address type " + addrType);
 

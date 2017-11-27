@@ -322,13 +322,14 @@ public class SPV {
         CB.after(mService.getRawUnspentOutput(txHash), new CB.Op<Transaction>() {
             @Override
             public void onSuccess(final Transaction result) {
-                final List<Integer> changedSubaccounts = new ArrayList<>();
-                final List<ListenableFuture<Boolean>> futuresList = new ArrayList<>();
-                if (!result.getHash().equals(txHash)) {
+                if (result == null || !result.getHash().equals(txHash)) {
                     Log.e(TAG, "txHash mismatch: expected " + txHashHex +
-                               ", got " + result.getHash().toString());
+                               ", got " + (result == null ? "null" : result.getHash().toString()));
                     return;
                 }
+
+                final List<Integer> changedSubaccounts = new ArrayList<>();
+                final List<ListenableFuture<Boolean>> futuresList = new ArrayList<>();
 
                 for (final Integer outpoint : mUnspentOutpoints.get(txHash)) {
                     final TransactionOutPoint txOutpoint = createOutPoint(outpoint, txHash);
@@ -443,8 +444,8 @@ public class SPV {
 
     private ListenableFuture<Boolean>
     verifyOutputSpendable(final PreparedTransaction ptx, final int index) {
-        return mService.verifySpendableBy(ptx.mDecoded.getOutputs().get(index),
-                                          ptx.mSubAccount, ptx.mChangePointer);
+        return mService.verifySpendableBy(ptx.mDecoded.getOutputs().get(index), ptx.mSubAccount,
+                                          ptx.mChangeOutput == null ? null : ptx.mChangeOutput.mPointer);
     }
 
     public ListenableFuture<Coin>
@@ -623,7 +624,11 @@ public class SPV {
 
     private final TransactionReceivedInBlockListener mTxListner = new TransactionReceivedInBlockListener() {
         @Override
-        public void receiveFromBlock(final Transaction tx, final StoredBlock block, final BlockChain.NewBlockType blockType, final int relativityOffset) throws VerificationException {
+        public void receiveFromBlock(final Transaction tx, final StoredBlock block,
+                                     final BlockChain.NewBlockType blockType,
+                                     final int relativityOffset) throws VerificationException {
+            if (tx == null)
+                throw new RuntimeException("receiveFromBlock got null tx");
             getService().notifyObservers(tx.getHash());
         }
 

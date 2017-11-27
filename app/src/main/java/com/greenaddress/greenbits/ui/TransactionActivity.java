@@ -42,7 +42,6 @@ import com.greenaddress.greenapi.JSONMap;
 import com.greenaddress.greenapi.PreparedTransaction;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.QrBitmap;
-import com.greenaddress.greenbits.wallets.TrezorHWWallet;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Sha256Hash;
@@ -669,13 +668,13 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
         final List<JSONMap> usedUtxos = getUtxosFromEndpoints();
         final int subAccount = mService.getCurrentSubAccount();
 
-        final Pair<TransactionOutput, Integer> changeOutput = GATx.findChangeOutput(mTxItem.eps, tx);
+        final GATx.ChangeOutput changeOutput = GATx.findChangeOutput(mTxItem.eps, tx);
         if (changeOutput != null) {
             // Either this tx has change, or it is a changeless re-deposit.
             if (tx.getOutputs().size() != 1) {
                 // Not a changeless re-deposit
                 // Subtract the change from the output amount
-                amount = amount.subtract(changeOutput.first.getValue());
+                amount = amount.subtract(changeOutput.mOutput.getValue());
             }
 
             // See if we can shrink the change/redeposit value to increase the fee
@@ -685,10 +684,10 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
 
             final Coin feeIncrement = fee.subtract(oldFee).add(bandwidthFee);
             fee = fee.add(bandwidthFee);
-            final Coin remainingChange = changeOutput.first.getValue().subtract(feeIncrement);
+            final Coin remainingChange = changeOutput.mOutput.getValue().subtract(feeIncrement);
             if (remainingChange.isGreaterThan(mService.getDustThreshold())) {
                 // We have enough change to cover the fee increase
-                changeOutput.first.setValue(remainingChange);
+                changeOutput.mOutput.setValue(remainingChange);
                 final Coin newFee = fee;
                 CB.after(Futures.immediateFuture((Void) null),
                          new CB.Toast<Void>(this, mBumpFeeButton) {
@@ -753,7 +752,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
     createRawTransaction(final GaService service,
                          final Transaction tx, final List<JSONMap> usedUtxos,
                          final List<JSONMap> utxos, final int subAccount,
-                         Pair<TransactionOutput, Integer> changeOutput,
+                         GATx.ChangeOutput changeOutput,
                          final Coin amount, final Coin oldFee,
                          final Coin feeRate,
                          final JSONMap privateData, final boolean sendAll) {
@@ -802,11 +801,11 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
         if (changeOutput != null) {
             // Set the value of the change output
             if (tx.getOutputs().size() == 1)
-                changeOutput.first.setValue(total.subtract(fee)); // Redeposit
+                changeOutput.mOutput.setValue(total.subtract(fee)); // Redeposit
             else
-                changeOutput.first.setValue(total.subtract(amount).subtract(fee));
+                changeOutput.mOutput.setValue(total.subtract(amount).subtract(fee));
             if (haveExistingChange)
-                randomizedChange = changeOutput.first == tx.getOutput(0);
+                randomizedChange = changeOutput.mOutput == tx.getOutput(0);
             else
                 randomizedChange = GATx.randomizeChangeOutput(tx);
         }
@@ -822,7 +821,6 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
             tx.getOutput(amtIndex).setValue(actualAmount);
         }
 
-        // FIXME: Needed?
         tx.setLockTime(service.getCurrentBlock()); // Prevent fee sniping
 
         int changeIndex = -1;

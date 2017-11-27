@@ -1,7 +1,5 @@
 package com.greenaddress.greenapi;
 
-import android.util.Pair;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Bytes;
 import com.greenaddress.greenbits.GaService;
@@ -14,7 +12,6 @@ import org.bitcoinj.core.TransactionOptions;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionWitness;
-import org.bitcoinj.core.Utils;
 import org.bitcoinj.core.VarInt;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.script.Script;
@@ -46,6 +43,17 @@ public class GATx {
     public static final int REDEEM_P2SH_P2WSH_FORTIFIED = 159;
     public static final int MAX_BLOCK_NUM = 500000000 - 1;  // From nTimeLock field definition
 
+    public static class ChangeOutput {
+        public final TransactionOutput mOutput;
+        public final Integer mPointer;
+        public final Boolean mIsSegwit;
+
+        public ChangeOutput(final TransactionOutput output, final Integer pointer, final Boolean isSegwit) {
+            mOutput = output;
+            mPointer = pointer;
+            mIsSegwit = isSegwit;
+        }
+    }
 
     public static int getOutScriptType(final int scriptType) {
         switch (scriptType) {
@@ -119,24 +127,26 @@ public class GATx {
         byte[] script = addrInfo.getBytes("script");
         if (addrInfo.getString("addr_type").equals("p2wsh"))
             script = ScriptBuilder.createP2WSHOutputScript(Wally.sha256(script)).getProgram();
-        return Address.fromP2SHHash(Network.NETWORK, Utils.sha256hash160(script));
+        return Address.fromP2SHHash(Network.NETWORK, Wally.hash160(script));
     }
 
     /* Add a new change output to a tx */
-    public static Pair<TransactionOutput, Integer> addChangeOutput(final GaService service, final Transaction tx,
+    public static ChangeOutput addChangeOutput(final GaService service, final Transaction tx,
                                                                    final int subaccount) {
         final JSONMap addrInfo = service.getNewAddress(subaccount);
         if (addrInfo == null)
             return null;
-        return new Pair<>(tx.addOutput(Coin.ZERO, createChangeAddress(addrInfo)),
-                          addrInfo.getInt("pointer"));
+        return new ChangeOutput(tx.addOutput(Coin.ZERO, createChangeAddress(addrInfo)),
+                                addrInfo.getInt("pointer"),
+                                addrInfo.getString("addr_type").equals("p2wsh"));
     }
 
     /* Identify the change output in a tx */
-    public static Pair<TransactionOutput, Integer> findChangeOutput(final List<JSONMap> endPoints,
-                                                                    final Transaction tx) {
+    public static ChangeOutput findChangeOutput(final List<JSONMap> endPoints,
+                                                final Transaction tx) {
         int index = -1;
         int pubkey_pointer = -1;
+        int scriptType = 0;
         for (final JSONMap ep : endPoints) {
             if (!ep.getBool("is_credit") || !ep.getBool("is_relevant"))
                 continue;
@@ -156,8 +166,12 @@ public class GATx {
             }
             index = ep.getInt("pt_idx");
             pubkey_pointer = ep.getInt("pubkey_pointer");
+            scriptType = ep.getInt("script_type");
         }
-        return new Pair<>(tx.getOutput(index), pubkey_pointer);
+        if (index == -1)
+            return null;
+        return new ChangeOutput(tx.getOutput(index), pubkey_pointer,
+                                getOutScriptType(scriptType) == P2SH_P2WSH_FORTIFIED_OUT);
     }
 
     /* Swap the change and recipient output in a tx with 50% probability */
@@ -331,17 +345,19 @@ public class GATx {
     public static PreparedTransaction signTransaction(final GaService service, final Transaction tx,
                                                       final List<JSONMap> usedUtxos,
                                                       final int subAccount,
-                                                      final Pair<TransactionOutput, Integer> changeOutput) {
+                                                      final ChangeOutput changeOutput) {
 
         // Fetch previous outputs
         final List<Output> prevOuts = createPrevouts(service, usedUtxos);
         final PreparedTransaction ptx;
-        ptx = new PreparedTransaction(changeOutput == null ? null : changeOutput.second,
-                                      subAccount, tx,
+        ptx = new PreparedTransaction(changeOutput, subAccount, tx,
                                       service.findSubaccountByType(subAccount, "2of3"));
         ptx.mPrevoutRawTxs = new HashMap<>();
-        for (final Transaction prevTx : getPreviousTransactions(service, tx))
+        for (final Transaction prevTx : getPreviousTransactions(service, tx)) {
+            if (prevTx == null)
+                throw new RuntimeException("Previous transaction not found");
             ptx.mPrevoutRawTxs.put(Wally.hex_from_bytes(prevTx.getHash().getBytes()), prevTx);
+        }
 
         final boolean isSegwitEnabled = service.isSegwitEnabled();
 
