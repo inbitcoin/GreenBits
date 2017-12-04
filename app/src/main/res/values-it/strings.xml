@@ -289,4 +289,13 @@
         <item>Voglio crederci</item>
         <item>GreenAddress Instant</item>
     </string-array>
+    <string-array name="fee_target_summaries">
+        <item>Conferma in 3 blocchi, mediamente fino ad 30 minuti</item>
+        <item>Comprare diamanti in un vicolo buio? ;-)\nConferma in 6 blocchi, mediamente fino ad un\'ora</item>
+        <item>Conferma in 12 blocchi, mediamente fino a due ore</item>
+        <item>Ci conosciamo, prenderò il mio tempo.\nConferma in 24 blocchi o più, mediamente 4 ore o di più</item>
+        <item>Allora scusa, sei mejo te</item>
+        <item>La verità è là fuori, la rete deciderà\n10000 satoshi/kB</item>
+        <item>Panic selling /o\\</item>
+    </string-array>
 </resources>
