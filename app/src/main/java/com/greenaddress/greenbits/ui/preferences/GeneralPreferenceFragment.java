@@ -293,11 +293,12 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         });
 
         final Boolean advancedOptionsValue = mService.cfg("advanced_options").getBoolean("enabled", false);
+        final boolean isDev = mService.cfg("dev_mode").getBoolean("enabled", false);
 
         // Transaction priority, i.e. default fees
         final ListPreference defaultTxPriority = find("default_tx_priority");
-        if (!advancedOptionsValue)
-            defaultTxPriority.setEnabled(false);
+        // disabled, unuseful in altana
+        removePreference(defaultTxPriority);
         if (GaService.IS_ELEMENTS)
             removePreference(defaultTxPriority);
         else {
@@ -322,8 +323,8 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
         // Default custom feerate
         mFeeRate = find("default_feerate");
-        if (!advancedOptionsValue)
-            mFeeRate.setEnabled(false);
+        if (!isDev)
+            removePreference(mFeeRate);
         if (GaService.IS_ELEMENTS)
             removePreference(mFeeRate);
         else {
@@ -431,10 +432,6 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
             public boolean onPreferenceChange(Preference preference, Object newValue) {
                 mService.cfgEdit("advanced_options").putBoolean("enabled", (Boolean)newValue).apply();
                 advancedOptions.setChecked((Boolean) newValue);
-                if (!GaService.IS_ELEMENTS) {
-                    mFeeRate.setEnabled((Boolean) newValue);
-                    defaultTxPriority.setEnabled((Boolean) newValue);
-                }
                 return false;
             }
         });
