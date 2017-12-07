@@ -69,10 +69,8 @@ public class ListTransactionsAdapter extends
             UI.hide(holder.fiatView);
             try {
                 // Show actual fiat value
-                Fiat fiatValue = mService.getFiatRate().coinToFiat(coin);
-                // strip extra decimals (over 2 places) because that's what the old JS client does
-                fiatValue = fiatValue.subtract(fiatValue.divideAndRemainder((long) Math.pow(10, Fiat.SMALLEST_UNIT_EXPONENT - 2))[1]);
-                UI.setAmountText(holder.fiatValue, fiatValue.toPlainString());
+                String fiatValue = mService.coinToFiat(coin);
+                UI.setAmountText(holder.fiatValue, fiatValue);
                 AmountFields.changeFiatIcon(holder.fiatIcon, mService.getFiatCurrency(), false);
                 UI.show(holder.fiatView);
             } catch (final ArithmeticException | IllegalArgumentException e) {

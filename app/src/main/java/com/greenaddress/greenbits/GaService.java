@@ -1188,6 +1188,8 @@ public class GaService extends Service implements INotificationHandler {
     }
 
     public String coinToFiat(final Coin btcValue) {
+        if (!hasFiatRate())
+            return "N/A";
         Fiat fiatValue = getFiatRate().coinToFiat(btcValue);
         // strip extra decimals (over 2 places) because that's what the old JS client does
         fiatValue = fiatValue.subtract(fiatValue.divideAndRemainder((long) Math.pow(10, Fiat.SMALLEST_UNIT_EXPONENT - 2))[1]);
@@ -1386,6 +1388,8 @@ public class GaService extends Service implements INotificationHandler {
         if (IS_ELEMENTS)
             return unconverted.multiply(100);
         if (!mLimitsData.getBool("is_fiat"))
+            return unconverted;
+        if (!hasFiatRate())
             return unconverted;
         // Fiat class uses SMALLEST_UNIT_EXPONENT units (10^4), our limit is
         // held in 10^2 (e.g. cents) units, hence we * 100 below.

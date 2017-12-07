@@ -178,10 +178,8 @@ class Exchanger implements AmountFields.OnConversionFinishListener {
 
     private double convertBtcToFiat(final Coin btcValue) {
         try {
-            Fiat fiatValue = mService.getFiatRate().coinToFiat(btcValue);
-            // strip extra decimals (over 2 places) because that's what the old JS client does
-            fiatValue = fiatValue.subtract(fiatValue.divideAndRemainder((long) Math.pow(10, Fiat.SMALLEST_UNIT_EXPONENT - 2))[1]);
-            return Double.valueOf(fiatValue.toPlainString());
+            String fiatValue = mService.coinToFiat(btcValue);
+            return Double.valueOf(fiatValue);
         } catch (final ArithmeticException | IllegalArgumentException e) {
             return -1;
         }
