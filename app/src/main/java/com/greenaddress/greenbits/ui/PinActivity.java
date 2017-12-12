@@ -72,6 +72,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
     private Boolean mErrorAuthScreen = false;
     private int AUTH_SCREEN_ATTEMPT = 0;
     private Activity mActivity;
+    private static String SERVER_REPLY_NO_PASSWORD = "No password available for this device";
 
     private void login() {
 
@@ -100,9 +101,8 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
         setMenuItemVisible(mMenu, R.id.network_preferences, false);
         setMenuItemVisible(mMenu, R.id.watchonly_preference, false);
 
-        mPinLoginButton.setProgress(50);
-        mPinText.setEnabled(false);
         hideKeyboardFrom(mPinText);
+        setEnableDoLogin(false);
 
         setUpLogin(UI.getText(mPinText), new Runnable() {
              public void run() {
@@ -112,8 +112,9 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
                  setMenuItemVisible(mMenu, R.id.network_preferences, true);
                  setMenuItemVisible(mMenu, R.id.watchonly_preference, true);
 
-                 mPinLoginButton.setProgress(0);
-                 UI.enable(mPinText);
+                 if (mService.isConnected()) {
+                     setEnableDoLogin(true);
+                 }
                  UI.show(mPinError);
                  final int counter = mService.cfg("pin").getInt("counter", 1);
                  mPinError.setText(getString(R.string.attemptsLeft, MAX_ATTEMPTS - counter));
@@ -166,8 +167,8 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
                 final int counter = prefs.getInt("counter", 0) + 1;
 
                 final Throwable error;
-                if (t instanceof GAException ||
-                    Throwables.getRootCause(t) instanceof LoginFailed) {
+                if (t instanceof GAException &&
+                        ((GAException) t).mMessage.contains(SERVER_REPLY_NO_PASSWORD)) {
                     final SharedPreferences.Editor editor = prefs.edit();
                     if (counter < MAX_ATTEMPTS) {
                         final Long timestamp = System.currentTimeMillis()/1000;
@@ -222,7 +223,6 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
         setContentView(R.layout.activity_pin);
         mPinLoginButton = UI.find(this, R.id.pinLoginButton);
         mPinLoginButton.setIndeterminateProgressMode(true);
-        mPinLoginButton.setProgress(50);
         mPinText = UI.find(this, R.id.pinText);
         mPinError = UI.find(this, R.id.pinErrorText);
         mPinCountdown = UI.find(this, R.id.pinCountdownText);
@@ -238,12 +238,12 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
                 }));
 
             mPinLoginButton.setOnClickListener(this);
+        setEnableDoLogin(false);
         if (!TextUtils.isEmpty(nativePIN)) {
             // force hide keyboard
             getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
-            mPinText.setEnabled(false);
-            mPinLoginButton.setProgress(50);
+            setEnableDoLogin(false);
             tryDecrypt();
         }
 
@@ -367,14 +367,20 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
     public void onResumeWithService() {
         mService.addConnectionObserver(this);
         // if is already connected, show the login button
-        if (TextUtils.isEmpty(nativePIN) && mPinLoginButton != null) {
-            if (mService.isConnected())
-                mPinLoginButton.setProgress(0);
-            else
-                mPinLoginButton.setProgress(50);
+        if ((TextUtils.isEmpty(nativePIN) || mErrorAuthScreen) && mPinLoginButton != null) {
+            if (mService.isLoggedOrLoggingIn()) {
+                setEnableDoLogin(false);
+            } else if (mService.isConnected()) {
+                setEnableDoLogin(true);
+            } else {
+                setEnableDoLogin(false);
+            }
         }
         if (!mService.isConnected())
             setMenuItemVisible(mMenu, R.id.network_unavailable, true);
+        else
+            setMenuItemVisible(mMenu, R.id.network_unavailable, false);
+
         super.onResumeWithService();
     }
 
@@ -425,14 +431,14 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        mPinLoginButton.setProgress(0);
+                        setEnableDoLogin(true);
                     }
                 });
-            } else if (!state.isLoggedOrLoggingIn()){
+            } else if (!state.isLoggedOrLoggingIn()) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        mPinLoginButton.setProgress(50);
+                        setEnableDoLogin(false);
                     }
                 });
             }
@@ -473,9 +479,8 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
             finish();
         } else {
             mErrorAuthScreen = true;
-            mPinText.setEnabled(true);
             if (mService.isConnected())
-                mPinLoginButton.setProgress(0);
+                setEnableDoLogin(true);
         }
     }
 
@@ -483,5 +488,19 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
     public void onClick(final View v) {
         if (v == mPinLoginButton)
             login();
+    }
+
+    /**
+     * Enable/disable login button and all necessary
+     * @param enable
+     */
+    private void setEnableDoLogin(final Boolean enable) {
+        if (enable) {
+            mPinLoginButton.setProgress(0);
+            UI.enable(mPinText);
+        } else {
+            mPinLoginButton.setProgress(50);
+            UI.disable(mPinText);
+        }
     }
  }
