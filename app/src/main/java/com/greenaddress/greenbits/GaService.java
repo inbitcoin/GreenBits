@@ -465,6 +465,9 @@ public class GaService extends Service implements INotificationHandler {
     }
 
     private ListenableFuture<LoginData> loginImpl(final ListenableFuture<LoginData> loginFn) {
+        // FIXME: temp fix, if not connected don't try to login
+        if (!isConnected())
+            return null;
         mState.transitionTo(ConnState.LOGGINGIN);
 
         // Chain the login and post-login processing together, so any
@@ -578,6 +581,9 @@ public class GaService extends Service implements INotificationHandler {
     public ListenableFuture<LoginData> signup(final ISigningWallet signingWallet,
                                               final String mnemonic, final String userAgent,
                                               final byte[] pubkey, final byte[] chaincode) {
+        // FIXME: temp fix, if not connected don't try to login
+        if (!isConnected())
+            return null;
         mState.transitionTo(ConnState.LOGGINGIN);
 
         return mExecutor.submit(new Callable<LoginData>() {
