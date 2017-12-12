@@ -887,6 +887,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         if (state.isForcedOff()) {
             // FIXME: Should pass flag to activity so it shows it was forced logged out
             startActivity(new Intent(this, FirstScreenActivity.class));
+            finish();
         }
         setMenuItemVisible(mMenu, R.id.network_unavailable, !state.isLoggedIn());
     }
