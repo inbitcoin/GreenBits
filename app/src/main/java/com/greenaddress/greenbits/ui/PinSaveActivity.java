@@ -186,12 +186,17 @@ public class PinSaveActivity extends GaActivity {
                         if (UI.getText(newPin).equals(currentPin)) {
                             UI.dismiss(null, PinSaveActivity.this.mVerifyDialog);
                             if (nativeAuthCB.isChecked()) {
-                                if (mPinText.getText().length() < 4) {
+                                if (currentPin.length() < 4) {
                                     shortToast(R.string.err_pin_save_wrong_length);
                                     return;
                                 }
-                                KeyStoreAES.createKey(true);
-                                tryEncrypt(mPinText.getText().toString());
+                                try {
+                                    KeyStoreAES.createKey(true);
+                                } catch (final RuntimeException e) {
+                                    setPin(currentPin, false);
+                                    return;
+                                }
+                                tryEncrypt(currentPin);
                             } else {
                                 setPin(currentPin, false);
                             }
