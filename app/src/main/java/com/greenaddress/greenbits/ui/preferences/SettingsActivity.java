@@ -76,7 +76,9 @@ public class SettingsActivity extends GaPreferenceActivity {
     public void onHeaderClick(Header header, int position) {
         super.onHeaderClick(header, position);
         if (header.id == R.id.backupHeader) {
-            startActivity(new Intent(this, SignUpActivity.class));
+            final Intent intent = new Intent(this, SignUpActivity.class);
+            intent.putExtra("from_settings_page", true);
+            startActivity(intent);
         }
     }
 }

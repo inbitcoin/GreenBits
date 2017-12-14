@@ -64,6 +64,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
 
     private ListenableFuture<LoginData> mOnSignUp;
     private final Runnable mVerifyDialogCB = new Runnable() { public void run() { onVerifyDismissed(); } };
+    private Boolean mFromSettingsPage = false;
 
     @Override
     protected int getMainViewId() { return R.layout.activity_sign_up; }
@@ -72,6 +73,8 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     protected void onCreateWithService(final Bundle savedInstanceState) {
 
         mService.setFlagSecure(this, true);
+
+        mFromSettingsPage = getIntent().getBooleanExtra("from_settings_page", false);
 
         mActivity = this;
         mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
@@ -174,6 +177,11 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     }
 
     private void onContinueButtonClicked() {
+        if (mFromSettingsPage) {
+            mService.cfg().edit().putBoolean("backup_done", true).apply();
+            finish();
+            return;
+        }
         int errorId = 0;
         if (!mService.isConnected())
             errorId = R.string.notConnected;
@@ -301,6 +309,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     }
 
     private void onSignUpCompleted() {
+        mService.cfg().edit().putBoolean("backup_done", true).apply();
         setComplete(true);
         mService.resetSignUp();
         mOnSignUp = null;
