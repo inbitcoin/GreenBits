@@ -175,7 +175,8 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
         launch(isBitcoinUri, isBitidUri);
 
-        startService(new Intent(this, ApplicationService.class));
+        // TODO disabled, should be unuseful
+        //startService(new Intent(this, ApplicationService.class));
     }
 
     private void onTwoFactorConfigChange() {
