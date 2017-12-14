@@ -5,6 +5,7 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.nfc.NfcAdapter;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -621,22 +622,25 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                 });
 
                 if (Build.VERSION.SDK_INT >= 16) {
-                    UI.show((View) UI.find(v, R.id.backupNfcView));
-                    final ImageView nfcButton = UI.find(v, R.id.backupNfcIcon);
-                    nfcButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            dialog.dismiss();
-                            Intent intent = new Intent(getActivity(), SettingsActivity.class);
-                            intent.setAction(SettingsActivity.INTENT_SHOW_NFC_DIALOG_REQUEST);
-                            // Prevent activity to be re-instantiated if it is already running.
-                            // Instead, the onNewEvent() is triggered
-                            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                            intent.putExtra("mnemonic", CryptoHelper.encrypted_mnemonic_to_bytes(encryptedMnemonic));
-                            intent.putExtra("is_encrypted", true);
-                            getActivity().startActivity(intent);
-                        }
-                    });
+                    final NfcAdapter mNfcAdapter = NfcAdapter.getDefaultAdapter(getActivity());
+                    if (mNfcAdapter != null && mNfcAdapter.isEnabled()) {
+                        UI.show((View) UI.find(v, R.id.backupNfcView));
+                        final ImageView nfcButton = UI.find(v, R.id.backupNfcIcon);
+                        nfcButton.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                dialog.dismiss();
+                                Intent intent = new Intent(getActivity(), SettingsActivity.class);
+                                intent.setAction(SettingsActivity.INTENT_SHOW_NFC_DIALOG_REQUEST);
+                                // Prevent activity to be re-instantiated if it is already running.
+                                // Instead, the onNewEvent() is triggered
+                                intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                intent.putExtra("mnemonic", CryptoHelper.encrypted_mnemonic_to_bytes(encryptedMnemonic));
+                                intent.putExtra("is_encrypted", true);
+                                getActivity().startActivity(intent);
+                            }
+                        });
+                    }
                 }
 
                 qrCode.setImageBitmap(bitmap);
