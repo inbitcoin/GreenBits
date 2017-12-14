@@ -201,7 +201,7 @@ dependencies {
     compile 'com.google.protobuf:protobuf-java:3.3.0'
     compile 'com.android.support:multidex:1.0.1'
     compile 'com.squareup.okhttp:okhttp:2.7.5'
-    compile 'com.github.medyo:android-about-page:1.2.1'
+    compile 'com.github.medyo:android-about-page:1.2.2'
     compile 'com.afollestad.material-dialogs:core:0.9.4.7'
     compile 'com.androidadvance:topsnackbar:1.1.1'
     // used to redirect bitcoinj logging to android in debug builds, enable manually
