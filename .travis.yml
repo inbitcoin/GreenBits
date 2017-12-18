@@ -34,4 +34,5 @@ matrix:
     - services:
         - docker
       script: docker run -v $PWD:/gb greenaddress/android@sha256:d59365ad8d61059e915d233a6afcbcb69be6320f0f62f2cb75d2730fe1e6819f /bin/sh -c "cd /gb/app && ./prepare_fdroid.sh && cd /gb && ./gradlew --project-dir=bitcoinj/tools build && ./gradlew assembleElementsregtestRelease"
-git: submodules: false
+git:
+    submodules: false
