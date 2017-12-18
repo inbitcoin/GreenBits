@@ -66,6 +66,8 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     private final Runnable mVerifyDialogCB = new Runnable() { public void run() { onVerifyDismissed(); } };
     private Boolean mFromSettingsPage = false;
 
+    private String mMnemonic;
+
     @Override
     protected int getMainViewId() { return R.layout.activity_sign_up; }
 
@@ -87,7 +89,8 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         mContinueButton = UI.find(this, R.id.signupContinueButton);
         mNfcSignupIcon = UI.find(this, R.id.signupNfcIcon);
 
-        mMnemonicText.setText(mService.getSignUpMnemonic());
+        mMnemonic = mService.getSignUpMnemonic();
+        mMnemonicText.setText(mMnemonic.replace(" ", "  "));
 
         if (mOnSignUp != null) {
             UI.disable(mAcceptCheckBox);
@@ -217,7 +220,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
                 .theme(Theme.LIGHT)
                 .build();
         UI.setDialogCloseHandler(mVerifyDialog, mVerifyDialogCB, false);
-        final String[] words = UI.getText(mMnemonicText).split(" ");
+        final String[] words = mMnemonic.split(" ");
         setupWord(v, R.id.verify_label_1, R.id.verify_word_1, words, 0);
         setupWord(v, R.id.verify_label_2, R.id.verify_word_2, words, 1);
         setupWord(v, R.id.verify_label_3, R.id.verify_word_3, words, 2);
@@ -229,7 +232,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     }
 
     private void onMnemonicVerified() {
-        mOnSignUp = mService.signup(UI.getText(mMnemonicText));
+        mOnSignUp = mService.signup(mMnemonic);
         Futures.addCallback(mOnSignUp, new FutureCallback<LoginData>() {
             @Override
             public void onSuccess(final LoginData result) {
