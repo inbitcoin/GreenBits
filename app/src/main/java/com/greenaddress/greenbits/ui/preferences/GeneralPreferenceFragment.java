@@ -149,7 +149,6 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
         // -- handle email address
         final Preference email = find("email");
-        getPreferenceScreen().removePreference(email);
         final Map<?, ?> twoFactorConfig = mService.getTwoFactorConfig();
         if (twoFactorConfig != null) {
             Log.d(TAG, "twoFactorConfig = " + twoFactorConfig);
