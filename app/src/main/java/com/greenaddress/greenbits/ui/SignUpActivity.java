@@ -10,6 +10,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v7.widget.GridLayout;
 import android.support.v7.widget.Toolbar;
 import android.text.method.LinkMovementMethod;
@@ -31,6 +32,7 @@ import android.widget.ImageView;
 import android.widget.Space;
 import android.widget.TextView;
 
+import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.Theme;
 import com.dd.CircularProgressButton;
@@ -38,9 +40,12 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.greenaddress.greenapi.LoginData;
+import com.greenaddress.greenapi.Network;
 import com.greenaddress.greenbits.NfcWriteMnemonic;
 import com.journeyapps.barcodescanner.Util;
 import com.wefika.flowlayout.FlowLayout;
+
+import org.bitcoinj.core.NetworkParameters;
 
 import java.util.ArrayList;
 import java.util.Currency;
@@ -225,14 +230,25 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
 
         // Show the verification dialog
         final View v = getLayoutInflater().inflate(R.layout.dialog_verify_words, null, false);
-        mVerifyDialog = new MaterialDialog.Builder(SignUpActivity.this)
+        final MaterialDialog.Builder verifyDialogBuilder = new MaterialDialog.Builder(SignUpActivity.this)
                 .title(R.string.enter_matching_words)
                 .customView(v, true)
                 .titleColorRes(R.color.textColor)
                 .contentColorRes(android.R.color.white)
                 .theme(Theme.LIGHT)
-                .negativeText(R.string.cancel)
-                .build();
+                .negativeText(R.string.cancel);
+
+        // on debug and !mainnet add skip button
+        if (BuildConfig.DEBUG || !Network.NETWORK.getId().equals(NetworkParameters.ID_MAINNET)) {
+            verifyDialogBuilder.positiveText(R.string.pinSkipText);
+            verifyDialogBuilder.onPositive(new MaterialDialog.SingleButtonCallback() {
+                @Override
+                public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                    onMnemonicVerified();
+                }
+            });
+        }
+        mVerifyDialog = verifyDialogBuilder.build();
         UI.setDialogCloseHandler(mVerifyDialog, mVerifyDialogCB, false);
         final String[] words = mMnemonic.split(" ");
 
