@@ -8,6 +8,7 @@ import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
 
 import com.greenaddress.greenbits.ui.ExportMnemonic;
+import com.greenaddress.greenbits.ui.PinSaveActivity;
 import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.SignUpActivity;
 
@@ -19,6 +20,7 @@ import com.greenaddress.greenbits.ui.SignUpActivity;
 public class SecurityPreferenceFragment extends GAPreferenceFragment {
 
 
+    private static final int PINSAVE = 1337;
     private static final int BACKUP_ACTIVITY = 1;
     private Preference mBackupWallet;
 
@@ -27,6 +29,8 @@ public class SecurityPreferenceFragment extends GAPreferenceFragment {
         super.onCreate(savedInstanceState);
 
         addPreferencesFromResource(R.xml.preference_security);
+
+        final String mnemonic = mService.getMnemonic();
 
         mBackupWallet = find("backup_wallet");
         mBackupWallet.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
@@ -44,11 +48,26 @@ public class SecurityPreferenceFragment extends GAPreferenceFragment {
         backupPassphrase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
             @Override
             public boolean onPreferenceClick(Preference preference) {
-                final String mnemonic = mService.getMnemonic();
                 ExportMnemonic.openDialogPassword(mnemonic, getActivity());
                 return false;
             }
         });
+
+        // PIN
+        final Preference resetPin = find("reset_pin");
+        if (mnemonic == null)
+            removePreference(resetPin);
+        else {
+            resetPin.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(final Preference preference) {
+                    final Intent savePin = PinSaveActivity.createIntent(getActivity(), mnemonic);
+                    savePin.putExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, true);
+                    startActivityForResult(savePin, PINSAVE);
+                    return false;
+                }
+            });
+        }
     }
 
     @Override

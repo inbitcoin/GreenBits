@@ -8,4 +8,9 @@
         android:key="export_mnemonic_passphrase"
         android:title="@string/export_mnemonic_passphrase"
         android:summary="@string/export_mnemonic_passphrase_desc" />
+
+    <Preference
+        android:key="reset_pin"
+        android:title="@string/setPin" />
+
 </PreferenceScreen>

@@ -18,7 +18,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.ui.CB;
-import com.greenaddress.greenbits.ui.PinSaveActivity;
 import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.SetEmailActivity;
 import com.greenaddress.greenbits.ui.UI;
@@ -33,7 +32,6 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
     implements Preference.OnPreferenceClickListener {
     private static final String TAG = GeneralPreferenceFragment.class.getSimpleName();
 
-    private static final int PINSAVE = 1337;
     private Preference mToggleSW;
     private Preference mFeeRate;
     private boolean mPassphraseVisible = false;
@@ -103,22 +101,6 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                                 })
                                 .show();
                     }
-                    return false;
-                }
-            });
-        }
-
-        // PIN
-        final Preference resetPin = find("reset_pin");
-        if (mnemonic == null)
-            removePreference(resetPin);
-        else {
-            resetPin.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-                @Override
-                public boolean onPreferenceClick(final Preference preference) {
-                    final Intent savePin = PinSaveActivity.createIntent(getActivity(), mnemonic);
-                    savePin.putExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, true);
-                    startActivityForResult(savePin, PINSAVE);
                     return false;
                 }
             });
