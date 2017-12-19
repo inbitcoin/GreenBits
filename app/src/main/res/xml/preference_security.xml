@@ -1,0 +1,11 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <Preference
+        android:key="backup_wallet"
+        android:title="@string/backup_wallet" />
+
+    <Preference
+        android:key="export_mnemonic_passphrase"
+        android:title="@string/export_mnemonic_passphrase"
+        android:summary="@string/export_mnemonic_passphrase_desc" />
+</PreferenceScreen>

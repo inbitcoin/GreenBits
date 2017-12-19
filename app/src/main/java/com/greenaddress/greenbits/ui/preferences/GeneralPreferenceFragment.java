@@ -1,38 +1,22 @@
 package com.greenaddress.greenbits.ui.preferences;
 
 import android.app.Activity;
-import android.app.Dialog;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.Color;
-import android.nfc.NfcAdapter;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.support.annotation.NonNull;
-import android.support.design.widget.TextInputEditText;
-import android.support.v4.util.Pair;
-import android.text.Editable;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
 import android.widget.EditText;
-import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
-import com.afollestad.materialdialogs.internal.MDButton;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.greenaddress.greenapi.CryptoHelper;
 import com.greenaddress.greenbits.GaService;
-import com.greenaddress.greenbits.QrBitmap;
 import com.greenaddress.greenbits.ui.CB;
 import com.greenaddress.greenbits.ui.PinSaveActivity;
 import com.greenaddress.greenbits.ui.R;
@@ -51,7 +35,6 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
     private static final int PINSAVE = 1337;
     private Preference mToggleSW;
-    private static final int PASSWORD_LENGTH = 12;
     private Preference mFeeRate;
     private boolean mPassphraseVisible = false;
     private Observer mEmailSummaryObserver;
@@ -94,6 +77,8 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         final String mnemonic = mService.getMnemonic();
         if (mnemonic != null) {
             final Preference passphrase = find("mnemonic_passphrase");
+            // removed, moved all to Security preference page
+            removePreference(passphrase);
             passphrase.setSummary(getString(R.string.touch_to_display));
             passphrase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
                 @Override
@@ -118,15 +103,6 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                                 })
                                 .show();
                     }
-                    return false;
-                }
-            });
-
-            final Preference backupPassphrase = find("backup_mnemonic_passphrase");
-            backupPassphrase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-                @Override
-                public boolean onPreferenceClick(Preference preference) {
-                    openDialogPassword(mnemonic);
                     return false;
                 }
             });
@@ -501,154 +477,4 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         super.onDestroy();
     }
 
-    /**
-     * Show dialog to insert password
-     * @param mnemonic String
-     */
-    private void openDialogPassword(final String mnemonic) {
-        final View view = getActivity().getLayoutInflater().inflate(R.layout.dialog_backup_mnemonic_password, null, false);
-
-        final TextInputEditText inputPassword1 = UI.find(view, R.id.input_password1);
-        final TextInputEditText inputPassword2 = UI.find(view, R.id.input_password2);
-        final TextView errMatchPassword = UI.find(view, R.id.errMatchPassword);
-        final TextView errLengthPassword = UI.find(view, R.id.errLengthPassword);
-        final TextView errPassword = UI.find(view, R.id.errPassword);
-        errLengthPassword.setText(getResources().getString(R.string.err_password_length, PASSWORD_LENGTH));
-
-        final MaterialDialog dialog = UI.popup(getActivity(), R.string.backup_mnemonic_passphrase, R.string.confirm, R.string.cancel)
-                .customView(view, true)
-                .onPositive(new MaterialDialog.SingleButtonCallback() {
-                    @Override
-                    public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
-                        final String password1 = UI.getText(inputPassword1);
-                        final String password2 = UI.getText(inputPassword2);
-                        if (password1.isEmpty() || password2.isEmpty() ||
-                                password1.contains(" ") ||
-                                password1.compareTo(password2) != 0 ||
-                                password1.length() < PASSWORD_LENGTH) {
-                            Log.d(TAG, "error password");
-                            UI.toast(getActivity(), R.string.err_password, Toast.LENGTH_LONG);
-                        } else {
-                            openDialogBackup(mnemonic, password1);
-                        }
-                    }
-                }).build();
-        UI.showDialog(dialog, true);
-
-        // positive button, to show only on password match
-        final MDButton positiveButton = dialog.getActionButton(DialogAction.POSITIVE);
-        positiveButton.setEnabled(false);
-
-        final UI.TextWatcher textWatcher = new UI.TextWatcher() {
-            @Override
-            public void afterTextChanged(final Editable s) {
-                final String password1 = UI.getText(inputPassword1);
-                final String password2 = UI.getText(inputPassword2);
-
-                // empty password field or not matching
-                if (password1.isEmpty() || password2.isEmpty() ||
-                        password1.compareTo(password2) != 0 ||
-                        password1.length() < PASSWORD_LENGTH) {
-                    inputPassword2.setTextColor(getResources().getColor(R.color.lightRed));
-                    positiveButton.setEnabled(false);
-                    errMatchPassword.setVisibility(View.VISIBLE);
-                } else {
-                    inputPassword2.setTextColor(getResources().getColor(R.color.textColor));
-                    positiveButton.setEnabled(true);
-                    errMatchPassword.setVisibility(View.INVISIBLE);
-                }
-
-                // invalid password length or invalid character
-                if (password1.length() < PASSWORD_LENGTH || password1.contains(" ")) { // FIXME allow spaces?
-                    inputPassword1.setTextColor(getResources().getColor(R.color.lightRed));
-                    positiveButton.setEnabled(false);
-                    if (password1.contains(" ")) {
-                        errLengthPassword.setVisibility(View.GONE);
-                        errPassword.setVisibility(View.VISIBLE);
-                    } else {
-                        errPassword.setVisibility(View.GONE);
-                        errLengthPassword.setVisibility(View.VISIBLE);
-                    }
-                } else {
-                    inputPassword1.setTextColor(getResources().getColor(R.color.textColor));
-                    errLengthPassword.setVisibility(View.INVISIBLE);
-                    errPassword.setVisibility(View.GONE);
-                }
-            }
-        };
-
-        inputPassword1.addTextChangedListener(textWatcher);
-        inputPassword2.addTextChangedListener(textWatcher);
-    }
-
-    /**
-     * Open dialog with encrypted mnemonic qrcode and button to save also on NFC tag
-     * @param mnemonic String
-     * @param password String
-     */
-    private void openDialogBackup(final String mnemonic, final String password) {
-        final View v = getActivity().getLayoutInflater().inflate(R.layout.dialog_backup_mnemonic, null, false);
-
-        final Dialog dialog = new Dialog(getActivity());
-        dialog.getWindow().requestFeature(Window.FEATURE_NO_TITLE);
-        dialog.setContentView(v);
-        dialog.show();
-
-        class BitmapWorkerTask extends AsyncTask<Object, Object, Pair<Bitmap, String>> {
-
-            @Override
-            protected Pair<Bitmap, String> doInBackground(Object... params) {
-                final String encrypted = CryptoHelper.mnemonic_to_encrypted_mnemonic(mnemonic, password);
-                final QrBitmap qrBitmap = new QrBitmap(encrypted, Color.WHITE, getActivity());
-                return Pair.create(qrBitmap.getQRCode(), encrypted);
-            }
-
-            @Override
-            protected void onPostExecute(final Pair pair) {
-
-                final Bitmap bitmap = (Bitmap) pair.first;
-                final String encryptedMnemonic = (String) pair.second;
-                final ImageView qrCode = UI.find(v, R.id.inDialogImageView);
-                qrCode.setLayoutParams(UI.getScreenLayout(getActivity(), 0.8));
-                qrCode.setImageBitmap(bitmap);
-
-                final ImageButton shareButton = UI.find(v, R.id.inDialogShare);
-                shareButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        dialog.dismiss();
-                        UI.shareImageWithText(getActivity(), bitmap, getString(R.string.mnemonic_passphrase_with_password));
-                    }
-                });
-
-                if (Build.VERSION.SDK_INT >= 16) {
-                    final NfcAdapter mNfcAdapter = NfcAdapter.getDefaultAdapter(getActivity());
-                    if (mNfcAdapter != null && mNfcAdapter.isEnabled()) {
-                        UI.show((View) UI.find(v, R.id.backupNfcView));
-                        final ImageView nfcButton = UI.find(v, R.id.backupNfcIcon);
-                        nfcButton.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                dialog.dismiss();
-                                Intent intent = new Intent(getActivity(), SettingsActivity.class);
-                                intent.setAction(SettingsActivity.INTENT_SHOW_NFC_DIALOG_REQUEST);
-                                // Prevent activity to be re-instantiated if it is already running.
-                                // Instead, the onNewEvent() is triggered
-                                intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                                intent.putExtra("mnemonic", CryptoHelper.encrypted_mnemonic_to_bytes(encryptedMnemonic));
-                                intent.putExtra("is_encrypted", true);
-                                getActivity().startActivity(intent);
-                            }
-                        });
-                    }
-                }
-
-                qrCode.setImageBitmap(bitmap);
-                UI.hide((View) UI.find(v, R.id.loadingView));
-                UI.show((View) UI.find(v, R.id.contentView));
-            }
-
-        }
-        new BitmapWorkerTask().execute();
-    }
 }

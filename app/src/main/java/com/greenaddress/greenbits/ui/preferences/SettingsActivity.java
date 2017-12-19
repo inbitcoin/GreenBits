@@ -71,14 +71,4 @@ public class SettingsActivity extends GaPreferenceActivity {
             mNfcAdapter.enableForegroundDispatch(this, mNfcPendingIntent, filters, null);
         }
     }
-
-    @Override
-    public void onHeaderClick(Header header, int position) {
-        super.onHeaderClick(header, position);
-        if (header.id == R.id.backupHeader) {
-            final Intent intent = new Intent(this, SignUpActivity.class);
-            intent.putExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, true);
-            startActivity(intent);
-        }
-    }
 }

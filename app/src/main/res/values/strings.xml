@@ -12,6 +12,7 @@
     <string name="pinLoginText">Enter</string>
     <string name="title_activity_qr_scanner">QR Scanner</string>
     <string name="title_activity_sign_up">Create</string>
+    <string name="title_activity_post_backup">Post backup</string>
     <string name="signupContinueButtonText">CONTINUE</string>
     <string name="signupCheckBoxText">I secured the passphrase and I have read the ToS</string>
     <string name="termsofservice"><a href="http://altanawallet.it/tos/">Terms of Service</a></string>
@@ -449,8 +450,12 @@
     <string name="showHide2to2">Show/Hide simple account</string>
     <string name="subaccountLabel">Account label</string>
     <string name="manageSubaccounts">Manage simple accounts</string>
+    <string name="security">Security</string>
+    <string name="warning_backup">WARNING: backup needed</string>
+    <string name="backup_wallet">Backup wallet</string>
     <string name="backup_mnemonic_passphrase">Backup mnemonic passphrase</string>
-    <string name="backup_mnemonic_passphrase_desc">Backup your mnemonic passphrase with password and export via QR Code or tag NFC</string>
+    <string name="export_mnemonic_passphrase">Export mnemonic passphrase</string>
+    <string name="export_mnemonic_passphrase_desc">Export your mnemonic passphrase with password via QR Code or tag NFC</string>
     <string name="mnemonic_passphrase_with_password">Mnemonic passphrase with password</string>
     <string name="repeat_password">Repeat password</string>
     <string name="backup_in_progress">Creating backup with password in progress…</string>

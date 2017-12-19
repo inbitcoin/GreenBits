@@ -9,11 +9,6 @@
         android:summary="@string/mnemonic_passphrase_not_available" />
 
     <Preference
-        android:key="backup_mnemonic_passphrase"
-        android:title="@string/backup_mnemonic_passphrase"
-        android:summary="@string/backup_mnemonic_passphrase_desc" />
-
-    <Preference
         android:key="reset_pin"
         android:title="@string/setPin"></Preference>
 
