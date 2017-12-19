@@ -207,7 +207,7 @@ public class PinSaveActivity extends GaActivity {
                     }
                 }).build();
         UI.mapEnterToPositive(mVerifyDialog, R.id.btchipPINValue);
-        mVerifyDialog.show();
+        UI.showDialog(mVerifyDialog, true);
     }
 
     @Override
