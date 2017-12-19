@@ -24,6 +24,8 @@ import com.greenaddress.greenbits.ui.FirstScreenActivity;
 // except when resuming the activity where the service may have been destroyed.
 public abstract class GaPreferenceActivity extends AppCompatPreferenceActivity {
 
+    public static String FROM_PREFERENCE_ACTIVITY = "from_preference_activity";
+
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

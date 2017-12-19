@@ -24,6 +24,7 @@ import com.dd.CircularProgressButton;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.greenaddress.greenbits.KeyStoreAES;
+import com.greenaddress.greenbits.ui.preferences.GaPreferenceActivity;
 
 public class PinSaveActivity extends GaActivity {
 
@@ -56,7 +57,7 @@ public class PinSaveActivity extends GaActivity {
 
         mSaveButton.setIndeterminateProgressMode(true);
         mSaveButton.setProgress(50);
-        UI.hide(mSkipButton);
+        //UI.hide(mSkipButton);
 
         final String mnemonic = getIntent().getStringExtra(NEW_PIN_MNEMONIC);
         Futures.addCallback(mService.setPin(mnemonic, pin),
@@ -82,7 +83,7 @@ public class PinSaveActivity extends GaActivity {
                             public void run() {
                                 mSaveButton.setProgress(0);
                                 mPinText.setEnabled(true);
-                                UI.show(mSkipButton);
+                                //UI.show(mSkipButton);
                             }
                         });
                     }
@@ -222,5 +223,11 @@ public class PinSaveActivity extends GaActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         return item.getItemId() == R.id.action_settings || super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if(getIntent().getBooleanExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, false))
+            finish();
     }
 }

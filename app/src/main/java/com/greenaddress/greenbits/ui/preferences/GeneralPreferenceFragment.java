@@ -141,6 +141,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                 @Override
                 public boolean onPreferenceClick(final Preference preference) {
                     final Intent savePin = PinSaveActivity.createIntent(getActivity(), mnemonic);
+                    savePin.putExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, true);
                     startActivityForResult(savePin, PINSAVE);
                     return false;
                 }

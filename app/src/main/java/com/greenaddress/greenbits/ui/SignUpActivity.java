@@ -42,6 +42,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.greenaddress.greenapi.LoginData;
 import com.greenaddress.greenapi.Network;
 import com.greenaddress.greenbits.NfcWriteMnemonic;
+import com.greenaddress.greenbits.ui.preferences.GaPreferenceActivity;
 import com.journeyapps.barcodescanner.Util;
 import com.wefika.flowlayout.FlowLayout;
 
@@ -95,7 +96,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
 
         mService.setFlagSecure(this, true);
 
-        mFromSettingsPage = getIntent().getBooleanExtra("from_settings_page", false);
+        mFromSettingsPage = getIntent().getBooleanExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, false);
 
         mActivity = this;
         mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
