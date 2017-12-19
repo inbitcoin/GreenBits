@@ -143,6 +143,10 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
 
         final Toolbar toolbar = UI.find(this, R.id.toolbar);
         setSupportActionBar(toolbar);
+        if (mFromSettingsPage) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle(R.string.backup_wallet);
+        }
     }
 
     @Override
@@ -482,7 +486,13 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        return item.getItemId() == R.id.action_settings || super.onOptionsItemSelected(item);
+        if (item.getItemId() == android.R.id.home) {
+            // Respond to the action bar's Up/Home button
+            onBackPressed();
+            return true;
+        } else {
+            return item.getItemId() == R.id.action_settings || super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
