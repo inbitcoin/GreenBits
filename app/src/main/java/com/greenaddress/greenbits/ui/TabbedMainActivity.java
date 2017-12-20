@@ -113,6 +113,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
     private MaterialDialog mSegwitDialog;
     private MaterialDialog mSubaccountDialog;
     private FloatingActionButton mSubaccountButton;
+    private Boolean mForcedLogoutFromCreate = false;
 
     private final Runnable mSegwitCB = new Runnable() { public void run() { mSegwitDialog = null; } };
     private final Runnable mSubaccountCB = new Runnable() { public void run() { mDialogCB.run(); mSubaccountDialog = null; } };
@@ -161,6 +162,8 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
         if (!mService.isLoggedOrLoggingIn()) {
             // Not logged in, force the user to login
+            mForcedLogoutFromCreate = true;
+            Log.d(TAG, "onCreateWithService - forced logout, nothing to do onResumeWithService");
             mService.disconnect(false);
             final Intent login = new Intent(this, RequestLoginActivity.class);
             if (isBitcoinUri)
@@ -455,8 +458,13 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
     @Override
     public void onResumeWithService() {
-        mService.addConnectionObserver(this);
-        mService.addTwoFactorObserver(mTwoFactorObserver);
+        // FIXME: workaround to avoid multiple login instance, exists a better implementation?
+        if (mForcedLogoutFromCreate) {
+            Log.d(TAG, "onResumeWithService - Forced logout on onCreateWithService, nothing to do");
+            // reset flag
+            mForcedLogoutFromCreate = false;
+            return;
+        }
 
         final SectionsPagerAdapter adapter = getPagerAdapter();
 
@@ -474,6 +482,9 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             startActivity(login);
             return;
         }
+
+        mService.addConnectionObserver(this);
+        mService.addTwoFactorObserver(mTwoFactorObserver);
      }
 
     @Override
