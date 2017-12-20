@@ -16,6 +16,12 @@
         android:title="@string/manageSubaccounts"/>
 
     <header
+        android:id="@+id/backupHeader"
+        android:icon="@drawable/ic_sync_black_24dp"
+        android:title="Backup wallet">
+    </header>
+
+    <header
         android:fragment="com.greenaddress.greenbits.ui.preferences.SPVPreferenceFragment"
         android:icon="@drawable/ic_sync_black_24dp"
         android:title="@string/spvNoWiFiTitle" />

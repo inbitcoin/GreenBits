@@ -336,8 +336,10 @@
     <string name="fa_copy" translatable="false">&#xf0c5;</string>
     <string name="fa_mbtc_space" translatable="false">m&#xf15a;\u0020</string>
     <string name="fa_pencil" translatable="false">&#xf040;</string>
+    <string name="fa_pencil_square_o" translatable="false">&#xf044;</string>
     <string name="fa_plus" translatable="false">&#xf067;</string>
     <string name="fa_qrcode" translatable="false">&#xf029;</string>
+    <string name="fa_file_text" translatable="false">&#xf0f6;</string>
     <string name="fa_remove" translatable="false">&#xf00d;</string>
     <string name="fa_sign_in" translatable="false">&#xf090;</string>
     <string name="fa_sign_out" translatable="false">&#xf08b;</string>
@@ -352,7 +354,6 @@
     <string name="fa_trash" translatable="false">&#xf1f8;</string>
     <string name="fa_ubtc_space" translatable="false">\u00b5&#xf15a;\u0020</string>
     <string name="fa_bolt" translatable="false">&#xf0e7;</string>
-    <string name="fa_pencil_square_o" translatable="false">&#xf044;</string>
     <string name="fa_flask" translatable="false">&#xf0c3;</string>
     <string name="fa_space_shuttle" translatable="false">&#xf197;</string>
 
@@ -471,5 +472,6 @@
     <string name="networkFee">Network fee</string>
     <string name="feePriorityHurry">In a hurry</string>
     <string name="forcedRbf">RBF is required for economic and custom and will be enabled for this transition</string>
+    <string name="save_passphrase_message">The follow phrase is the mnemonic passphrase and will be used to restore your wallet in the future.\n\nWrite down all words in a secure place, if you lose this passphrase will be impossible to restore your wallet and all your bitcoin will be lost.</string>
     <string name="qr_core_reader_prompt">Focus a qr code in the rectangle to scan it</string>
 </resources>

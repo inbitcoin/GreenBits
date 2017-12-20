@@ -3,6 +3,8 @@ import com.greenaddress.greenapi.CryptoHelper;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.NfcWriteMnemonic;
 import com.greenaddress.greenbits.ui.R;
+import com.greenaddress.greenbits.ui.SignUpActivity;
+import com.greenaddress.greenbits.ui.UI;
 
 import android.annotation.TargetApi;
 import android.app.PendingIntent;
@@ -67,6 +69,14 @@ public class SettingsActivity extends GaPreferenceActivity {
             final IntentFilter filter = new IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED);
             final IntentFilter[] filters = new IntentFilter[]{filter};
             mNfcAdapter.enableForegroundDispatch(this, mNfcPendingIntent, filters, null);
+        }
+    }
+
+    @Override
+    public void onHeaderClick(Header header, int position) {
+        super.onHeaderClick(header, position);
+        if (header.id == R.id.backupHeader) {
+            startActivity(new Intent(this, SignUpActivity.class));
         }
     }
 }

@@ -177,8 +177,8 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         int errorId = 0;
         if (!mService.isConnected())
             errorId = R.string.notConnected;
-        else if (!mAcceptCheckBox.isChecked())
-            errorId = R.string.securePassphraseMsg;
+        //else if (!mAcceptCheckBox.isChecked())
+        //    errorId = R.string.securePassphraseMsg;
         else if (mOnSignUp != null)
             errorId = R.string.signupInProgress;
 

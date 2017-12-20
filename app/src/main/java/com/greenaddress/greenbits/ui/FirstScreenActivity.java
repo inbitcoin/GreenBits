@@ -47,7 +47,7 @@ public class FirstScreenActivity extends LoginActivity {
     protected void onCreateWithService(final Bundle savedInstanceState) {
 
         UI.mapClick(this, R.id.firstLogInButton, new Intent(this, MnemonicActivity.class));
-        UI.mapClick(this, R.id.firstSignUpButton, new Intent(this, SignUpActivity.class));
+        UI.mapClick(this, R.id.firstSignUpButton, new Intent(this, SignUpActivity2.class));
         final Uri homepage = Uri.parse("https://inbitcoin.it");
         UI.mapClick(this, R.id.firstMadeByText, new Intent(Intent.ACTION_VIEW, homepage));
 

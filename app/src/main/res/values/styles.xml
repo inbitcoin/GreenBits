@@ -60,6 +60,11 @@
         <item name="android:textAllCaps">true</item>
         <!--<item name="android:textStyle">bold</item>-->
         <item name="android:layout_margin">4dp</item>
+        <item name="android:height">60dp</item>
+    </style>
+
+    <style name="myButtonLight" parent="myButton">
+        <item name="colorAccent">@color/white</item>
     </style>
 
     <style name="myProgressBar" parent="Widget.AppCompat.ProgressBar.Horizontal">
@@ -77,8 +82,6 @@
     <style name="myButtonVendor" parent="myButtonVendor.base">
         <item name="android:background">@drawable/material_button_light_images</item>
     </style>
-
-    <style name="myButtonCircle" parent="myButton" />
 
     <style name="AppThemeMark" parent="AppTheme.Base.Mark">
         <item name="android:textColor">@color/textColor</item>
