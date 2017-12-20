@@ -1,5 +1,6 @@
 package com.greenaddress.greenbits.ui;
 
+import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -14,7 +15,9 @@ import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.google.common.primitives.Booleans;
 import com.greenaddress.greenbits.QrBitmap;
 import com.google.common.collect.ImmutableMap;
 
@@ -32,6 +35,8 @@ public class TwoFactorActivity extends GaActivity {
     private TextView mPromptText;
     private ProgressBar mProgressBar;
     private EditText mCodeText;
+    private Activity mActivity;
+    private Map<?, ?> mTwoFactorConfig;
 
     private void setView(final int id) {
         setContentView(id);
@@ -48,7 +53,9 @@ public class TwoFactorActivity extends GaActivity {
     @Override
     protected void onCreateWithService(final Bundle savedInstanceState) {
 
-        if (mService.getTwoFactorConfig() == null) {
+        mActivity = this;
+        mTwoFactorConfig = mService.getTwoFactorConfig();
+        if (mTwoFactorConfig == null) {
             finish();
             return;
         }
@@ -110,8 +117,15 @@ public class TwoFactorActivity extends GaActivity {
         final String type = getString(resId);
 
         mPromptText.setText(getTypeString(UI.getText(mPromptText), type));
-        if (!isEmail) {
-            UI.hide(UI.find(this, R.id.emailNotices));
+        if (isEmail) {
+            final String emailAddr = (String) mTwoFactorConfig.get("email_addr");
+            if (emailAddr != null) {
+                detailsText.setText(emailAddr);
+                // TODO: avoid the email change if the email is confirmed?
+                // final Boolean emailConfirmed = (Boolean) mTwoFactorConfig.get("email_confirmed");
+            }
+        } else {
+            UI.hide((View) UI.find(this, R.id.emailNotices));
             detailsText.setHint(R.string.twoFacPhoneHint);
         }
 
@@ -245,8 +259,10 @@ public class TwoFactorActivity extends GaActivity {
             @Override
             public void onClick(final View v) {
                 final String enteredCode = UI.getText(mCodeText).trim();
-                if (enteredCode.length() != 6)
+                if (enteredCode.length() != 6) {
+                    UI.toast(mActivity, R.string.err_code_wrong_length, Toast.LENGTH_LONG);
                     return;
+                }
                 mContinueButton.setEnabled(false);
                 CB.after(mService.enableTwoFactor(mMethod, enteredCode, null),
                          new CB.Toast<Boolean>(TwoFactorActivity.this, mContinueButton) {

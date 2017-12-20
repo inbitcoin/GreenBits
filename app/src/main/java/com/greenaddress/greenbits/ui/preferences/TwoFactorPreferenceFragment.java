@@ -57,8 +57,9 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
 
     private CheckBoxPreference setupCheckbox(final Map<?, ?> twoFacConfig, final String method) {
         final CheckBoxPreference c = getPref(method);
+        final Boolean emailConfirmed = (Boolean) twoFacConfig.get("email_confirmed");
         if (method.equals(NLOCKTIME_EMAILS))
-            c.setChecked(isNlocktimeConfig(true));
+            c.setChecked(isNlocktimeConfig(true) && emailConfirmed);
         else
             c.setChecked(isEnabled(twoFacConfig, method));
         c.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
@@ -98,7 +99,8 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
             }
             return;
         }
-        final CheckBoxPreference emailCB = setupCheckbox(twoFacConfig, "Email");
+        setupCheckbox(twoFacConfig, "Email");
+        final Boolean emailConfirmed = (Boolean) twoFacConfig.get("email_confirmed");
         setupCheckbox(twoFacConfig, "Gauth");
         setupCheckbox(twoFacConfig, "SMS");
         setupCheckbox(twoFacConfig, "Phone");
@@ -114,9 +116,8 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
             removePreference(mSendNLocktimePref);
         } else {
             final CheckBoxPreference nlockCB = setupCheckbox(twoFacConfig, NLOCKTIME_EMAILS);
-            final Boolean emailEnabled = emailCB.isChecked();
-            nlockCB.setEnabled(emailEnabled);
-            mSendNLocktimePref.setEnabled(emailEnabled);
+            nlockCB.setEnabled(emailConfirmed);
+            mSendNLocktimePref.setEnabled(emailConfirmed);
             mSendNLocktimePref.setOnPreferenceClickListener(this);
         }
     }
@@ -214,11 +215,11 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
 
     private void change2FA(final String method, final Boolean checked) {
         getPref(method).setChecked(checked);
-        if (method.equals("Email")) {
-            // Reset nlocktime prefs when the user changes email 2FA
-            setNlocktimeConfig(checked);
+        if (method.equals("Email") && checked) {
+            // Enable nLocktime when 2fa is enabled, but do not disable it
+            setNlocktimeConfig(true);
             if (!GaService.IS_ELEMENTS)
-                getPref(NLOCKTIME_EMAILS).setEnabled(checked);
+                getPref(NLOCKTIME_EMAILS).setEnabled(true);
         }
         setLimitsText(checked || mService.hasAnyTwoFactor());
     }
@@ -244,11 +245,12 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
     }
 
     private View inflatePinDialog(final String withMethod) {
-        final View v = getActivity().getLayoutInflater().inflate(R.layout.dialog_btchip_pin, null, false);
+        final View v = getActivity().getLayoutInflater().inflate(R.layout.dialog_btchip_pin
+                , null, false);
 
         final TextView promptText = UI.find(v, R.id.btchipPinPrompt);
         promptText.setText(getString(R.string.twoFacProvideConfirmationCode,
-                                     mLocalizedMap.get(withMethod)));
+                mLocalizedMap.get(withMethod)));
         return v;
     }
 
@@ -283,20 +285,20 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
 
         final MaterialDialog dialog;
         dialog = UI.popup(getActivity(), R.string.twoFacLimitTitle)
-                   .customView(v, true)
-                   .onPositive(new MaterialDialog.SingleButtonCallback() {
-                       @Override
-                       public void onClick(final MaterialDialog dlg, final DialogAction which) {
-                           try {
-                               final String currency = currencySpinner.getSelectedItem().toString();
-                               final String amount = UI.getText(amountEdit);
-                               final boolean isFiat = !currency.equals(currencies[0]);
-                               onNewLimitsSelected(TextUtils.isEmpty(amount) ? "0" : amount, isFiat);
-                           } catch (final Exception e) {
-                               UI.toast(getActivity(), "Error setting limits", Toast.LENGTH_LONG);
-                           }
-                       }
-                   }).build();
+                .customView(v, true)
+                .onPositive(new MaterialDialog.SingleButtonCallback() {
+                    @Override
+                    public void onClick(final MaterialDialog dlg, final DialogAction which) {
+                        try {
+                            final String currency = currencySpinner.getSelectedItem().toString();
+                            final String amount = UI.getText(amountEdit);
+                            final boolean isFiat = !currency.equals(currencies[0]);
+                            onNewLimitsSelected(TextUtils.isEmpty(amount) ? "0" : amount, isFiat);
+                        } catch (final Exception e) {
+                            UI.toast(getActivity(), "Error setting limits", Toast.LENGTH_LONG);
+                        }
+                    }
+                }).build();
         UI.showDialog(dialog);
         return false;
     }
@@ -339,14 +341,14 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
                     mService.requestTwoFacCode(method, "change_tx_limits", limitsData.mData);
 
                 UI.popup(getActivity(), "Enter TwoFactor Code")
-                  .customView(v, true)
-                  .onPositive(new MaterialDialog.SingleButtonCallback() {
-                      @Override
-                      public void onClick(final MaterialDialog dialog, final DialogAction which) {
-                          final String code = UI.getText(codeText);
-                          setSpendingLimits(limitsData, mService.make2FAData(method, code));
-                      }
-                  }).build().show();
+                        .customView(v, true)
+                        .onPositive(new MaterialDialog.SingleButtonCallback() {
+                            @Override
+                            public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                                final String code = UI.getText(codeText);
+                                setSpendingLimits(limitsData, mService.make2FAData(method, code));
+                            }
+                        }).build().show();
             }
         });
     }

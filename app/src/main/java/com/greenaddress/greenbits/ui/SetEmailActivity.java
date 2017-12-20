@@ -1,5 +1,6 @@
 package com.greenaddress.greenbits.ui;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -9,6 +10,7 @@ import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -30,6 +32,8 @@ public class SetEmailActivity extends GaActivity {
     private TextView mPromptText;
     private ProgressBar mProgressBar;
     private EditText mCodeText;
+    private Activity mActivity;
+    private TextView mRecapEmail;
 
     private void setView(final int id) {
         setContentView(id);
@@ -37,6 +41,7 @@ public class SetEmailActivity extends GaActivity {
         mPromptText = UI.find(this, R.id.prompt);
         mProgressBar = UI.find(this, R.id.progressBar);
         mCodeText = UI.find(this, R.id.code);
+        mRecapEmail = UI.find(this, R.id.recapEmail);
     }
 
     private String getTypeString(final String fmt, final String type) {
@@ -46,6 +51,7 @@ public class SetEmailActivity extends GaActivity {
     @Override
     protected void onCreateWithService(final Bundle savedInstanceState) {
 
+        mActivity = this;
         if (mService.getTwoFactorConfig() == null) {
             finish();
             return;
@@ -55,13 +61,13 @@ public class SetEmailActivity extends GaActivity {
         mEnabledMethods = mService.getEnabledTwoFactorMethods();
         switch (mEnabledMethods.size()) {
             case 0:
-                mNumSteps = 2;
-                break;
-            case 1:
                 mNumSteps = 3;
                 break;
-            default:
+            case 1:
                 mNumSteps = 4;
+                break;
+            default:
+                mNumSteps = 5;
         }
         Log.d(TAG, "numSteps: " + mNumSteps);
         showProvideEmailAddress();
@@ -243,8 +249,10 @@ public class SetEmailActivity extends GaActivity {
             @Override
             public void onClick(final View v) {
                 final String enteredCode = UI.getText(mCodeText).trim();
-                if (enteredCode.length() != 6)
+                if (enteredCode.length() != 6) {
+                    UI.toast(mActivity, R.string.err_code_wrong_length, Toast.LENGTH_LONG);
                     return;
+                }
                 // Print update 2fa config
                 Log.d(TAG, "2fa config: " + mService.getTwoFactorConfig());
                 mContinueButton.setEnabled(false);
@@ -255,9 +263,36 @@ public class SetEmailActivity extends GaActivity {
                                 setResult(RESULT_OK);
                                 // Update 2FA setting in whole app
                                 mService.getAvailableTwoFactorMethods();
-                                finishOnUiThread();
+                                // Send nLockTime email now
+                                try {
+                                    mService.sendNLocktime();
+                                } catch (final Exception e) {
+                                    // Ignore, user can send again if email fails to arrive
+                                    Log.e(TAG, "sendNLocktime: " + e.getMessage());
+                                }
+                                showRecap(stepNum + 1);
                             }
                         });
+            }
+        });
+    }
+
+    private void showRecap(final int stepNum) {
+        Log.d(TAG, "Start showRecap");
+
+        runOnUiThread(new Runnable() {
+            public void run() {
+                setView(R.layout.activity_set_email_recap);
+                mRecapEmail.setText(mNewEmailAddress);
+                mProgressBar.setProgress(stepNum);
+                mProgressBar.setMax(mNumSteps);
+
+                mContinueButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(final View v) {
+                        finishOnUiThread();
+                    }
+                });
             }
         });
     }
