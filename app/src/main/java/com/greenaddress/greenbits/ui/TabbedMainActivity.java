@@ -179,69 +179,56 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         //startService(new Intent(this, ApplicationService.class));
     }
 
-    private void onTwoFactorConfigChange() {
-        if (mService.getTwoFactorConfig() == null || // Not loaded
-            mService.hasAnyTwoFactor() ||            // At least one enabled
-            mService.cfg().getBoolean("hideTwoFacWarning", false))
-            return;
+    private boolean showWarningBanner(final int actionId, final int messageId, final String hideCfgName, final Intent intent, final int activityRequest) {
+        if (mService.cfg().getBoolean(hideCfgName, false))
+            return false;
 
         // if total amount is less then 0 BTC hide snackbar
         if (mService.getTotalBalance() == 0) {
             if (snackbar != null) {
                 snackbar.dismiss();
             }
-            return;
+            return false;
         }
-
-        final Map<?, ?> twoFacConfig = mService.getTwoFactorConfig();
-        if (twoFacConfig == null) {
-            Log.d(TAG, "twoFacConfig is null");
-        }
+        final Snackbar snackbar = Snackbar
+                .make(findViewById(R.id.main_content), getString(messageId), Snackbar.LENGTH_INDEFINITE)
+                .setActionTextColor(Color.RED)
+                .setAction(getString(actionId), new View.OnClickListener() {
+                    @Override
+                    public void onClick(final View v) {
+                        startActivityForResult(intent, activityRequest);
+                    }
+                });
 
         if (mActivity == null) {
             Log.d(TAG, "mActivity is null");
-            return;
+            return false;
         }
 
+        final View snackbarView = snackbar.getView();
+        snackbarView.setBackgroundColor(Color.DKGRAY);
+        final TextView textView = UI.find(snackbarView, android.support.design.R.id.snackbar_text);
+        textView.setTextColor(Color.WHITE);
+        snackbar.show();
+        return true;
+    }
 
-        if (!((Boolean) twoFacConfig.get("email_confirmed")) &&
-                !mService.cfg().getBoolean("hideNoEmailWarning", false)) {
-            snackbar = Snackbar
-                    .make(findViewById(R.id.main_content), getString(R.string.noEmailWarning), mSnackbarDuration)
-                    .setActionTextColor(Color.RED)
-                    .setAction(getString(R.string.setEmail), new View.OnClickListener() {
-                        @Override
-                        public void onClick(final View v) {
-                            final int REQUEST_ENABLE_EMAIL = 0;
-                            startActivityForResult(new Intent(TabbedMainActivity.this, SetEmailActivity.class), REQUEST_ENABLE_EMAIL);
-                        }
-                    });
+    private void onTwoFactorConfigChange() {
+        if (mService.getTwoFactorConfig() == null)
+            return; // Not loaded
 
-            final View snackbarView = snackbar.getView();
-            snackbarView.setBackgroundColor(Color.DKGRAY);
-            final TextView textView = UI.find(snackbarView, android.support.design.R.id.snackbar_text);
-            textView.setTextColor(Color.WHITE);
-            snackbar.show();
-        } else if (!((Boolean) twoFacConfig.get("any")) &&
-            !mService.cfg().getBoolean("hideTwoFacWarning", true)) {
-            snackbar = Snackbar
-                    .make(findViewById(R.id.main_content), getString(R.string.noTwoFactorWarning), mSnackbarDuration)
-                    .setActionTextColor(Color.RED)
-                    .setAction(getString(R.string.set2FA), new View.OnClickListener() {
-                        @Override
-                        public void onClick(final View v) {
-                            Intent intent = new Intent(TabbedMainActivity.this, SettingsActivity.class);
-                            intent.putExtra(SettingsActivity.EXTRA_SHOW_FRAGMENT, TwoFactorPreferenceFragment.class.getName());
-                            intent.putExtra(SettingsActivity.EXTRA_NO_HEADERS, true);
-                            startActivityForResult(intent, REQUEST_SETTINGS);
-                        }
-                    });
+        final Intent toSetEmail = new Intent(TabbedMainActivity.this, SetEmailActivity.class);
+        final boolean shown = !mService.hasEmailConfirmed() && showWarningBanner(R.string.setEmail, R.string.noEmailWarning, "hideNoEmailWarning", toSetEmail, SetEmailActivity.REQUEST_ENABLE_EMAIL);
+        
+        if (!shown && (!mService.hasAnyTwoFactor() || mService.getEnabledTwoFactorMethods().size() == 1)) {
+            final Intent toTwoFactor = new Intent(TabbedMainActivity.this, SettingsActivity.class);
+            toTwoFactor.putExtra(SettingsActivity.EXTRA_SHOW_FRAGMENT, TwoFactorPreferenceFragment.class.getName());
+            toTwoFactor.putExtra(SettingsActivity.EXTRA_NO_HEADERS, true);
 
-            final View snackbarView = snackbar.getView();
-            snackbarView.setBackgroundColor(Color.DKGRAY);
-            final TextView textView = UI.find(snackbarView, android.support.design.R.id.snackbar_text);
-            textView.setTextColor(Color.WHITE);
-            snackbar.show();
+            if (!mService.hasAnyTwoFactor())
+                showWarningBanner(R.string.set2FA, R.string.noTwoFactorWarning, "hideTwoFacWarning", toTwoFactor, REQUEST_SETTINGS);
+            else
+                showWarningBanner(R.string.set2FA, R.string.singleTwoFactorWarning, "hideSingleTwoFacWarning", toTwoFactor, REQUEST_SETTINGS);
         }
     }
 

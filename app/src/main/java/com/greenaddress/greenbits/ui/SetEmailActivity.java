@@ -35,6 +35,8 @@ public class SetEmailActivity extends GaActivity {
     private Activity mActivity;
     private TextView mRecapEmail;
 
+    static public final int REQUEST_ENABLE_EMAIL = 0;
+
     private void setView(final int id) {
         setContentView(id);
         mContinueButton = UI.find(this, R.id.continueButton);

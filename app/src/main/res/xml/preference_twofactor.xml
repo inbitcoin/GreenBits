@@ -5,6 +5,10 @@
         android:defaultValue="true" />
 
     <CheckBoxPreference
+        android:key="hideSingleTwoFacWarning"
+        android:title="@string/hideSingleTwoFacWarning" />
+
+    <CheckBoxPreference
         android:key="twoFacEmail"
         android:title="@string/twoFacEmail" />
 

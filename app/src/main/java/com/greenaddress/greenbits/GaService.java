@@ -180,6 +180,11 @@ public class GaService extends Service implements INotificationHandler {
         }
     }
 
+    public final boolean isRBFEnabled() {
+        final Object rbf_optin = getUserConfig("replace_by_fee");
+        return rbf_optin != null && (Boolean) rbf_optin;
+    }
+
     public boolean isValidFeeRate(final String feeRate) {
         try {
             return feeRate.isEmpty() || Double.valueOf(feeRate) >= mMinFeeRate.longValue();
@@ -1300,6 +1305,10 @@ public class GaService extends Service implements INotificationHandler {
 
     public boolean hasAnyTwoFactor() {
         return mTwoFactorConfig != null && (Boolean) mTwoFactorConfig.get("any");
+    }
+
+    public boolean hasEmailConfirmed() {
+        return mTwoFactorConfig != null && (Boolean) mTwoFactorConfig.get("email_confirmed");
     }
 
     public ListenableFuture<Boolean> setUserConfig(final String key, final Object value, final boolean updateImmediately) {
