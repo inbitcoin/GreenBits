@@ -182,9 +182,11 @@
             android:label="@string/txSubTitle"/>
         <activity
             android:name=".TwoFactorActivity"
+            android:theme="@style/AppTheme.NoActionBar"
             android:label="@string/twoFacSetupHeader"/>
         <activity
             android:name=".SetEmailActivity"
+            android:theme="@style/AppTheme.NoActionBar"
             android:label="@string/EmailAddress"/>
         <activity
             android:name=".preferences.SettingsActivity"

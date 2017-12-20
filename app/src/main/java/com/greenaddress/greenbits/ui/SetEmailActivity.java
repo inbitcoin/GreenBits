@@ -2,6 +2,7 @@ package com.greenaddress.greenbits.ui;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -39,6 +40,9 @@ public class SetEmailActivity extends GaActivity {
 
     private void setView(final int id) {
         setContentView(id);
+        final Toolbar toolbar = UI.find(this, R.id.toolbar);
+        if (toolbar != null)
+            setSupportActionBar(toolbar);
         mContinueButton = UI.find(this, R.id.continueButton);
         mPromptText = UI.find(this, R.id.prompt);
         mProgressBar = UI.find(this, R.id.progressBar);
