@@ -338,6 +338,8 @@
     <string name="fa_mbtc_space" translatable="false">m&#xf15a;\u0020</string>
     <string name="fa_pencil" translatable="false">&#xf040;</string>
     <string name="fa_pencil_square_o" translatable="false">&#xf044;</string>
+    <string name="fa_tag" translatable="false">&#xf02b;</string>
+    <string name="fa_envelope_o" translatable="false">&#xf003;</string>
     <string name="fa_plus" translatable="false">&#xf067;</string>
     <string name="fa_qrcode" translatable="false">&#xf029;</string>
     <string name="fa_file_text" translatable="false">&#xf0f6;</string>
@@ -479,4 +481,6 @@
     <string name="forcedRbf">RBF is required for economic and custom and will be enabled for this transition</string>
     <string name="save_passphrase_message">The follow phrase is the mnemonic passphrase and will be used to restore your wallet in the future.\n\nWrite down all words in a secure place, if you lose this passphrase will be impossible to restore your wallet and all your bitcoin will be lost.</string>
     <string name="qr_core_reader_prompt">Focus a qr code in the rectangle to scan it</string>
+    <string name="suggest_export_qrcode_nfc">We suggest you export the mnemonic passphrase to QR Code or NFC tag.</string>
+    <string name="suggest_email">We suggest you to set email to receive report and nLockTime file.</string>
 </resources>

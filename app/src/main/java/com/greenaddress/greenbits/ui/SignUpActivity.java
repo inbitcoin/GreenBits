@@ -451,8 +451,8 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         setComplete(true);
         mService.resetSignUp();
         mOnSignUp = null;
-        final Intent savePin = PinSaveActivity.createIntent(SignUpActivity.this, mService.getMnemonic());
-        startActivityForResult(savePin, PINSAVE);
+        final Intent activityPostBackup = new Intent(this, ActivityPostBackup.class);
+        startActivity(activityPostBackup);
     }
 
     @Override

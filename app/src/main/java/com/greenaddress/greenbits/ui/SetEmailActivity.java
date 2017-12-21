@@ -318,6 +318,12 @@ public class SetEmailActivity extends GaActivity {
     }
 
     @Override
+    public void onBackPressed() {
+        setResult(RESULT_CANCELED);
+        super.onBackPressed();
+    }
+
+    @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
             // Respond to the action bar's Up/Home button
