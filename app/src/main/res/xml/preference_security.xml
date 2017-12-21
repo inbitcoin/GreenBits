@@ -13,4 +13,12 @@
         android:key="reset_pin"
         android:title="@string/setPin" />
 
+    <Preference android:key="email"
+        android:title="@string/EmailAddress">
+    </Preference>
+
+    <CheckBoxPreference android:key="hideNoEmailWarning"
+        android:title="@string/hideNoEmailWarning"
+        android:defaultValue="false"/>
+
 </PreferenceScreen>

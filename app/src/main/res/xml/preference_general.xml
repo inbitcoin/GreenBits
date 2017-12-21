@@ -8,14 +8,6 @@
         android:title="@string/mnemonic_passphrase"
         android:summary="@string/mnemonic_passphrase_not_available" />
 
-    <Preference android:key="email"
-                android:title="@string/EmailAddress">
-    </Preference>
-
-    <CheckBoxPreference android:key="hideNoEmailWarning"
-        android:title="@string/hideNoEmailWarning"
-        android:defaultValue="false"/>
-
     <ListPreference
         android:key="fiat_key"
         android:title="@string/settings_currency" />
