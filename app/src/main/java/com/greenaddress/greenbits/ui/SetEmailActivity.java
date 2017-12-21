@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -41,8 +42,11 @@ public class SetEmailActivity extends GaActivity {
     private void setView(final int id) {
         setContentView(id);
         final Toolbar toolbar = UI.find(this, R.id.toolbar);
-        if (toolbar != null)
+        if (toolbar != null) {
             setSupportActionBar(toolbar);
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle(R.string.backup_wallet);
+        }
         mContinueButton = UI.find(this, R.id.continueButton);
         mPromptText = UI.find(this, R.id.prompt);
         mProgressBar = UI.find(this, R.id.progressBar);
@@ -311,5 +315,15 @@ public class SetEmailActivity extends GaActivity {
             b = Boolean.TRUE.equals(outer.get("email_incoming")) &&
                     Boolean.TRUE.equals(outer.get("email_outgoing"));
         return b.equals(enabled);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(final MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            // Respond to the action bar's Up/Home button
+            onBackPressed();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

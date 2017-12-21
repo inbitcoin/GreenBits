@@ -157,6 +157,10 @@ public class PinSaveActivity extends GaActivity {
 
         final Toolbar toolbar = UI.find(this, R.id.toolbar);
         setSupportActionBar(toolbar);
+        if (getIntent().getBooleanExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, false)) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle(R.string.backup_wallet);
+        }
     }
 
     @Override
@@ -222,12 +226,17 @@ public class PinSaveActivity extends GaActivity {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
+        if (item.getItemId() == android.R.id.home) {
+            // Respond to the action bar's Up/Home button
+            onBackPressed();
+            return true;
+        }
         return item.getItemId() == R.id.action_settings || super.onOptionsItemSelected(item);
     }
 
     @Override
     public void onBackPressed() {
-        if(getIntent().getBooleanExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, false))
+        if (getIntent().getBooleanExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, false))
             finish();
     }
 }
