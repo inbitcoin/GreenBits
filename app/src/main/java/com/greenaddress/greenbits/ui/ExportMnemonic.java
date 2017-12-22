@@ -167,6 +167,8 @@ public class ExportMnemonic {
         }
         final MaterialDialog dialog = dialogBuilder.build();
         dialog.show();
+        final MDButton positiveButton = dialog.getActionButton(DialogAction.POSITIVE);
+        positiveButton.setEnabled(false);
 
         class BitmapWorkerTask extends AsyncTask<Object, Object, Pair<Bitmap, String>> {
 
@@ -220,6 +222,7 @@ public class ExportMnemonic {
                 qrCode.setImageBitmap(bitmap);
                 UI.hide((View) UI.find(v, R.id.loadingView));
                 UI.show((View) UI.find(v, R.id.contentView));
+                positiveButton.setEnabled(true);
             }
 
         }
