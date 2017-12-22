@@ -23,8 +23,14 @@ public class FragmentQrcodeNfc extends GAFragment {
         continueButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                final Runnable callback = new Runnable() {
+                    @Override
+                    public void run() {
+                        goToEmailFragment();
+                    }
+                };
                 final String mnemonic = getGAService().getMnemonic();
-                ExportMnemonic.openDialogPassword(mnemonic, getActivity());
+                ExportMnemonic.openDialogPassword(mnemonic, getActivity(), callback);
             }
         });
 
@@ -32,15 +38,20 @@ public class FragmentQrcodeNfc extends GAFragment {
             @Override
             public void onClick(View view) {
                 // show email fragment
-                final FragmentTransaction transaction = getGaActivity().getSupportFragmentManager().beginTransaction();
-                final FragmentEmail fragmentEmail = new FragmentEmail();
-                transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_left, R.anim.enter_from_left, R.anim.exit_to_right);
-                transaction.replace(R.id.fragment_container, fragmentEmail);
-                transaction.addToBackStack("backup");
-                transaction.commitAllowingStateLoss();
+                goToEmailFragment();
             }
         });
 
         return mView;
     }
+
+    private void goToEmailFragment() {
+        final FragmentTransaction transaction = getGaActivity().getSupportFragmentManager().beginTransaction();
+        final FragmentEmail fragmentEmail = new FragmentEmail();
+        transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_left, R.anim.enter_from_left, R.anim.exit_to_right);
+        transaction.replace(R.id.fragment_container, fragmentEmail);
+        transaction.addToBackStack("backup");
+        transaction.commitAllowingStateLoss();
+    }
+
 }

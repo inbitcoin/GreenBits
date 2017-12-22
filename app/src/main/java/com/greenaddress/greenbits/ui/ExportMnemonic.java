@@ -41,6 +41,16 @@ public class ExportMnemonic {
      * @param activity the activity
      */
     static public void openDialogPassword(final String mnemonic, final Activity activity) {
+        openDialogPassword(mnemonic, activity, null);
+    }
+
+    /**
+     * Show dialog to insert password
+     * @param mnemonic String
+     * @param activity the activity
+     * @param callback to call onPositive
+     */
+    static public void openDialogPassword(final String mnemonic, final Activity activity, final Runnable callback) {
         final View view = activity.getLayoutInflater().inflate(R.layout.dialog_backup_mnemonic_password, null, false);
 
         final TextInputEditText inputPassword1 = UI.find(view, R.id.input_password1);
@@ -65,7 +75,7 @@ public class ExportMnemonic {
                             Log.d(TAG, "error password");
                             UI.toast(activity, R.string.err_password, Toast.LENGTH_LONG);
                         } else {
-                            openDialogBackup(mnemonic, password1, activity);
+                            openDialogBackup(mnemonic, password1, activity, callback);
                         }
                     }
                 })
@@ -130,12 +140,32 @@ public class ExportMnemonic {
      * @param activity the activity
      */
     static void openDialogBackup(final String mnemonic, final String password, final Activity activity) {
+        openDialogBackup(mnemonic, password, null);
+    }
+
+    /**
+     * Open dialog with encrypted mnemonic qrcode and button to save also on NFC tag
+     * @param mnemonic String
+     * @param password String
+     * @param activity the activity
+     * @param callback to call onPositive
+     */
+    static void openDialogBackup(final String mnemonic, final String password, final Activity activity, final Runnable callback) {
         final View v = activity.getLayoutInflater().inflate(R.layout.dialog_backup_mnemonic, null, false);
 
-        final MaterialDialog dialog = new MaterialDialog.Builder(activity)
+        final MaterialDialog.Builder dialogBuilder = new MaterialDialog.Builder(activity)
                 .customView(v, true)
                 .positiveText(R.string.continueText)
-                .cancelable(false).build();
+                .cancelable(false);
+        if (callback != null) {
+            dialogBuilder.onPositive(new MaterialDialog.SingleButtonCallback() {
+                @Override
+                public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                    callback.run();
+                }
+            });
+        }
+        final MaterialDialog dialog = dialogBuilder.build();
         dialog.show();
 
         class BitmapWorkerTask extends AsyncTask<Object, Object, Pair<Bitmap, String>> {
