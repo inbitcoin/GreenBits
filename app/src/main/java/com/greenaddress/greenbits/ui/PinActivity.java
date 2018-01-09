@@ -213,6 +213,8 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
         final String ident = prefs.getString("ident", null);
 
         if (ident == null) {
+            // reset backup_done flag
+            mService.cfg().edit().putBoolean("backup_done", false).apply();
             startActivity(new Intent(this, FirstScreenActivity.class));
             finish();
             return;
