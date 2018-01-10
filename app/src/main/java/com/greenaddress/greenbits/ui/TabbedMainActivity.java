@@ -1137,7 +1137,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         smile1.setTypeface(typeface);
         smile2.setTypeface(typeface);
 
-        final MaterialDialog dialog = UI.popup(this, R.string.backup_wallet, R.string.pinSkipText)
+        final MaterialDialog dialog = UI.popup(this, R.string.backup_wallet, R.string.skip_backup)
                 .customView(view, true)
                 .cancelable(false)
                 .build();
@@ -1165,7 +1165,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                 positiveButton.setText(String.format(Locale.getDefault(), "%d", millisUntilFinished / 1000));
             }
             public void onFinish() {
-                positiveButton.setText(getString(R.string.pinSkipText));
+                positiveButton.setText(getString(R.string.skip_backup));
                 positiveButton.setEnabled(true);
             }
         }.start();
