@@ -143,6 +143,10 @@
                     </LinearLayout>
 
                     <TextView
+                        android:layout_margin="6dp"
+                        android:elevation="4dp"
+                        android:padding="2dp"
+                        android:background="#fff"
                         android:id="@+id/signupMnemonicText"
                         android:layout_width="fill_parent"
                         android:layout_height="wrap_content"
