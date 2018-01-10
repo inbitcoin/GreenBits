@@ -43,25 +43,30 @@ public class SecurityPreferenceFragment extends GAPreferenceFragment {
         final String mnemonic = mService.getMnemonic();
 
         mBackupWallet = find("backup_wallet");
-        mBackupWallet.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-            @Override
-            public boolean onPreferenceClick(Preference preference) {
-                final Intent intent = new Intent(getActivity(), SignUpActivity.class);
-                intent.putExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, true);
-                startActivityForResult(intent, BACKUP_ACTIVITY);
-                return false;
-            }
-        });
-        updateBackupStatus();
-
         final Preference backupPassphrase = find("export_mnemonic_passphrase");
-        backupPassphrase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-            @Override
-            public boolean onPreferenceClick(Preference preference) {
-                ExportMnemonic.openDialogPassword(mnemonic, getActivity());
-                return false;
-            }
-        });
+        if (mnemonic != null) {
+            mBackupWallet.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(Preference preference) {
+                    final Intent intent = new Intent(getActivity(), SignUpActivity.class);
+                    intent.putExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, true);
+                    startActivityForResult(intent, BACKUP_ACTIVITY);
+                    return false;
+                }
+            });
+            updateBackupStatus();
+
+            backupPassphrase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                @Override
+                public boolean onPreferenceClick(Preference preference) {
+                    ExportMnemonic.openDialogPassword(mnemonic, getActivity());
+                    return false;
+                }
+            });
+        } else {
+            mBackupWallet.setEnabled(false);
+            backupPassphrase.setEnabled(false);
+        }
 
         // PIN
         final Preference resetPin = find("reset_pin");

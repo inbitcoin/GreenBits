@@ -2,6 +2,7 @@
 
     <Preference
         android:key="backup_wallet"
+        android:summary="@string/mnemonic_passphrase_not_available"
         android:title="@string/backup_wallet" />
 
     <Preference

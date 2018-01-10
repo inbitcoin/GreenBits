@@ -65,12 +65,13 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
             }
         });
 
+        final Preference passphrase = find("mnemonic_passphrase");
+        // removed, moved all to Security preference page
+        removePreference(passphrase);
+
         // Mnemonics
         final String mnemonic = mService.getMnemonic();
         if (mnemonic != null) {
-            final Preference passphrase = find("mnemonic_passphrase");
-            // removed, moved all to Security preference page
-            removePreference(passphrase);
             passphrase.setSummary(getString(R.string.touch_to_display));
             passphrase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
                 @Override
