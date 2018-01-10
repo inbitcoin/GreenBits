@@ -20,7 +20,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/font_size_large"
                 android:textColor="@color/colorAccent"
-                android:text="Backup portafoglio bitcoin"/>
+                android:text="@string/backup_wallet"/>
 
             <LinearLayout
                 android:layout_weight="0.5"
@@ -43,7 +43,7 @@
                     android:layout_weight="1"
                     android:textAlignment="center"
                     android:gravity="center"
-                    android:text="Ti consigliamo di fare il backup del tuo portafoglio al fine di non perdere i tuoi bitcoin."/>
+                    android:text="@string/first_backup_advice"/>
             </LinearLayout>
 
             <LinearLayout
@@ -58,7 +58,7 @@
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
-                    android:text="backup"
+                    android:text="@string/backup_wallet"
                     android:textColor="@color/white" />
 
                 <com.dd.CircularProgressButton
@@ -69,7 +69,7 @@
                     app:cpb_colorIndicator="@color/accent"
                     app:cpb_selectorIdle="@drawable/buttonprogressselector_light"
                     android:textColor="@color/colorAccent"
-                    app:cpb_textIdle="non adesso" />
+                    app:cpb_textIdle="@string/skip_backup" />
             </LinearLayout>
 
         </LinearLayout>

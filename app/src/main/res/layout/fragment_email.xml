@@ -68,7 +68,7 @@
                 app:cpb_colorIndicator="@color/accent"
                 app:cpb_selectorIdle="@drawable/buttonprogressselector_light"
                 android:textColor="@color/colorAccent"
-                app:cpb_textIdle="@string/pinSkipText" />
+                app:cpb_textIdle="@string/skip_backup" />
         </LinearLayout>
 
     </LinearLayout>

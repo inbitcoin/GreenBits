@@ -58,7 +58,8 @@ public class FragmentBackupFirstPage extends GAFragment {
             public void onClick(View view) {
                 if (noBackupButton.getProgress() != 0)
                     return;
-                MaterialDialog popup = UI.popup(getGaActivity(), "Ricordati che in seguito dovrai fare il backup.\nSicuro di continuare senza backup?")
+                MaterialDialog popup = UI.popup(getGaActivity(), getString(R.string.warning))
+                        .content(getString(R.string.warning_skip_backup))
                         .onPositive(new MaterialDialog.SingleButtonCallback() {
                             @Override
                             public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {

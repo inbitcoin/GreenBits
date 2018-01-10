@@ -138,7 +138,7 @@
                                 <TextView
                                     android:gravity="center"
                                     android:textAlignment="center"
-                                    android:text="Mi raccomando, leggi i termini di servizio prima utilizzare Altana."
+                                    android:text="@string/advice_read_tos"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content" />
                                 <TextView
@@ -147,7 +147,7 @@
                                     android:gravity="center"
                                     android:textStyle="italic"
                                     android:textColor="@color/colorAccent"
-                                    android:text="Leggi i termini di servizio"
+                                    android:text="@string/read_tos"
                                     android:id="@+id/textTosLink" />
                             </LinearLayout>
                         </LinearLayout>
@@ -165,7 +165,7 @@
                             android:textColor="@color/secondaryTextColor"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_horizontal"
-                            android:text="Ho letto e accetto i termini di servizio" />
+                            android:text="@string/checkbox_read_tos" />
 
                         <Button
                             android:enabled="false"
