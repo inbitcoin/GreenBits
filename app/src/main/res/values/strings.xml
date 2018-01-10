@@ -360,6 +360,9 @@
     <string name="fa_flask" translatable="false">&#xf0c3;</string>
     <string name="fa_space_shuttle" translatable="false">&#xf197;</string>
 
+    <string name="smile_pensive" translatable="false">&#x1F614;</string>
+    <string name="smile_sunglasses" translatable="false">&#x1F60E;</string>
+
     <string name="transactionSubmitted">Transaction successfully submitted</string>
     <string name="unable_to_create_change">Unable to create change output</string>
     <string name="unable_to_connect_to_service">GreenBits is unable to connect, please verify your internet connection</string>
@@ -483,4 +486,7 @@
     <string name="qr_core_reader_prompt">Focus a qr code in the rectangle to scan it</string>
     <string name="suggest_export_qrcode_nfc">We suggest you export the mnemonic passphrase to QR Code or NFC tag.</string>
     <string name="suggest_email">We suggest you to set email to receive report and nLockTime file.</string>
+    <string name="backup_warning_story1">Giovanni has broken his smartphone and has lost all bitcoin because he never done a backup</string>
+    <string name="backup_warning_story2">Anna instead has done a backup before that the smartphone fall down in the water</string>
+    <string name="backup_warning_do_backup">Follow the Anna\'s example, do the backup of your wallet now!</string>
 </resources>

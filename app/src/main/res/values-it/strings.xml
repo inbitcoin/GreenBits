@@ -313,4 +313,7 @@
         <item>La verità è là fuori, la rete deciderà\n10000 satoshi/kB</item>
         <item>Panic selling /o\\</item>
     </string-array>
+    <string name="backup_warning_story1">Giovanni ha rotto lo smartphone e ha perso tutti i suoi bitcoin perché non aveva fatto il backup</string>
+    <string name="backup_warning_story2">Anna invece aveva fatto il backup prima che lo smartphone le cadesse in acqua</string>
+    <string name="backup_warning_do_backup">Segui l\'esempio di Anna, fai anche tu il backup adesso!</string>
 </resources>

@@ -305,6 +305,21 @@ public class GaService extends Service implements INotificationHandler {
     public SharedPreferences cfgIn(final String name) { return cfg(name + mReceivingId); }
     public SharedPreferences.Editor cfgInEdit(final String name) { return cfgIn(name).edit(); }
 
+    /**
+     * Find all preferences xml file and clear content
+     */
+    public void cfgClearAll() {
+        final File dirSharedPrefs = new File(getApplicationInfo().dataDir + "/shared_prefs");
+        if (dirSharedPrefs.isDirectory()) {
+            for (File child: dirSharedPrefs.listFiles()) {
+                final String pref = child.getName().replaceAll(".xml$", "");
+                Log.d(TAG, "Found pref file: " + child.getName());
+                cfgEdit(pref).clear().apply();
+                Log.d(TAG, "Cleaned pref: " + pref);
+            }
+        }
+    }
+
     // User config is stored on the server (unlike preferences which are local)
     public Object getUserConfig(final String key) {
         return mClient.getUserConfig(key);

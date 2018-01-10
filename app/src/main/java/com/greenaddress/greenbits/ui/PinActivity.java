@@ -152,6 +152,8 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
                         startActivityForResult(savePin, PINSAVE);
                         return;
                     } else {
+                        // reset session flag
+                        mService.cfg().edit().putBoolean("session_backup_warning_showed", false).apply();
                         onLoginSuccess();
                         return;
                     }
@@ -174,12 +176,12 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
                         final Long timestamp = System.currentTimeMillis()/1000;
                         editor.putLong("last_fail_timestamp", timestamp);
                         editor.putInt("counter", counter);
+                        editor.apply();
                         message = getString(R.string.attemptsLeftLong, MAX_ATTEMPTS - counter);
                     } else {
                         message = getString(R.string.attemptsFinished);
-                        editor.clear();
+                        mService.cfgClearAll();
                     }
-                    editor.apply();
                     error = null;
                 } else {
                     error = t;
@@ -348,6 +350,8 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
                 }
                 break;
             case PINSAVE:
+                // reset session flag
+                mService.cfg().edit().putBoolean("session_backup_warning_showed", false).apply();
                 onLoginSuccess();
                 break;
         }
