@@ -457,7 +457,7 @@
     <string name="manageSubaccounts">Manage simple accounts</string>
     <string name="security">Security</string>
     <string name="warning_backup">WARNING: backup needed</string>
-    <string name="backup_wallet">Backup wallet</string>
+    <string name="backup_wallet">Wallet backup</string>
     <string name="backup_mnemonic_passphrase">Backup mnemonic passphrase</string>
     <string name="export_mnemonic_passphrase">Export mnemonic passphrase</string>
     <string name="export_mnemonic_passphrase_desc">Export your mnemonic passphrase with password via QR Code or tag NFC</string>
@@ -482,17 +482,17 @@
     <string name="networkFee">Network fee</string>
     <string name="feePriorityHurry">In a hurry</string>
     <string name="forcedRbf">RBF is required for economic and custom and will be enabled for this transition</string>
-    <string name="save_passphrase_message">The follow phrase is the mnemonic passphrase and will be used to restore your wallet in the future.\n\nWrite down the phrase in a secure place, if you lose this passphrase will be impossible to restore your wallet and all your bitcoin will be lost.</string>
+    <string name="save_passphrase_message">The following mnemonic phrase will be required to restore your bitcoin wallet in the future.\n\nWrite down the phrase in a secure place, if you lose it you won\'t be able to restore your wallet and all your bitcoins will be lost.</string>
     <string name="qr_core_reader_prompt">Focus a qr code in the rectangle to scan it</string>
     <string name="suggest_export_qrcode_nfc">We suggest you export the mnemonic passphrase to QR Code or NFC tag.</string>
-    <string name="suggest_email">We suggest you to set email to receive report and nLockTime file.</string>
-    <string name="backup_warning_story1">Giovanni has broken his smartphone and has lost all bitcoin because he never done a backup</string>
-    <string name="backup_warning_story2">Anna instead has done a backup before that the smartphone fall down in the water</string>
-    <string name="backup_warning_do_backup">Follow the Anna\'s example, do the backup of your wallet now!</string>
-    <string name="first_backup_advice">We advise you to backup now your wallet in order not to lose your bitcoin.</string>
+    <string name="suggest_email">We suggest you set an email to further secure your bitcoins.</string>
+    <string name="backup_warning_story1">Mario still had to backup his wallet when the smartphone broke and has now lost all bitcoins.</string>
+    <string name="backup_warning_story2">Anna has instead recovered all her bitcoins because she had already made a backup, before the smartphone fell in the water.\nAnna is smart.</string>
+    <string name="backup_warning_do_backup">Follow Anna\'s example, backup your wallet now!</string>
+    <string name="first_backup_advice">You need to backup your wallet as soon as possible to avoid losing your bitcoins.</string>
     <string name="skip_backup">Skip</string>
-    <string name="advice_read_tos">I recommend, read the terms of service before using Altana.</string>
+    <string name="advice_read_tos">We know it\'s boring but, please, read the terms of service before using Altana.</string>
     <string name="read_tos">Read the terms of service</string>
     <string name="checkbox_read_tos">I have read and accept the terms of service</string>
-    <string name="warning_skip_backup">For example, if this device is damaged, lost, replaced or Altana is removed, NO ONE will be able to recover the bitcoin without backup.\n\nDo you want to continue anyway?</string>
+    <string name="warning_skip_backup">If this device is damaged, lost, replaced or Altana is removed, NO ONE will be able to recover your bitcoins without the backup.\n\nDo you want to skip anyway?</string>
 </resources>

@@ -312,16 +312,16 @@
         <item>La verità è là fuori, la rete deciderà\n10000 satoshi/kB</item>
         <item>Panic selling /o\\</item>
     </string-array>
-    <string name="backup_warning_story1">Giovanni ha rotto lo smartphone e ha perso tutti i suoi bitcoin perché non aveva fatto il backup</string>
-    <string name="backup_warning_story2">Anna invece aveva fatto il backup prima che lo smartphone le cadesse in acqua</string>
+    <string name="backup_warning_story1">Mario non aveva ancora fatto il backup quando il suo smartphone si è rotto e ha perso tutti i suoi bitcoin.</string>
+    <string name="backup_warning_story2">Anna invece ha recuperato tutti i suoi bitcoin perché aveva fatto il backup, prima che lo smartphone le cadesse in acqua.\nAnna è in gamba.</string>
     <string name="backup_warning_do_backup">Segui l\'esempio di Anna, fai anche tu il backup adesso!</string>
-    <string name="first_backup_advice">Ti consigliamo di fare il backup del tuo portafoglio al fine di non perdere i tuoi bitcoin.</string>
+    <string name="first_backup_advice">Devi fare il backup del tuo portafoglio prima possibile al fine di non perdere i tuoi bitcoin.\nIl momento migliore è ora.</string>
     <string name="skip_backup">Non adesso</string>
-    <string name="advice_read_tos">Mi raccomando, leggi i termini di servizio prima utilizzare Altana.</string>
+    <string name="advice_read_tos">Sappiamo che è noioso ma, per cortesia, leggi i termini di servizio prima utilizzare Altana.</string>
     <string name="read_tos">Leggi i termini di servizio</string>
     <string name="checkbox_read_tos">Ho letto e accetto i termini di servizio</string>
-    <string name="save_passphrase_message">La frase seguente è la frase mnemonica che ti servirà per ripristinare il tuo portafoglio bitcoin in futuro.\n\nScrivi la frase in un posto sicuro, se perderai questa frase mnemonica sarà impossibile ripristinare il tuo wallet e tutti i tuoi bitcoin andranno persi.</string>
+    <string name="save_passphrase_message">La seguente frase mnemonica ti servirà per ripristinare il tuo portafoglio bitcoin in futuro.\n\nScrivi la frase in un posto sicuro, se la perderai sarà impossibile ripristinare il tuo portafoglio e tutti i tuoi bitcoin andranno perduti.</string>
     <string name="suggest_export_qrcode_nfc">Ti consigliamo di esportare la passphrase mnemonica via QR code o tag NFC.</string>
-    <string name="suggest_email">Ti consigliamo di impostare la posta elettronica per ricevere il report e il file nLockTime.</string>
-    <string name="warning_skip_backup">Se questo dispositivo viene, ad esempio, danneggiato, perso, sostituito o se Altana viene rimossa, NESSUNO sarà in grado di recuperare i bitcoin senza il backup.\n\nVuoi continuare ugualmente?</string>
+    <string name="suggest_email">Ti consigliamo di impostare un indirizzo email per proteggere ulteriormente i tuoi bitcoin.</string>
+    <string name="warning_skip_backup">Se questo dispositivo viene, danneggiato, perso, sostituito o se Altana viene rimossa, NESSUNO sarà in grado di recuperare i tuoi bitcoin senza il backup.\n\nVuoi ugualmente saltare il backup?</string>
 </resources>
