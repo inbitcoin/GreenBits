@@ -192,7 +192,6 @@ public class ExportMnemonic {
                 shareButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        dialog.dismiss();
                         UI.shareImageWithText(activity, bitmap, activity.getString(R.string.mnemonic_passphrase_with_password));
                     }
                 });
@@ -205,7 +204,6 @@ public class ExportMnemonic {
                         nfcButton.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
-                                dialog.dismiss();
                                 Intent intent = new Intent(activity, activity.getClass());
                                 intent.setAction(SettingsActivity.INTENT_SHOW_NFC_DIALOG_REQUEST);
                                 // Prevent activity to be re-instantiated if it is already running.

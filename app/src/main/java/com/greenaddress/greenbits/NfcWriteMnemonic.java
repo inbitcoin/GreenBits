@@ -14,7 +14,6 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.Theme;
 import com.greenaddress.greenapi.CryptoHelper;
 import com.greenaddress.greenbits.ui.R;
@@ -44,12 +43,11 @@ public class NfcWriteMnemonic {
         final View nfcView = activity.getLayoutInflater().inflate(R.layout.dialog_nfc_write, null, false);
         nfcTagsWritten = UI.find(nfcView, R.id.nfcTagsWrittenText);
 
-        nfcDialog = new MaterialDialog.Builder(activity)
-                .title("Hold your NFC tag close to the device")
+        nfcDialog = UI.popup(activity, R.string.nfc_dialog_title, R.string.continueText)
                 .customView(nfcView, true)
                 .titleColorRes(R.color.textColor)
-                .contentColorRes(android.R.color.white)
-                .theme(Theme.LIGHT).build();
+                .theme(Theme.LIGHT)
+                .build();
 
         UI.setDialogCloseHandler(nfcDialog, mDialogCB, true /* cancelOnly */);
     }

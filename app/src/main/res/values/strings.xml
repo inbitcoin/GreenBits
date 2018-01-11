@@ -495,4 +495,5 @@
     <string name="read_tos">Read the terms of service</string>
     <string name="checkbox_read_tos">I have read and accept the terms of service</string>
     <string name="warning_skip_backup">If this device is damaged, lost, replaced or Altana is removed, NO ONE will be able to recover your bitcoins without the backup.\n\nDo you want to skip anyway?</string>
+    <string name="nfc_dialog_title">Hold your NFC tag close to the device</string>
 </resources>
