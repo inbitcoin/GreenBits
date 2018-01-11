@@ -1138,9 +1138,15 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         smile2.setTypeface(typeface);
 
         final MaterialDialog dialog = UI.popup(this, R.string.backup_wallet, R.string.skip_backup)
-                .customView(view, true)
+                .customView(view, false)
                 .cancelable(false)
                 .build();
+
+        // try to hide title
+        final View parent = (View) dialog.getTitleView().getParent();
+        if (parent != null)
+            parent.setVisibility(View.GONE);
+
 
         // set backup button
         final Intent intent = new Intent(this, SignUpActivity.class);
