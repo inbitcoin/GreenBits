@@ -155,7 +155,7 @@ public class SecurityPreferenceFragment extends GAPreferenceFragment {
     }
 
     private void updateBackupStatus() {
-        final Boolean backupDone = mService.cfg().getBoolean("backup_done", false);
+        final Boolean backupDone = mService.getBackupDone();
         if (!backupDone) {
             Spannable summary = new SpannableString(getString(R.string.warning_backup));
             summary.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.lightRed)), 0, summary.length(), 0);

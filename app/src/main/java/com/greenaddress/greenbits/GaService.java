@@ -1694,4 +1694,22 @@ public class GaService extends Service implements INotificationHandler {
                 activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
         }
     }
+
+    /**
+     * Set the backup flag and the current timestamp
+     * @param enabled set/unset backup state
+     */
+    public void setBackupState(final Boolean enabled) {
+        final Long tsLong = System.currentTimeMillis()/1000;
+        cfgEdit("backup").putBoolean("done", enabled).apply();
+        cfgEdit("backup").putLong("last_backup_time", tsLong).apply();
+    }
+
+    /**
+     * Get the backup flag done state
+     * @return Boolean status of backup done state
+     */
+    public Boolean getBackupDone() {
+        return cfg("backup").getBoolean("done", false);
+    }
 }

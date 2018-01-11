@@ -11,7 +11,6 @@ import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.v7.widget.GridLayout;
 import android.support.v7.widget.Toolbar;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
@@ -21,15 +20,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
-import android.view.WindowManager;
-import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.CheckBox;
 import android.widget.ImageView;
-import android.widget.Space;
 import android.widget.TextView;
 
 import com.afollestad.materialdialogs.DialogAction;
@@ -43,7 +39,6 @@ import com.greenaddress.greenapi.LoginData;
 import com.greenaddress.greenapi.Network;
 import com.greenaddress.greenbits.NfcWriteMnemonic;
 import com.greenaddress.greenbits.ui.preferences.GaPreferenceActivity;
-import com.journeyapps.barcodescanner.Util;
 import com.wefika.flowlayout.FlowLayout;
 
 import org.bitcoinj.core.NetworkParameters;
@@ -52,7 +47,6 @@ import java.util.ArrayList;
 import java.util.Currency;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -363,7 +357,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
 
     private void onMnemonicVerified() {
         if (mFromSettingsPage) {
-            mService.cfg().edit().putBoolean("backup_done", true).apply();
+            mService.setBackupState(true);
             finish();
             return;
         }
@@ -447,7 +441,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     }
 
     private void onSignUpCompleted() {
-        mService.cfg().edit().putBoolean("backup_done", true).apply();
+        mService.setBackupState(true);
         setComplete(true);
         mService.resetSignUp();
         mOnSignUp = null;

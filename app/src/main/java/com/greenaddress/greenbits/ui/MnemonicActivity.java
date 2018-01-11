@@ -256,7 +256,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
             public void onSuccess(final LoginData result) {
                 if (getCallingActivity() == null) {
                     // set backup done on correct restore
-                    mService.cfg().edit().putBoolean("backup_done", true).apply();
+                    mService.setBackupState(true);
                     final Intent savePin = PinSaveActivity.createIntent(MnemonicActivity.this, mService.getMnemonic());
                     startActivityForResult(savePin, PINSAVE);
                 } else {

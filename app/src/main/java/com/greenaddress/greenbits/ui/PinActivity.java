@@ -22,14 +22,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.dd.CircularProgressButton;
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.greenaddress.greenapi.GAException;
 import com.greenaddress.greenapi.LoginData;
-import com.greenaddress.greenapi.LoginFailed;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.KeyStoreAES;
 import com.greenaddress.greenbits.ui.preferences.NetworkSettingsActivity;
@@ -216,7 +214,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
 
         if (ident == null) {
             // reset backup_done flag
-            mService.cfg().edit().putBoolean("backup_done", false).apply();
+            mService.setBackupState(false);
             startActivity(new Intent(this, FirstScreenActivity.class));
             finish();
             return;
