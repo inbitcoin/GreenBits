@@ -206,7 +206,7 @@ public class ExportMnemonic {
                             @Override
                             public void onClick(View view) {
                                 dialog.dismiss();
-                                Intent intent = new Intent(activity, SettingsActivity.class);
+                                Intent intent = new Intent(activity, activity.getClass());
                                 intent.setAction(SettingsActivity.INTENT_SHOW_NFC_DIALOG_REQUEST);
                                 // Prevent activity to be re-instantiated if it is already running.
                                 // Instead, the onNewEvent() is triggered
