@@ -10,7 +10,7 @@
     <string name="title_activity_sign_up">Nuovo</string>
     <string name="signupContinueButtonText">CONTINUA</string>
     <string name="signupCheckBoxText">Ho custodito la frase mnemonica e ho letto le condizioni</string>
-    <string name="termsofservice">Condizioni d\'utilizzo</string>
+    <string name="termsofservice">Termini di servizio</string>
 
     <string name="firstSignUpText">NUOVO</string>
     <string name="firstLogInText">RIPRISTINA</string>
