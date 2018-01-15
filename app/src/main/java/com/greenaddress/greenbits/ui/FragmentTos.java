@@ -2,12 +2,14 @@ package com.greenaddress.greenbits.ui;
 
 import android.os.Bundle;
 import android.support.v4.app.FragmentTransaction;
+import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.TextView;
 
 /**
  * Created by Antonio Parrella on 10/23/17.
@@ -29,6 +31,24 @@ public class FragmentTos extends GAFragment {
                     continueButton.setEnabled(true);
                 else
                     continueButton.setEnabled(false);
+            }
+        });
+
+        // set terms of service text
+        final TextView textView = new TextView(getContext());
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N)
+            textView.setText(Html.fromHtml(getString(R.string.terms_of_service_text), Html.FROM_HTML_MODE_LEGACY));
+        else
+            textView.setText(Html.fromHtml(getString(R.string.terms_of_service_text)));
+
+        final TextView textTosLink = UI.find(mView, R.id.textTosLink);
+        textTosLink.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                UI.popup(getActivity(), R.string.termsofservice, R.string.continueText)
+                        .customView(textView, true)
+                        .build()
+                        .show();
             }
         });
 

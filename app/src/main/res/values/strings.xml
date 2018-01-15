@@ -495,4 +495,24 @@
     <string name="checkbox_read_tos">I have read and accept the terms of service</string>
     <string name="warning_skip_backup">If this device is damaged, lost, replaced or Altana is removed, NO ONE will be able to recover your bitcoins without the backup.\n\nDo you want to skip anyway?</string>
     <string name="nfc_dialog_title">Hold your NFC tag close to the device</string>
+    <string name="terms_of_service_text">
+        <![CDATA[
+        <p>By using inbitcoin products, software, services or web sites you agree to the following terms and conditions.</p>
+        <p>The information contained in this website is for general information purposes only. The information is provided by inbitcoin srl and while we endeavor to keep the information up to date and correct, we make no representations or warranties of any kind, express or implied, about the completeness, accuracy, reliability, suitability or availability with respect to the website or the information, products, services, or related graphics contained on the website for any purpose. Any reliance you place on such information is therefore strictly at your own risk.</p>
+        <p>In no event will we be liable for any loss or damage including without limitation, indirect or consequential loss or damage, or any loss or damage whatsoever arising from loss of data or profits arising out of, or in connection with, the use of this website.</p>
+        <p>Every effort is made to keep the website up and running smoothly. However, inbitcoin srl takes no responsibility for, and will not be liable for, the website or GreenAddressIT Ltd services being temporarily unavailable due to technical issues beyond our control.</p>
+        <p>inbitcoin srl takes no responsibility for and will not be liable for any financial loss arising from the use of our wallet including any of the following.</p>
+        <p>Financial loss due to wallet data being "Brute-forced".</p>
+        <p>Financial loss due to server failure or data loss.</p>
+        <p>Financial loss due to server hacks or unavailability.</p>
+        <p>Financial loss due to forgotten mnemonics.</p>
+        <p>Financial loss due to corrupted data on our servers.</p>
+        <p>Financial loss due to incorrectly constructed transactions or mistyped bitcoin addresses.</p>
+        <p>Financial loss due to "phishing" or other websites masquerading as greenaddress or inbitcoin.</p>
+        <p>inbitcoin srl does not pretend to be a bank or regulated financial institution. Any Bitcoin stored using inbitcoin srl wallet are not in inbitcoin srl control we simply provide an interface to access GreenAddressIT Ltd services. inbitcoin srl does not have control over or take any responsibility for any transactions made through our wallet.</p>
+        <p>This website refers to virtual currency only. Bitcoin are credit vouchers of which inbitcoin or GreenAddressIT Ltd are not the issuer. inbitcoin srl makes no guarantees that bitcoins can be redeemed at the purchase price. Any exchange rates displayed are provided by 3rd party services and are not indicative of the Bitcoin being backed by any commodity or other form of money or having any other tangible value at all.</p>
+
+        <p>inbitcoin wallet ( altana bitcoin wallet )  use the smartphone camera to read qr code.</p>
+        ]]>
+    </string>
 </resources>
