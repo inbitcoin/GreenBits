@@ -182,7 +182,6 @@
     <string name="autologout_time">Auto logout timeout</string>
     <string name="autologout_time_default">%1$d minutes</string>
     <string name="touch_to_display">Touch to display</string>
-    <string name="show_mnemonic_passphrase_alert">Show the mnemonic passphrase could be dangerous. We recommend to backup it with password instead show in plain.\nDo you want to show it anyway?</string>
     <string name="txUnconfirmedTx">Transaction not confirmed. Please wait for block confirmations to gain trust in this transaction.</string>
     <string name="txUnverifiedTx">Transaction not verified. Please wait for synchronization to gain trust in this transaction. Remaining blocks:</string>
     <string name="unconfirmedBalanceTitle">Unconfirmed balance</string>

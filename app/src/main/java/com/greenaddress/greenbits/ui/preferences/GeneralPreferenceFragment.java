@@ -81,20 +81,9 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
                         passphrase.setSummary(getString(R.string.touch_to_display));
                         mPassphraseVisible = false;
                     } else {
-                        new MaterialDialog.Builder(getActivity())
-                                .title(R.string.warning)
-                                .content(R.string.show_mnemonic_passphrase_alert)
-                                .positiveText(R.string.ok)
-                                .negativeText(R.string.cancel)
-                                .onPositive(new MaterialDialog.SingleButtonCallback() {
-                                    @Override
-                                    public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
-                                        mService.setFlagSecure(getActivity(), true);
-                                        passphrase.setSummary(mnemonic);
-                                        mPassphraseVisible = true;
-                                    }
-                                })
-                                .show();
+                        mService.setFlagSecure(getActivity(), true);
+                        passphrase.setSummary(mnemonic);
+                        mPassphraseVisible = true;
                     }
                     return false;
                 }

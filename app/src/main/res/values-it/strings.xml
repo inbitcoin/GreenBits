@@ -268,7 +268,6 @@
     <string name="subaccountLabel">Etichetta account</string>
     <string name="create2to2Desc">Crea account che ti permettono di separare i tuoi fondi. Ogni account avrà il suo indirizzo per ricevere fondi.</string>
     <string name="showHide2to2">Mostra/Nascondi account</string>
-    <string name="show_mnemonic_passphrase_alert">Mostrare la passphrase mnemonica può essere pericoloso. Vi consigliamo di fare il backup con password invece di mostrarla in chiaro.\nVuoi mostrarla ugualmente?</string>
   <string name="error_auth_screen">Problemi con l\'autenticazione Android, fallback al PIN manuale</string>
   <string name="error_auth_screen_fallback_firstscreen">Problemi con l\'autenticazione Android, ripristina il tuo portafoglio con la frase mnemonica</string>
   <string name="warn_old_pin_android_auth">Adesso per riutilizzare l\'autenticazione Android è necessario impostare un PIN. Inserisci il nuovo PIN per continuare.</string>
