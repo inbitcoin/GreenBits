@@ -132,6 +132,7 @@
     <string name="twoFacProvideAuthCodeDescription">È necessario fornire un codice di autenticazione a due fattori esistente. Questo per evitare che utenti malintenzionati possano modificare le impostazioni 2FA senza il tuo consenso.</string>
     <string name="recoveryAndNotifications">Notifiche e backup</string>
     <string name="emailAddress">indirizzo email</string>
+    <string name="EmailAddress">Indirizzo email</string>
     <string name="phoneNumber">numero telefonico</string>
     <string name="newAddress">Nuovo</string>
     <string name="txReceivedOn">Ricevuto su</string>

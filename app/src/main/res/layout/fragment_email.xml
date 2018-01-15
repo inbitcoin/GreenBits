@@ -19,7 +19,7 @@
             android:layout_height="wrap_content"
             android:textSize="@dimen/font_size_large"
             android:textColor="@color/colorAccent"
-            android:text="@string/export_mnemonic_passphrase"/>
+            android:text="@string/EmailAddress"/>
 
         <LinearLayout
             android:layout_weight="0.5"
