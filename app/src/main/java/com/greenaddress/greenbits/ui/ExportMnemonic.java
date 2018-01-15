@@ -1,6 +1,7 @@
 package com.greenaddress.greenbits.ui;
 
 import android.app.Activity;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -22,6 +23,7 @@ import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.internal.MDButton;
 import com.greenaddress.greenapi.CryptoHelper;
+import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.QrBitmap;
 import com.greenaddress.greenbits.ui.preferences.SettingsActivity;
 
@@ -40,8 +42,8 @@ public class ExportMnemonic {
      * @param mnemonic String
      * @param activity the activity
      */
-    static public void openDialogPassword(final String mnemonic, final Activity activity) {
-        openDialogPassword(mnemonic, activity, null);
+    static public void openDialogPassword(final String mnemonic, final Activity activity, final GaService service) {
+        openDialogPassword(mnemonic, activity, service, null);
     }
 
     /**
@@ -50,7 +52,7 @@ public class ExportMnemonic {
      * @param activity the activity
      * @param callback to call onPositive
      */
-    static public void openDialogPassword(final String mnemonic, final Activity activity, final Runnable callback) {
+    static public void openDialogPassword(final String mnemonic, final Activity activity, final GaService service, final Runnable callback) {
         final View view = activity.getLayoutInflater().inflate(R.layout.dialog_backup_mnemonic_password, null, false);
 
         final TextInputEditText inputPassword1 = UI.find(view, R.id.input_password1);
@@ -75,17 +77,20 @@ public class ExportMnemonic {
                             Log.d(TAG, "error password");
                             UI.toast(activity, R.string.err_password, Toast.LENGTH_LONG);
                         } else {
-                            openDialogBackup(mnemonic, password1, activity, callback);
+                            openDialogBackup(mnemonic, password1, activity, service, callback);
                         }
                     }
                 })
                 .onNegative(new MaterialDialog.SingleButtonCallback() {
                     @Override
                     public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                        service.resetRotation(activity);
                         dialog.dismiss();
                     }
                 }).build();
         UI.showDialog(dialog, true);
+
+        service.lockScreenRotation(activity);
 
         // positive button, to show only on password match
         final MDButton positiveButton = dialog.getActionButton(DialogAction.POSITIVE);
@@ -139,8 +144,8 @@ public class ExportMnemonic {
      * @param password String
      * @param activity the activity
      */
-    static void openDialogBackup(final String mnemonic, final String password, final Activity activity) {
-        openDialogBackup(mnemonic, password, null);
+    static void openDialogBackup(final String mnemonic, final String password, final Activity activity, final GaService service) {
+        openDialogBackup(mnemonic, password, activity, service, null);
     }
 
     /**
@@ -150,12 +155,25 @@ public class ExportMnemonic {
      * @param activity the activity
      * @param callback to call onPositive
      */
-    static void openDialogBackup(final String mnemonic, final String password, final Activity activity, final Runnable callback) {
+    static void openDialogBackup(final String mnemonic, final String password, final Activity activity, final GaService service, final Runnable callback) {
         final View v = activity.getLayoutInflater().inflate(R.layout.dialog_backup_mnemonic, null, false);
 
         final MaterialDialog.Builder dialogBuilder = new MaterialDialog.Builder(activity)
                 .customView(v, true)
                 .positiveText(R.string.continueText)
+                .cancelListener(new DialogInterface.OnCancelListener() {
+                    @Override
+                    public void onCancel(DialogInterface dialogInterface) {
+                        service.resetRotation(activity);
+                    }
+                })
+                .dismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialogInterface) {
+                        service.resetRotation(activity);
+
+                    }
+                })
                 .cancelable(false);
         if (callback != null) {
             dialogBuilder.onPositive(new MaterialDialog.SingleButtonCallback() {
@@ -165,8 +183,12 @@ public class ExportMnemonic {
                 }
             });
         }
+
         final MaterialDialog dialog = dialogBuilder.build();
         dialog.show();
+
+        service.lockScreenRotation(activity);
+
         final MDButton positiveButton = dialog.getActionButton(DialogAction.POSITIVE);
         positiveButton.setEnabled(false);
 

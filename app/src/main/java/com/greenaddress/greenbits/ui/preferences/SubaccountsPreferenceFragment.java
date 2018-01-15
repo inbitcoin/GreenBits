@@ -1,5 +1,6 @@
 package com.greenaddress.greenbits.ui.preferences;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceScreen;
@@ -59,9 +60,23 @@ public class SubaccountsPreferenceFragment extends GAPreferenceFragment {
                                     UI.popup(getActivity(), R.string.warning, R.string.confirm)
                                             .content(R.string.err_unsupported_wallet).build().show();
                                 }
-
                             }
-                        }).show();
+                        })
+                        .cancelListener(new DialogInterface.OnCancelListener() {
+                            @Override
+                            public void onCancel(DialogInterface dialogInterface) {
+                                mService.resetRotation(getActivity());
+                            }
+                        })
+                        .dismissListener(new DialogInterface.OnDismissListener() {
+                            @Override
+                            public void onDismiss(DialogInterface dialogInterface) {
+                                mService.resetRotation(getActivity());
+                            }
+                        })
+                        .show();
+
+                mService.lockScreenRotation(getActivity());
                 return false;
             }
         });
@@ -105,10 +120,22 @@ public class SubaccountsPreferenceFragment extends GAPreferenceFragment {
                                 return true;
                             }
                         })
+                        .cancelListener(new DialogInterface.OnCancelListener() {
+                            @Override
+                            public void onCancel(DialogInterface dialogInterface) {
+                                mService.resetRotation(getActivity());
+                            }
+                        })
+                        .dismissListener(new DialogInterface.OnDismissListener() {
+                            @Override
+                            public void onDismiss(DialogInterface dialogInterface) {
+                                mService.resetRotation(getActivity());
+                            }
+                        })
                         .positiveText(android.R.string.ok)
                         .show();
 
-
+                mService.lockScreenRotation(getActivity());
                 return false;
             }
         });

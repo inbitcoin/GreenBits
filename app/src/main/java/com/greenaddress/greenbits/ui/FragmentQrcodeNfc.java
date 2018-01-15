@@ -30,7 +30,7 @@ public class FragmentQrcodeNfc extends GAFragment {
                     }
                 };
                 final String mnemonic = getGAService().getMnemonic();
-                ExportMnemonic.openDialogPassword(mnemonic, getActivity(), callback);
+                ExportMnemonic.openDialogPassword(mnemonic, getActivity(), getGAService(), callback);
             }
         });
 

@@ -59,7 +59,7 @@ public class SecurityPreferenceFragment extends GAPreferenceFragment {
             backupPassphrase.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
                 @Override
                 public boolean onPreferenceClick(Preference preference) {
-                    ExportMnemonic.openDialogPassword(mnemonic, getActivity());
+                    ExportMnemonic.openDialogPassword(mnemonic, getActivity(), mService);
                     return false;
                 }
             });

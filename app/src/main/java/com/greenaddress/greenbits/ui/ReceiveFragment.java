@@ -400,26 +400,20 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface dialogInterface) {
-                Activity activity = getGaActivity();
-                if (activity != null)
-                    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                getGAService().resetRotation(getActivity());
             }
         });
         dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
             @Override
             public void onCancel(DialogInterface dialogInterface) {
-                Activity activity = getGaActivity();
-                if (activity != null)
-                    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                getGAService().resetRotation(getActivity());
 
             }
         });
         mQrCodeDialog = dialog;
         mQrCodeDialog.show();
 
-        int currentScreenOrientation = UI.getCurrentScreenOrientation(getActivity());
-        //noinspection WrongConstant
-        getActivity().setRequestedOrientation(currentScreenOrientation);
+        getGAService().lockScreenRotation(getActivity());
     }
 
     @Override

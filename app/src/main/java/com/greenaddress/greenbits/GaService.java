@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
@@ -50,6 +51,7 @@ import com.greenaddress.greenapi.WalletClient;
 import com.greenaddress.greenbits.spv.SPV;
 import com.greenaddress.greenbits.ui.BuildConfig;
 import com.greenaddress.greenbits.ui.R;
+import com.greenaddress.greenbits.ui.UI;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
@@ -1711,5 +1713,27 @@ public class GaService extends Service implements INotificationHandler {
      */
     public Boolean getBackupDone() {
         return cfg("backup").getBoolean("done", false);
+    }
+
+    /**
+     * Lock the screen to the current orientation
+     * @param activity the activity
+     */
+    public void lockScreenRotation(final Activity activity) {
+        if (activity != null) {
+            // force rotation
+            int currentScreenOrientation = UI.getCurrentScreenOrientation(activity);
+            //noinspection WrongConstant
+            activity.setRequestedOrientation(currentScreenOrientation);
+        }
+    }
+
+    /**
+     * Reset the rotation to the unspecified state
+     * @param activity the activity
+     */
+    public void resetRotation(final Activity activity) {
+        if (activity != null)
+            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
     }
 }
