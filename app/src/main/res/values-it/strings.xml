@@ -9,7 +9,7 @@
     <string name="pinLoginText">Entra</string>
     <string name="title_activity_sign_up">Nuovo</string>
     <string name="signupContinueButtonText">CONTINUA</string>
-    <string name="signupCheckBoxText">Ho custodito la passphrase e ho letto le condizioni</string>
+    <string name="signupCheckBoxText">Ho custodito la frase mnemonica e ho letto le condizioni</string>
     <string name="termsofservice">Condizioni d\'utilizzo</string>
 
     <string name="firstSignUpText">NUOVO</string>
@@ -58,7 +58,7 @@
     <string name="sendOptionalMemo">Memo opzionale</string>
     <string name="madeBy">da inbitcoin</string>
     <string name="welcomeGreenBits">Benvenuti in Altana</string>
-    <string name="attemptsFinished">PIN non valido, non sono rimasti tentativi. Per piacere accedi con la passphrase.</string>
+    <string name="attemptsFinished">PIN non valido, non sono rimasti tentativi. Per piacere accedi con la frase mnemonica.</string>
     <string name="attemptsLeftLong">PIN non valido, hai %1$d tentativi rimanenti</string>
     <string name="warnOnPaste">Agire con cautela, altre applicazioni posso leggere o cambiare la clipboard</string>
     <string name="toastOnCopyAddress">Indirizzo copiato.</string>
@@ -67,7 +67,7 @@
     <string name="txTypeIn">Ricevuto</string>
     <string name="txTypeOut">Mandato</string>
     <string name="txTypeRedeposit">Giroconto</string>
-    <string name="mnemonicHint">Inserisci la passphrase del tuo wallet o fai lo scan del qrcode</string>
+    <string name="mnemonicHint">Inserisci la frase mnemonica del tuo portafoglio o fai lo scan del QR Code</string>
     <string name="title_activity_settings">Configurazione</string>
     <string name="ago">%1$d %2$s fa</string>
     <string name="txSubTitle">Dettagli transazione</string>
@@ -94,8 +94,8 @@
     <string name="btchipInvalidPIN">PIN incorretto. Tentativi rimasti: %d. Per piacere ricollega il tuo Btchip prima di riprovare.</string>
     <string name="btchipNotSetup">BTChip non è inizializzato. Per piacere inizializzalo sul tuo desktop/laptop.</string>
     <string name="instantConfirmation">Conferma istantanea</string>
-    <string name="mnemonic_passphrase">Passphrase mnemonica</string>
-    <string name="mnemonic_passphrase_not_available">Passphrase non disponibile</string>
+    <string name="mnemonic_passphrase">Frase mnemonica</string>
+    <string name="mnemonic_passphrase_not_available">Frase mnemonica non disponibile</string>
     <string name="autologout_time">Logout automatico</string>
     <string name="autologout_time_default">%1$d minuti</string>
     <string name="touch_to_display">Tocca per mostrare</string>
@@ -203,7 +203,7 @@
     <string name="loading_transactions">Caricamento transazioni…</string>
     <string name="unable_to_connect_to_service">GreenBits non riesce a collegarsi, per favore verifica la connessione a internet</string>
     <string name="nfcDialogMessage">Tieni la tag NFC vicino al dispositivo</string>
-    <string name="securePassphraseMsg">Metti al sicuro la passphrase e conferma di accettare i Termini di Servizio</string>
+    <string name="securePassphraseMsg">Metti al sicuro la frase mnemonica e conferma di accettare i Termini di Servizio</string>
     <string name="signupInProgress">Registrazione in corso</string>
     <string name="notConnected">Non sei connesso, si prega di attendere</string>
     <string name="pinErrorLength">Il PIN deve essere compreso tra 4 e 15 numeri</string>
@@ -239,7 +239,7 @@
     <string name="vendorMessage">Puoi vendere i tuoi bitcoin tramite l\'apposita pagina di vendita nel menù a tendina</string>
     <string name="tryAgainInSeconds">Riprova fra %1$d secondi</string>
     <string name="waitBeforeRetry">Aspetta prima di riprovare</string>
-    <string name="oneAttemptLeft">Attenzione, il wallet sul dispositivo verrà cancellato al prossimo errore e sarà necessaria la passphrase mnemonica per ripristinarlo.</string>
+    <string name="oneAttemptLeft">Attenzione, il portafoglio sul dispositivo verrà cancellato al prossimo errore e sarà necessaria la frase mnemonica per ripristinarlo.</string>
     <string name="serviceUnavailable">Servizio momentaneamente non disponibile</string>
     <string name="err_unsupported_wallet">Wallet non supportato</string>
     <string name="err_unsupported_bitid">Indirizzo BitID non supportato</string>
@@ -253,14 +253,14 @@
     <string name="security">Sicurezza</string>
     <string name="warning_backup">ATTENZIONE: backup necessario</string>
     <string name="backup_wallet">Backup portafoglio</string>
-    <string name="backup_mnemonic_passphrase">Backup passphrase mnemonica</string>
-    <string name="export_mnemonic_passphrase">Esporta la passphrase mnemonica</string>
-    <string name="export_mnemonic_passphrase_desc">Esporta la passphrase mnemonica con password via QR Code o su una tag NFC</string>
+    <string name="backup_mnemonic_passphrase">Backup frase mnemonica</string>
+    <string name="export_mnemonic_passphrase">Esporta la frase mnemonica</string>
+    <string name="export_mnemonic_passphrase_desc">Esporta la frase mnemonica con password via QR Code o su una tag NFC</string>
     <string name="err_password">Password non valida</string>
     <string name="err_password_doesnt_match">Le password non coincidono</string>
     <string name="err_password_length">La password deve essere lunga almeno %d caratteri</string>
     <string name="repeat_password">Ripeti password</string>
-    <string name="mnemonic_passphrase_with_password">Passphrase mnemonica con password</string>
+    <string name="mnemonic_passphrase_with_password">Frase mnemonica con password</string>
     <string name="create2to2">Aggiungi account</string>
     <string name="create2to2OK">Account aggiunto</string>
     <string name="create2to2error">Errore durante l\'aggiunta dell\'account</string>
@@ -270,7 +270,7 @@
     <string name="showHide2to2">Mostra/Nascondi account</string>
     <string name="show_mnemonic_passphrase_alert">Mostrare la passphrase mnemonica può essere pericoloso. Vi consigliamo di fare il backup con password invece di mostrarla in chiaro.\nVuoi mostrarla ugualmente?</string>
   <string name="error_auth_screen">Problemi con l\'autenticazione Android, fallback al PIN manuale</string>
-  <string name="error_auth_screen_fallback_firstscreen">Problemi con l\'autenticazione Android, ripristina il tuo wallet con la passphrase mnemonica</string>
+  <string name="error_auth_screen_fallback_firstscreen">Problemi con l\'autenticazione Android, ripristina il tuo portafoglio con la frase mnemonica</string>
   <string name="warn_old_pin_android_auth">Adesso per riutilizzare l\'autenticazione Android è necessario impostare un PIN. Inserisci il nuovo PIN per continuare.</string>
   <string name="restore_backup">Ripristina backup</string>
   <string name="account_doesnt_exist">L\'account non esiste</string>
@@ -321,7 +321,7 @@
     <string name="read_tos">Leggi i termini di servizio</string>
     <string name="checkbox_read_tos">Ho letto e accetto i termini di servizio</string>
     <string name="save_passphrase_message">La seguente frase mnemonica ti servirà per ripristinare il tuo portafoglio bitcoin in futuro.\n\nScrivi la frase in un posto sicuro, se la perderai sarà impossibile ripristinare il tuo portafoglio e tutti i tuoi bitcoin andranno perduti.</string>
-    <string name="suggest_export_qrcode_nfc">Ti consigliamo di esportare la passphrase mnemonica via QR code o tag NFC.</string>
+    <string name="suggest_export_qrcode_nfc">Ti consigliamo di esportare la frase mnemonica via QR code o tag NFC.</string>
     <string name="suggest_email">Ti consigliamo di impostare un indirizzo email per proteggere ulteriormente i tuoi bitcoin.</string>
     <string name="warning_skip_backup">Se questo dispositivo viene, danneggiato, perso, sostituito o se Altana viene rimossa, NESSUNO sarà in grado di recuperare i tuoi bitcoin senza il backup.\n\nVuoi ugualmente saltare il backup?</string>
     <string name="nfc_dialog_title">Tieni il tag NFC vicino al dispositivo</string>
