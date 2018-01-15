@@ -20,5 +20,15 @@
 
     </com.wefika.flowlayout.FlowLayout>
 
+    <com.greenaddress.greenbits.ui.FontAwesomeTextView
+        android:id="@+id/backupCompletedText"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_weight="0.7"
+        android:gravity="center"
+        android:text="@string/fa_thumbs_o_up"
+        android:textColor="@color/accent"
+        android:visibility="gone"
+        android:textSize="106sp" />
 
 </LinearLayout>

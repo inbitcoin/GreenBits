@@ -3,6 +3,7 @@ package com.greenaddress.greenbits.ui;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
@@ -20,6 +21,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
@@ -31,6 +34,7 @@ import android.widget.TextView;
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.Theme;
+import com.afollestad.materialdialogs.internal.MDButton;
 import com.dd.CircularProgressButton;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -56,7 +60,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     private static final int VERIFY_COUNT = 4;
 
     private Dialog mMnemonicDialog;
-    private Dialog mVerifyDialog;
+    private MaterialDialog mVerifyDialog;
     private NfcAdapter mNfcAdapter;
     private PendingIntent mNfcPendingIntent;
     private ImageView mNfcSignupIcon;
@@ -75,6 +79,8 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     private ListenableFuture<LoginData> mOnSignUp;
     private final Runnable mVerifyDialogCB = new Runnable() { public void run() { onVerifyDismissed(); } };
     private Boolean mFromSettingsPage = false;
+    private FlowLayout mFlowLayout;
+    private TextView mBackupCompletedText;
 
     private String mMnemonic;
     /** text size in SP */
@@ -235,19 +241,34 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
                 .titleColorRes(R.color.textColor)
                 .contentColorRes(android.R.color.white)
                 .theme(Theme.LIGHT)
+                .positiveText(R.string.continueText)
                 .negativeText(R.string.cancel);
 
+        mVerifyDialog = verifyDialogBuilder.build();
+
+        final MDButton positiveButton = mVerifyDialog.getActionButton(DialogAction.POSITIVE);
         // on debug and !mainnet add skip button
         if (BuildConfig.DEBUG || !Network.NETWORK.getId().equals(NetworkParameters.ID_MAINNET)) {
-            verifyDialogBuilder.positiveText(R.string.pinSkipText);
-            verifyDialogBuilder.onPositive(new MaterialDialog.SingleButtonCallback() {
+            positiveButton.setText(R.string.pinSkipText);
+            positiveButton.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
-                    onMnemonicVerified();
+                public void onClick(View view) {
+                    if (positiveButton.getText().equals(getString(R.string.continueText))) {
+                        onMnemonicVerified();
+                        mVerifyDialog.dismiss();
+                    } else {
+                        // simulate backup completed
+                        showBackupCompleted();
+                        positiveButton.setText(R.string.continueText);
+                        final InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                    }
                 }
             });
+        } else {
+            positiveButton.setEnabled(false);
         }
-        mVerifyDialog = verifyDialogBuilder.build();
+
         UI.setDialogCloseHandler(mVerifyDialog, mVerifyDialogCB, false);
         final String[] words = mMnemonic.split(" ");
 
@@ -255,8 +276,9 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         final int index1 = mWordChoices.get(1);
         final int index2 = mWordChoices.get(2);
         final int index3 = mWordChoices.get(3);
-        final FlowLayout flowLayout = UI.find(v, R.id.flowLayout);
-        flowLayout.setGravity(Gravity.CENTER);
+        mBackupCompletedText = UI.find(v, R.id.backupCompletedText);
+        mFlowLayout = UI.find(v, R.id.flowLayout);
+        mFlowLayout.setGravity(Gravity.CENTER);
         int col = 0;
         boolean firstFound = false;
         FlowLayout.LayoutParams params = new FlowLayout.LayoutParams(FlowLayout.LayoutParams.WRAP_CONTENT,
@@ -272,25 +294,25 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
                     first = true;
                     firstFound = true;
                 }
-                autoCompleteTextViewList.add(setupWord(words[i], flowLayout, 0, first));
+                autoCompleteTextViewList.add(setupWord(words[i], mFlowLayout, 0, first));
             } else if (i == index1) {
                 if (!firstFound) {
                     first = true;
                     firstFound = true;
                 }
-                autoCompleteTextViewList.add(setupWord(words[i], flowLayout, 1, first));
+                autoCompleteTextViewList.add(setupWord(words[i], mFlowLayout, 1, first));
             } else if (i == index2) {
                 if (!firstFound) {
                     first = true;
                     firstFound = true;
                 }
-                autoCompleteTextViewList.add(setupWord(words[i], flowLayout, 2, first));
+                autoCompleteTextViewList.add(setupWord(words[i], mFlowLayout, 2, first));
             } else if (i == index3) {
                 if (!firstFound) {
                     first = true;
                     firstFound = true;
                 }
-                autoCompleteTextViewList.add(setupWord(words[i], flowLayout, 3, first));
+                autoCompleteTextViewList.add(setupWord(words[i], mFlowLayout, 3, first));
             } else {
                 final AutoCompleteTextView textView = new AutoCompleteTextView(this);
                 textView.setText(words[i]);
@@ -315,7 +337,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
                     textView.setGravity(Gravity.CENTER);
                 //else
                 //    textView.setGravity(Gravity.CENTER | Gravity.START);
-                flowLayout.addView(textView);
+                mFlowLayout.addView(textView);
             }
             //final TextView space = new TextView(this);
             //space.setPadding(20,0,20,0);
@@ -562,8 +584,9 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
                 nextElement.requestFocus();
             }
             UI.disable(text);
-            if (areAllChoicesValid())
-                UI.dismiss(this, mVerifyDialog); // Dismiss callback will continue
+            if (areAllChoicesValid()) {
+                showBackupCompleted();
+            }
         }
     }
 
@@ -587,5 +610,18 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
                 mContinueButton.setProgress(0);
             }
         }
+    }
+
+    /**
+     * Hide all unuseful element from verity dialog and show backup completed message
+     */
+    private void showBackupCompleted() {
+        UI.hide(mFlowLayout);
+        UI.show(mBackupCompletedText);
+        mVerifyDialog.setTitle(R.string.completed_backup);
+        final MDButton positiveButton = mVerifyDialog.getActionButton(DialogAction.POSITIVE);
+        positiveButton.setEnabled(true);
+        final MDButton negativeButton = mVerifyDialog.getActionButton(DialogAction.NEGATIVE);
+        negativeButton.setVisibility(View.INVISIBLE);
     }
 }

@@ -324,4 +324,5 @@
     <string name="suggest_email">Ti consigliamo di impostare un indirizzo email per proteggere ulteriormente i tuoi bitcoin.</string>
     <string name="warning_skip_backup">Se questo dispositivo viene, danneggiato, perso, sostituito o se Altana viene rimossa, NESSUNO sarà in grado di recuperare i tuoi bitcoin senza il backup.\n\nVuoi ugualmente saltare il backup?</string>
     <string name="nfc_dialog_title">Tieni il tag NFC vicino al dispositivo</string>
+    <string name="completed_backup">Backup completato</string>
 </resources>

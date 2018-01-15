@@ -358,6 +358,7 @@
     <string name="fa_bolt" translatable="false">&#xf0e7;</string>
     <string name="fa_flask" translatable="false">&#xf0c3;</string>
     <string name="fa_space_shuttle" translatable="false">&#xf197;</string>
+    <string name="fa_thumbs_o_up" translatable="false">&#xf087;</string>
 
     <string name="smile_pensive" translatable="false">&#x1F614;</string>
     <string name="smile_sunglasses" translatable="false">&#x1F60E;</string>
@@ -515,4 +516,5 @@
         <p>inbitcoin wallet ( altana bitcoin wallet )  use the smartphone camera to read qr code.</p>
         ]]>
     </string>
+    <string name="completed_backup">Completed backup</string>
 </resources>
