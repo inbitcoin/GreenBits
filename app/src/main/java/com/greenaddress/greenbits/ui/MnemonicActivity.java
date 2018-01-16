@@ -320,11 +320,9 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
     }
 
     private void onScanClicked() {
-        final String[] perms = { "android.permission.CAMERA" };
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1 &&
-                checkSelfPermission(perms[0]) != PackageManager.PERMISSION_GRANTED)
-            requestPermissions(perms, CAMERA_PERMISSION);
-        else {
+        if (Build.VERSION.SDK_INT >= 23) {
+            GaIntentIntegrator.scanQRCode(MnemonicActivity.this, QRSCANNER);
+        } else {
             final Intent scanner = new Intent(MnemonicActivity.this, ScanActivity.class);
             startActivityForResult(scanner, QRSCANNER);
         }
