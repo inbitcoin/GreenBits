@@ -47,7 +47,16 @@ public class FragmentBackupFirstPage extends GAFragment {
         backupButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                getGaActivity().startActivity(new Intent(getActivity(), SignUpActivity.class));
+                UI.popup(getActivity(), R.string.warning, R.string.ok, R.string.cancel)
+                        .content(R.string.warning_show_mnemonic)
+                        .onPositive(new MaterialDialog.SingleButtonCallback() {
+                            @Override
+                            public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                                getGaActivity().startActivity(new Intent(getActivity(), SignUpActivity.class));
+                            }
+                        })
+                        .build()
+                        .show();
             }
         });
         mActivity = getGaActivity();

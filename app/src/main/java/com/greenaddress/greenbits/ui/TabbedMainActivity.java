@@ -1137,13 +1137,13 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         smile1.setTypeface(typeface);
         smile2.setTypeface(typeface);
 
-        final MaterialDialog dialog = UI.popup(this, R.string.backup_wallet, R.string.skip_backup)
+        final MaterialDialog warningDialog = UI.popup(this, R.string.backup_wallet, R.string.skip_backup)
                 .customView(view, false)
                 .cancelable(false)
                 .build();
 
         // try to hide title
-        final View parent = (View) dialog.getTitleView().getParent();
+        final View parent = (View) warningDialog.getTitleView().getParent();
         if (parent != null)
             parent.setVisibility(View.GONE);
 
@@ -1153,14 +1153,23 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         backupButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                dialog.dismiss();
-                intent.putExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, true);
-                startActivity(intent);
+                UI.popup(mActivity, R.string.warning, R.string.ok, R.string.cancel)
+                        .content(R.string.warning_show_mnemonic)
+                        .onPositive(new MaterialDialog.SingleButtonCallback() {
+                            @Override
+                            public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                                warningDialog.dismiss();
+                                intent.putExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, true);
+                                startActivity(intent);
+                            }
+                        })
+                        .build()
+                        .show();
             }
         });
 
         // positive button, to show only for !dev_mode && mainnet and !debug
-        final MDButton positiveButton = dialog.getActionButton(DialogAction.POSITIVE);
+        final MDButton positiveButton = warningDialog.getActionButton(DialogAction.POSITIVE);
 
         final boolean isDev = mService.cfg("dev_mode").getBoolean("enabled", false);
         if (!BuildConfig.DEBUG && !isDev)
@@ -1176,7 +1185,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             }
         }.start();
 
-        UI.showDialog(dialog);
+        UI.showDialog(warningDialog);
         mService.cfg().edit().putBoolean("session_backup_warning_showed", true).apply();
     }
 }

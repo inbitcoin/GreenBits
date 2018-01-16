@@ -4,17 +4,21 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.preference.Preference;
+import android.support.annotation.NonNull;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.afollestad.materialdialogs.DialogAction;
+import com.afollestad.materialdialogs.MaterialDialog;
 import com.greenaddress.greenbits.ui.ExportMnemonic;
 import com.greenaddress.greenbits.ui.PinSaveActivity;
 import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.SetEmailActivity;
 import com.greenaddress.greenbits.ui.SignUpActivity;
+import com.greenaddress.greenbits.ui.UI;
 
 import java.util.Map;
 import java.util.Observable;
@@ -48,9 +52,18 @@ public class SecurityPreferenceFragment extends GAPreferenceFragment {
             mBackupWallet.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
                 @Override
                 public boolean onPreferenceClick(Preference preference) {
-                    final Intent intent = new Intent(getActivity(), SignUpActivity.class);
-                    intent.putExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, true);
-                    startActivityForResult(intent, BACKUP_ACTIVITY);
+                    UI.popup(getActivity(), R.string.warning, R.string.ok, R.string.cancel)
+                            .content(R.string.warning_show_mnemonic)
+                            .onPositive(new MaterialDialog.SingleButtonCallback() {
+                                @Override
+                                public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                                    final Intent intent = new Intent(getActivity(), SignUpActivity.class);
+                                    intent.putExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, true);
+                                    startActivityForResult(intent, BACKUP_ACTIVITY);
+                                }
+                            })
+                            .build()
+                            .show();
                     return false;
                 }
             });

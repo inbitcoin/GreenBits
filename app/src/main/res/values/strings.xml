@@ -517,4 +517,5 @@
         ]]>
     </string>
     <string name="completed_backup">Completed backup</string>
+    <string name="warning_show_mnemonic">The next screen will show your mnemonic phrase. Make sure you are in a secure place, far from prying eyes.</string>
 </resources>
