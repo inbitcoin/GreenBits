@@ -451,7 +451,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
         final String mnemonic = mService.getMnemonic();
         final Boolean backupDone = mService.getBackupDone();
-        if (mnemonic != null && !backupDone)
+        if (!mService.isWatchOnly() && mnemonic != null && !backupDone)
             showBackupWarningDialog();
     }
 
