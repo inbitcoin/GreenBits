@@ -83,74 +83,26 @@ public class FragmentBackupFirstPage extends GAFragment {
         return mView;
     }
 
-    // TODO rimuovere questo codice duplicato
+    /**
+     * Do login and set default account data
+     */
     private void login() {
         mOnSignUp = mService.signup(mService.getSignUpMnemonic());
         Futures.addCallback(mOnSignUp, new FutureCallback<LoginData>() {
             @Override
             public void onSuccess(final LoginData result) {
-                //setComplete(true);
                 mService.resetSignUp();
                 mOnSignUp = null;
                 final Intent savePin = PinSaveActivity.createIntent(getActivity(), mService.getMnemonic());
                 startActivityForResult(savePin, SignUpActivity.PINSAVE);
 
-                // set default inbitcoin setup
-                mService.setUserConfig("replace_by_fee", false, false);
-                mService.cfgEdit("advanced_options").putBoolean("enabled", false).apply();
-
-                // get current system currency and if it's present in greenaddress, set this
-                Futures.addCallback(mService.getCurrencyExchangePairs(), new CB.Op<List<List<String>>>() {
-                    @Override
-                    public void onSuccess(final List<List<String>> result) {
-                        if (mActivity != null && result != null) {
-                            mActivity.runOnUiThread(new Runnable() {
-                                public void run() {
-                                    final ArrayList<String> defaultExchanges = new ArrayList<>();
-                                    defaultExchanges.add("BTCAVG");
-                                    defaultExchanges.add("KRAKEN");
-                                    defaultExchanges.add("BITSTAMP");
-
-                                    String first_exchange = "";
-                                    final String currentCurrency = Currency.getInstance(Locale.getDefault()).getCurrencyCode();
-                                    boolean pairFound = false;
-                                    final Iterator<List<String>> resultIterator = result.iterator();
-                                    while (resultIterator.hasNext() && !pairFound) {
-                                        List<String> pair = resultIterator.next();
-                                        if (pair.get(0).equals(currentCurrency)) {
-                                            // set first exchange found
-                                            if (first_exchange.isEmpty())
-                                                first_exchange = pair.get(1);
-
-                                            // try to set exchange fround dafault list
-                                            final Iterator exchangesIterator = defaultExchanges.iterator();
-                                            while (exchangesIterator.hasNext() && !pairFound) {
-                                                String exchange = (String) exchangesIterator.next();
-                                                pairFound = pair.get(1).equals(exchange);
-                                                if (pairFound)
-                                                    mService.setPricingSource(currentCurrency, exchange);
-                                            }
-                                        }
-                                    }
-
-                                    // set first exchange if no default exchange found
-                                    if (!pairFound)
-                                        mService.setPricingSource(currentCurrency, first_exchange);
-                                }
-                            });
-                        }
-                    }
-                });
-
-
+                SignUpActivity.setDefaultAccountData(mService, getActivity());
             }
 
             @Override
             public void onFailure(final Throwable t) {
-                //setComplete(false);
                 mOnSignUp = null;
                 t.printStackTrace();
-                //toast(t.getMessage());
                 backupButton.setEnabled(true);
                 noBackupButton.setProgress(0);
 

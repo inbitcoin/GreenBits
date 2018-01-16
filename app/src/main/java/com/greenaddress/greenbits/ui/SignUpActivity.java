@@ -11,7 +11,6 @@ import android.graphics.drawable.BitmapDrawable;
 import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.v7.widget.Toolbar;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
@@ -21,7 +20,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
-import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
@@ -41,6 +39,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.greenaddress.greenapi.LoginData;
 import com.greenaddress.greenapi.Network;
+import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.NfcWriteMnemonic;
 import com.greenaddress.greenbits.ui.preferences.GaPreferenceActivity;
 import com.wefika.flowlayout.FlowLayout;
@@ -388,54 +387,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
             @Override
             public void onSuccess(final LoginData result) {
                 onSignUpCompleted();
-                            // set default inbitcoin setup
-                            mService.setUserConfig("replace_by_fee", false, false);
-                            mService.cfgEdit("advanced_options").putBoolean("enabled", false).apply();
-
-                            // get current system currency and if it's present in greenaddress, set this
-                            Futures.addCallback(mService.getCurrencyExchangePairs(), new CB.Op<List<List<String>>>() {
-                                @Override
-                                public void onSuccess(final List<List<String>> result) {
-                                    if (mActivity != null && result != null) {
-                                        mActivity.runOnUiThread(new Runnable() {
-                                            public void run() {
-                                                final ArrayList<String> defaultExchanges = new ArrayList<>();
-                                                defaultExchanges.add("BTCAVG");
-                                                defaultExchanges.add("KRAKEN");
-                                                defaultExchanges.add("BITSTAMP");
-
-                                                String first_exchange = "";
-                                                final String currentCurrency = Currency.getInstance(Locale.getDefault()).getCurrencyCode();
-                                                boolean pairFound = false;
-                                                final Iterator<List<String>> resultIterator = result.iterator();
-                                                while (resultIterator.hasNext() && !pairFound) {
-                                                    List<String> pair = resultIterator.next();
-                                                    if (pair.get(0).equals(currentCurrency)) {
-                                                        // set first exchange found
-                                                        if (first_exchange.isEmpty())
-                                                            first_exchange = pair.get(1);
-
-                                                        // try to set exchange fround dafault list
-                                                        final Iterator exchangesIterator = defaultExchanges.iterator();
-                                                        while (exchangesIterator.hasNext() && !pairFound) {
-                                                            String exchange = (String) exchangesIterator.next();
-                                                            pairFound = pair.get(1).equals(exchange);
-                                                            if (pairFound)
-                                                                mService.setPricingSource(currentCurrency, exchange);
-                                                        }
-                                                    }
-                                                }
-
-                                                // set first exchange if no default exchange found
-                                                if (!pairFound)
-                                                    mService.setPricingSource(currentCurrency, first_exchange);
-                                            }
-                                        });
-                                    }
-                                }
-                            });
-
-
+                setDefaultAccountData(mService, mActivity);
             }
 
             @Override
@@ -623,5 +575,60 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         positiveButton.setEnabled(true);
         final MDButton negativeButton = mVerifyDialog.getActionButton(DialogAction.NEGATIVE);
         negativeButton.setVisibility(View.INVISIBLE);
+    }
+
+
+    /**
+     * Set default account data, local and on GreenAdress server
+     * @param service the GaService
+     * @param activity the activity
+     */
+    public static void setDefaultAccountData(final GaService service, final Activity activity) {
+        // set default inbitcoin setup
+        service.setUserConfig("replace_by_fee", false, false);
+        service.cfgEdit("advanced_options").putBoolean("enabled", false).apply();
+
+        // get current system currency and if it's present in greenaddress, set this
+        Futures.addCallback(service.getCurrencyExchangePairs(), new CB.Op<List<List<String>>>() {
+            @Override
+            public void onSuccess(final List<List<String>> result) {
+                if (activity != null && result != null) {
+                    activity.runOnUiThread(new Runnable() {
+                        public void run() {
+                            final ArrayList<String> defaultExchanges = new ArrayList<>();
+                            defaultExchanges.add("BTCAVG");
+                            defaultExchanges.add("KRAKEN");
+                            defaultExchanges.add("BITSTAMP");
+
+                            String first_exchange = "";
+                            final String currentCurrency = Currency.getInstance(Locale.getDefault()).getCurrencyCode();
+                            boolean pairFound = false;
+                            final Iterator<List<String>> resultIterator = result.iterator();
+                            while (resultIterator.hasNext() && !pairFound) {
+                                List<String> pair = resultIterator.next();
+                                if (pair.get(0).equals(currentCurrency)) {
+                                    // set first exchange found
+                                    if (first_exchange.isEmpty())
+                                        first_exchange = pair.get(1);
+
+                                    // try to set exchange fround dafault list
+                                    final Iterator exchangesIterator = defaultExchanges.iterator();
+                                    while (exchangesIterator.hasNext() && !pairFound) {
+                                        String exchange = (String) exchangesIterator.next();
+                                        pairFound = pair.get(1).equals(exchange);
+                                        if (pairFound)
+                                            service.setPricingSource(currentCurrency, exchange);
+                                    }
+                                }
+                            }
+
+                            // set first exchange if no default exchange found
+                            if (!pairFound)
+                                service.setPricingSource(currentCurrency, first_exchange);
+                        }
+                    });
+                }
+            }
+        });
     }
 }
