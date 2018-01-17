@@ -133,6 +133,19 @@
         <activity
             android:name=".SignUpActivity"
             android:theme="@style/AppTheme.NoActionBar"
+            android:label="@string/title_activity_sign_up">
+            <intent-filter>
+                <action android:name="your.action.string"/>
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".SignUpActivity2"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:label="@string/title_activity_sign_up"/>
+        <activity
+            android:name=".ActivityPostBackup"
+            android:theme="@style/AppTheme.NoActionBar"
             android:label="@string/title_activity_sign_up"/>
         <activity
             android:name="de.schildbach.wallet.ui.ScanActivity"
@@ -169,9 +182,11 @@
             android:label="@string/txSubTitle"/>
         <activity
             android:name=".TwoFactorActivity"
+            android:theme="@style/AppTheme.NoActionBar"
             android:label="@string/twoFacSetupHeader"/>
         <activity
             android:name=".SetEmailActivity"
+            android:theme="@style/AppTheme.NoActionBar"
             android:label="@string/EmailAddress"/>
         <activity
             android:name=".preferences.SettingsActivity"

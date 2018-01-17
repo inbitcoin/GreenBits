@@ -52,7 +52,7 @@
 
         <com.dd.CircularProgressButton
             android:id="@+id/btn_login"
-            style="@style/myButtonCircle"
+            android:layout_margin="8dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"

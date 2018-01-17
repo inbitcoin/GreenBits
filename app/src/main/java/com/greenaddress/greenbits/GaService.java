@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
@@ -50,6 +51,7 @@ import com.greenaddress.greenapi.WalletClient;
 import com.greenaddress.greenbits.spv.SPV;
 import com.greenaddress.greenbits.ui.BuildConfig;
 import com.greenaddress.greenbits.ui.R;
+import com.greenaddress.greenbits.ui.UI;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
@@ -304,6 +306,21 @@ public class GaService extends Service implements INotificationHandler {
     public SharedPreferences.Editor cfgEdit(final String name) { return cfg(name).edit(); }
     public SharedPreferences cfgIn(final String name) { return cfg(name + mReceivingId); }
     public SharedPreferences.Editor cfgInEdit(final String name) { return cfgIn(name).edit(); }
+
+    /**
+     * Find all preferences xml file and clear content
+     */
+    public void cfgClearAll() {
+        final File dirSharedPrefs = new File(getApplicationInfo().dataDir + "/shared_prefs");
+        if (dirSharedPrefs.isDirectory()) {
+            for (File child: dirSharedPrefs.listFiles()) {
+                final String pref = child.getName().replaceAll(".xml$", "");
+                Log.d(TAG, "Found pref file: " + child.getName());
+                cfgEdit(pref).clear().apply();
+                Log.d(TAG, "Cleaned pref: " + pref);
+            }
+        }
+    }
 
     // User config is stored on the server (unlike preferences which are local)
     public Object getUserConfig(final String key) {
@@ -1678,5 +1695,45 @@ public class GaService extends Service implements INotificationHandler {
             else
                 activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
         }
+    }
+
+    /**
+     * Set the backup flag and the current timestamp
+     * @param enabled set/unset backup state
+     */
+    public void setBackupState(final Boolean enabled) {
+        final Long tsLong = System.currentTimeMillis()/1000;
+        cfgEdit("backup").putBoolean("done", enabled).apply();
+        cfgEdit("backup").putLong("last_backup_time", tsLong).apply();
+    }
+
+    /**
+     * Get the backup flag done state
+     * @return Boolean status of backup done state
+     */
+    public Boolean getBackupDone() {
+        return cfg("backup").getBoolean("done", false);
+    }
+
+    /**
+     * Lock the screen to the current orientation
+     * @param activity the activity
+     */
+    public void lockScreenRotation(final Activity activity) {
+        if (activity != null) {
+            // force rotation
+            int currentScreenOrientation = UI.getCurrentScreenOrientation(activity);
+            //noinspection WrongConstant
+            activity.setRequestedOrientation(currentScreenOrientation);
+        }
+    }
+
+    /**
+     * Reset the rotation to the unspecified state
+     * @param activity the activity
+     */
+    public void resetRotation(final Activity activity) {
+        if (activity != null)
+            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
     }
 }

@@ -12,8 +12,9 @@
     <string name="pinLoginText">Enter</string>
     <string name="title_activity_qr_scanner">QR Scanner</string>
     <string name="title_activity_sign_up">Create</string>
+    <string name="title_activity_post_backup">Post backup</string>
     <string name="signupContinueButtonText">CONTINUE</string>
-    <string name="signupCheckBoxText">I secured the passphrase and I have read the ToS</string>
+    <string name="signupCheckBoxText">I secured the mnemonic phrase and I have read the ToS</string>
     <string name="termsofservice"><a href="http://altanawallet.it/tos/">Terms of Service</a></string>
 
     <string name="firstSignUpText">CREATE</string>
@@ -123,14 +124,14 @@
     <string name="invalid_paperwallet">Invalid paperwallet address</string>
     <string name="invalid_feerate">Rate must be empty or greater than %1$d.</string>
     <string name="warning">Warning!</string>
-    <string name="save_password_now">You MUST save this passphrase NOW</string>
+    <string name="save_password_now">You MUST save this mnemonic phrase NOW</string>
     <string name="greenaddress_headline">the easier, safer and faster bitcoin wallet</string>
     <string name="priority_label">Priority:</string>
     <string name="pinSkipText">SKIP</string>
     <string name="sendOptionalMemo">Optional memo</string>
     <string name="madeBy">by inbitcoin</string>
     <string name="welcomeGreenBits">Welcome to Altana</string>
-    <string name="attemptsFinished">Invalid PIN, you don\'t have any attempts left. Please login using your passphrase.</string>
+    <string name="attemptsFinished">Invalid PIN, you don\'t have any attempts left. Please login using your mnemonic phrase.</string>
     <string name="attemptsLeftLong">Invalid PIN, you have %1$d attempts left</string>
     <string name="warnOnPaste">Be aware, other apps can read or change the clipboard</string>
     <string name="toastOnCopyAddress">Address copied to clipboard.</string>
@@ -142,7 +143,7 @@
     <string name="txTypeIn">Received</string>
     <string name="txTypeOut">Sent</string>
     <string name="txTypeRedeposit">Redeposited</string>
-    <string name="mnemonicHint">Type your wallet passphrase or scan its qrcode</string>
+    <string name="mnemonicHint">Type your mnemonic phrase or scan its QR Code</string>
     <string name="title_activity_settings">Settings</string>
     <string name="ago">%1$d %2$s ago</string>
     <string name="txSubTitle">Transaction details</string>
@@ -167,7 +168,7 @@
     <string name="noBalanceThirdLine">Read our <a href="https://greenaddress.it/faq">FAQ</a></string>
     <string name="trezor_headline">Please follow the instructions on your Hardware Wallet</string>
     <string name="trezorProvidePin">Please provide your Hardware Wallet PIN. Look at the device for number positions:</string>
-    <string name="trezorProvidePassphrase">Please provide your Hardware Wallet passphrase.</string>
+    <string name="trezorProvidePassphrase">Please provide your Hardware Wallet mnemonic phrase.</string>
     <string name="main_account">Main</string>
     <string name="footerAccount">Account</string>
     <string name="btchipProvidePIN">Please provide your BTChip PIN:</string>
@@ -177,11 +178,10 @@
     <string name="btchipNotSetup">BTChip is not set up. Please set it up using a desktop client to be able to use it.</string>
     <string name="instantConfirmation">Instant Confirmation</string>
     <string name="mnemonic_passphrase">Mnemonic passphrase</string>
-    <string name="mnemonic_passphrase_not_available">Passphrase not available</string>
+    <string name="mnemonic_passphrase_not_available">Mnemonic phrase not available</string>
     <string name="autologout_time">Auto logout timeout</string>
     <string name="autologout_time_default">%1$d minutes</string>
     <string name="touch_to_display">Touch to display</string>
-    <string name="show_mnemonic_passphrase_alert">Show the mnemonic passphrase could be dangerous. We recommend to backup it with password instead show in plain.\nDo you want to show it anyway?</string>
     <string name="txUnconfirmedTx">Transaction not confirmed. Please wait for block confirmations to gain trust in this transaction.</string>
     <string name="txUnverifiedTx">Transaction not verified. Please wait for synchronization to gain trust in this transaction. Remaining blocks:</string>
     <string name="unconfirmedBalanceTitle">Unconfirmed balance</string>
@@ -197,7 +197,7 @@
     <string name="noEmailWarning">For your safety, go to settings to set an email address up</string>
     <string name="scan_camera_problem_dialog_message">The camera has a problem. You probably need to restart the device.</string>
     <string name="scan_camera_problem_dialog_title">Camera problem</string>
-    <string name="providePassphrase">Please provide your passphrase:</string>
+    <string name="providePassphrase">Please provide your mnemonic phrase:</string>
     <string name="pref_header_twofactor">Two factor authentication</string>
     <string name="twoFacPhoneCall">Phone call</string>
     <string name="twoFacSMS">SMS</string>
@@ -281,7 +281,7 @@
     <string name="err_tabbed_verify_paperwallet_requires_camera_permissions">Please enable camera permissions to use verify paperwallet functionality.</string>
     <string name="err_qrscan_requires_camera_permissions">Please enable camera permissions to use scan functionality.</string>
     <string name="err_mnemonic_activity_logout_required">You must first logout before signing in.</string>
-    <string name="err_mnemonic_activity_invalid_mnemonic">Invalid passphrase (must be 24 or 27 words)</string>
+    <string name="err_mnemonic_activity_invalid_mnemonic">Invalid mnemonic phrase (must be 24 or 27 words)</string>
     <string name="err_pin_save_wrong_length">PIN has to be between 4 and 15 digits</string>
     <string name="all">All</string>
     <string name="err_code_wrong_length">Code has to be 6 digits</string>
@@ -336,8 +336,12 @@
     <string name="fa_copy" translatable="false">&#xf0c5;</string>
     <string name="fa_mbtc_space" translatable="false">m&#xf15a;\u0020</string>
     <string name="fa_pencil" translatable="false">&#xf040;</string>
+    <string name="fa_pencil_square_o" translatable="false">&#xf044;</string>
+    <string name="fa_tag" translatable="false">&#xf02b;</string>
+    <string name="fa_envelope_o" translatable="false">&#xf003;</string>
     <string name="fa_plus" translatable="false">&#xf067;</string>
     <string name="fa_qrcode" translatable="false">&#xf029;</string>
+    <string name="fa_file_text" translatable="false">&#xf0f6;</string>
     <string name="fa_remove" translatable="false">&#xf00d;</string>
     <string name="fa_sign_in" translatable="false">&#xf090;</string>
     <string name="fa_sign_out" translatable="false">&#xf08b;</string>
@@ -352,15 +356,18 @@
     <string name="fa_trash" translatable="false">&#xf1f8;</string>
     <string name="fa_ubtc_space" translatable="false">\u00b5&#xf15a;\u0020</string>
     <string name="fa_bolt" translatable="false">&#xf0e7;</string>
-    <string name="fa_pencil_square_o" translatable="false">&#xf044;</string>
     <string name="fa_flask" translatable="false">&#xf0c3;</string>
     <string name="fa_space_shuttle" translatable="false">&#xf197;</string>
+    <string name="fa_thumbs_o_up" translatable="false">&#xf087;</string>
+
+    <string name="smile_pensive" translatable="false">&#x1F614;</string>
+    <string name="smile_sunglasses" translatable="false">&#x1F60E;</string>
 
     <string name="transactionSubmitted">Transaction successfully submitted</string>
     <string name="unable_to_create_change">Unable to create change output</string>
     <string name="unable_to_connect_to_service">GreenBits is unable to connect, please verify your internet connection</string>
     <string name="nfcDialogMessage">Hold your NFC tag close to the device</string>
-    <string name="securePassphraseMsg">Please secure your passphrase and confirm you agree to the Terms of Service</string>
+    <string name="securePassphraseMsg">Please secure your mnemonic phrase and confirm you agree to the Terms of Service</string>
     <string name="signupInProgress">Signup in progress</string>
     <string name="notConnected">You are not connected, please wait</string>
     <string name="pinErrorLength">PIN has to be between 4 and 15 long</string>
@@ -431,7 +438,7 @@
     <string name="paymentProcessor">Payment processor</string>
     <string name="tryAgainInSeconds">Try again in %1$d seconds</string>
     <string name="waitBeforeRetry">Wait before retry</string>
-    <string name="oneAttemptLeft">Warning, the wallet on the device will be reset on error and will be necessary your mnemonic passphrase to restore it.</string>
+    <string name="oneAttemptLeft">Warning, the wallet on the device will be reset on error and will be necessary your mnemonic phrase to restore it.</string>
     <string name="serviceUnavailable">Service temporarily unavailable</string>
     <string name="err_unsupported_wallet">Unsupported wallet</string>
     <string name="err_unsupported_bitid">Unsupported BitID</string>
@@ -448,16 +455,20 @@
     <string name="showHide2to2">Show/Hide simple account</string>
     <string name="subaccountLabel">Account label</string>
     <string name="manageSubaccounts">Manage simple accounts</string>
-    <string name="backup_mnemonic_passphrase">Backup mnemonic passphrase</string>
-    <string name="backup_mnemonic_passphrase_desc">Backup your mnemonic passphrase with password and export via QR Code or tag NFC</string>
-    <string name="mnemonic_passphrase_with_password">Mnemonic passphrase with password</string>
+    <string name="security">Security</string>
+    <string name="warning_backup">WARNING: backup needed</string>
+    <string name="backup_wallet">Wallet backup</string>
+    <string name="backup_mnemonic_passphrase">Mnemonic phrase backup</string>
+    <string name="export_mnemonic_passphrase">Mnemonic phrase export</string>
+    <string name="export_mnemonic_passphrase_desc">Export your mnemonic phrase with password via QR Code or tag NFC</string>
+    <string name="mnemonic_passphrase_with_password">Mnemonic phrase with password</string>
     <string name="repeat_password">Repeat password</string>
     <string name="backup_in_progress">Creating backup with password in progress…</string>
     <string name="err_password_doesnt_match">Password doesn\'t match</string>
     <string name="err_password_length">Password must be at least %d characters long</string>
     <string name="err_password">Invalid password</string>
     <string name="error_auth_screen">Problem with Android\'s authentication, fallback to manual PIN</string>
-    <string name="error_auth_screen_fallback_firstscreen">Problem with Android\'s authentication, please restore your wallet with mnemonic passphrase</string>
+    <string name="error_auth_screen_fallback_firstscreen">Problem with Android\'s authentication, please restore your wallet with mnemonic phrase</string>
     <string name="warn_old_pin_android_auth">Now to reuse Android\'s authentication you need to set a PIN. Insert new pin to continue.</string>
     <string name="restore_backup">Restore backup</string>
     <string name="account_doesnt_exist">Account doesn\'t exist</string>
@@ -471,5 +482,40 @@
     <string name="networkFee">Network fee</string>
     <string name="feePriorityHurry">In a hurry</string>
     <string name="forcedRbf">RBF is required for economic and custom and will be enabled for this transition</string>
+    <string name="save_passphrase_message">The following mnemonic phrase will be required to restore your bitcoin wallet in the future.\n\nWrite down the phrase in a secure place, if you lose it you won\'t be able to restore your wallet and all your bitcoins will be lost.</string>
     <string name="qr_core_reader_prompt">Focus a qr code in the rectangle to scan it</string>
+    <string name="suggest_export_qrcode_nfc">We suggest you export the mnemonic phrase to QR Code or NFC tag.</string>
+    <string name="suggest_email">We suggest you set an email to further secure your bitcoins.</string>
+    <string name="backup_warning_story1">Mario still had to backup his wallet when the smartphone broke and has now lost all bitcoins.</string>
+    <string name="backup_warning_story2">Anna has instead recovered all her bitcoins because she had already made a backup, before the smartphone fell in the water.\nAnna is smart.</string>
+    <string name="backup_warning_do_backup">Follow Anna\'s example, backup your wallet now!</string>
+    <string name="first_backup_advice">You need to backup your wallet as soon as possible to avoid losing your bitcoins.</string>
+    <string name="skip_backup">Skip</string>
+    <string name="advice_read_tos">We know it\'s boring but, please, read the terms of service before using Altana.</string>
+    <string name="read_tos">Read the terms of service</string>
+    <string name="checkbox_read_tos">I have read and accept the terms of service</string>
+    <string name="warning_skip_backup">If this device is damaged, lost, replaced or Altana is removed, NO ONE will be able to recover your bitcoins without the backup.\n\nDo you want to skip anyway?</string>
+    <string name="nfc_dialog_title">Hold your NFC tag close to the device</string>
+    <string name="terms_of_service_text">
+        <![CDATA[
+        <p>By using inbitcoin products, software, services or web sites you agree to the following terms and conditions.</p>
+        <p>The information contained in this website is for general information purposes only. The information is provided by inbitcoin srl and while we endeavor to keep the information up to date and correct, we make no representations or warranties of any kind, express or implied, about the completeness, accuracy, reliability, suitability or availability with respect to the website or the information, products, services, or related graphics contained on the website for any purpose. Any reliance you place on such information is therefore strictly at your own risk.</p>
+        <p>In no event will we be liable for any loss or damage including without limitation, indirect or consequential loss or damage, or any loss or damage whatsoever arising from loss of data or profits arising out of, or in connection with, the use of this website.</p>
+        <p>Every effort is made to keep the website up and running smoothly. However, inbitcoin srl takes no responsibility for, and will not be liable for, the website or GreenAddressIT Ltd services being temporarily unavailable due to technical issues beyond our control.</p>
+        <p>inbitcoin srl takes no responsibility for and will not be liable for any financial loss arising from the use of our wallet including any of the following.</p>
+        <p>Financial loss due to wallet data being "Brute-forced".</p>
+        <p>Financial loss due to server failure or data loss.</p>
+        <p>Financial loss due to server hacks or unavailability.</p>
+        <p>Financial loss due to forgotten mnemonics.</p>
+        <p>Financial loss due to corrupted data on our servers.</p>
+        <p>Financial loss due to incorrectly constructed transactions or mistyped bitcoin addresses.</p>
+        <p>Financial loss due to "phishing" or other websites masquerading as greenaddress or inbitcoin.</p>
+        <p>inbitcoin srl does not pretend to be a bank or regulated financial institution. Any Bitcoin stored using inbitcoin srl wallet are not in inbitcoin srl control we simply provide an interface to access GreenAddressIT Ltd services. inbitcoin srl does not have control over or take any responsibility for any transactions made through our wallet.</p>
+        <p>This website refers to virtual currency only. Bitcoin are credit vouchers of which inbitcoin or GreenAddressIT Ltd are not the issuer. inbitcoin srl makes no guarantees that bitcoins can be redeemed at the purchase price. Any exchange rates displayed are provided by 3rd party services and are not indicative of the Bitcoin being backed by any commodity or other form of money or having any other tangible value at all.</p>
+
+        <p>inbitcoin wallet ( altana bitcoin wallet )  use the smartphone camera to read qr code.</p>
+        ]]>
+    </string>
+    <string name="completed_backup">Completed backup</string>
+    <string name="warning_show_mnemonic">The next screen will show your mnemonic phrase. Make sure you are in a secure place, far from prying eyes.</string>
 </resources>

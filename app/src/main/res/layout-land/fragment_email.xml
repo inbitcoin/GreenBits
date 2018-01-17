@@ -1,0 +1,75 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    android:background="@drawable/background_activity">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:padding="@dimen/activity_content_margin"
+        android:background="@color/white"
+        android:gravity="center">
+
+        <TextView
+            android:textAlignment="center"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/font_size_large"
+            android:textColor="@color/colorAccent"
+            android:text="@string/EmailAddress"/>
+
+        <LinearLayout
+            android:layout_weight="0.5"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_width="fill_parent"
+            android:layout_height="0dp">
+
+            <com.greenaddress.greenbits.ui.FontAwesomeTextView
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:layout_weight="0.7"
+                android:gravity="center"
+                android:text="@string/fa_envelope_o"
+                android:textColor="@color/accent"
+                android:textSize="106sp" />
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:layout_weight="1"
+                android:textAlignment="center"
+                android:gravity="center"
+                android:text="@string/suggest_email"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:gravity="bottom"
+            android:orientation="vertical"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:id="@+id/continueButton"
+                style="@style/myButton"
+                android:layout_width="@dimen/backup_button_size"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/continueText"
+                android:textColor="@color/white" />
+
+            <com.dd.CircularProgressButton
+                android:id="@+id/skipButton"
+                android:layout_width="@dimen/backup_button_size"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                app:cpb_colorIndicator="@color/accent"
+                app:cpb_selectorIdle="@drawable/buttonprogressselector_light"
+                android:textColor="@color/colorAccent"
+                app:cpb_textIdle="@string/skip_backup" />
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>

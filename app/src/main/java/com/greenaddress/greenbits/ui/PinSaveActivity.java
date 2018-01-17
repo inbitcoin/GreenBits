@@ -24,6 +24,7 @@ import com.dd.CircularProgressButton;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.greenaddress.greenbits.KeyStoreAES;
+import com.greenaddress.greenbits.ui.preferences.GaPreferenceActivity;
 
 public class PinSaveActivity extends GaActivity {
 
@@ -56,7 +57,7 @@ public class PinSaveActivity extends GaActivity {
 
         mSaveButton.setIndeterminateProgressMode(true);
         mSaveButton.setProgress(50);
-        UI.hide(mSkipButton);
+        //UI.hide(mSkipButton);
 
         final String mnemonic = getIntent().getStringExtra(NEW_PIN_MNEMONIC);
         Futures.addCallback(mService.setPin(mnemonic, pin),
@@ -82,7 +83,7 @@ public class PinSaveActivity extends GaActivity {
                             public void run() {
                                 mSaveButton.setProgress(0);
                                 mPinText.setEnabled(true);
-                                UI.show(mSkipButton);
+                                //UI.show(mSkipButton);
                             }
                         });
                     }
@@ -156,6 +157,10 @@ public class PinSaveActivity extends GaActivity {
 
         final Toolbar toolbar = UI.find(this, R.id.toolbar);
         setSupportActionBar(toolbar);
+        if (getIntent().getBooleanExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, false)) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle(R.string.backup_wallet);
+        }
     }
 
     @Override
@@ -206,7 +211,7 @@ public class PinSaveActivity extends GaActivity {
                     }
                 }).build();
         UI.mapEnterToPositive(mVerifyDialog, R.id.btchipPINValue);
-        mVerifyDialog.show();
+        UI.showDialog(mVerifyDialog, true);
     }
 
     @Override
@@ -221,6 +226,17 @@ public class PinSaveActivity extends GaActivity {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
+        if (item.getItemId() == android.R.id.home) {
+            // Respond to the action bar's Up/Home button
+            onBackPressed();
+            return true;
+        }
         return item.getItemId() == R.id.action_settings || super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (getIntent().getBooleanExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, false))
+            finish();
     }
 }

@@ -1,0 +1,25 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <Preference
+        android:key="backup_wallet"
+        android:summary="@string/mnemonic_passphrase_not_available"
+        android:title="@string/backup_wallet" />
+
+    <Preference
+        android:key="export_mnemonic_passphrase"
+        android:title="@string/export_mnemonic_passphrase"
+        android:summary="@string/export_mnemonic_passphrase_desc" />
+
+    <Preference
+        android:key="reset_pin"
+        android:title="@string/setPin" />
+
+    <Preference android:key="email"
+        android:title="@string/EmailAddress">
+    </Preference>
+
+    <CheckBoxPreference android:key="hideNoEmailWarning"
+        android:title="@string/hideNoEmailWarning"
+        android:defaultValue="false"/>
+
+</PreferenceScreen>

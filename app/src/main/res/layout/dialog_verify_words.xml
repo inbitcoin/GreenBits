@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical">
 
     <!--TextView
@@ -11,92 +12,23 @@
         android:textColor="@color/whiteSecondary"
         android:textSize="20sp" /-->
 
-    <LinearLayout
+    <com.wefika.flowlayout.FlowLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/flowLayout"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal" >
+        android:layout_height="fill_parent">
 
-        <TextView
-            android:id="@+id/verify_label_1"
-            android:textColor="@color/secondaryTextColor"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.25"/>
+    </com.wefika.flowlayout.FlowLayout>
 
-        <AutoCompleteTextView
-            android:id="@+id/verify_word_1"
-            android:maxLines="1"
-            android:textColor="@color/textColor"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.75"
-            android:ems="10" />
-    </LinearLayout>
-
-    <LinearLayout
+    <com.greenaddress.greenbits.ui.FontAwesomeTextView
+        android:id="@+id/backupCompletedText"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal" >
-
-        <TextView
-            android:id="@+id/verify_label_2"
-            android:textColor="@color/secondaryTextColor"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.25"/>
-
-        <AutoCompleteTextView
-            android:id="@+id/verify_word_2"
-            android:maxLines="1"
-            android:textColor="@color/textColor"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.75"
-            android:ems="10" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal" >
-
-        <TextView
-            android:id="@+id/verify_label_3"
-            android:textColor="@color/secondaryTextColor"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.25"/>
-
-        <AutoCompleteTextView
-            android:id="@+id/verify_word_3"
-            android:maxLines="1"
-            android:textColor="@color/textColor"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.75"
-            android:ems="10" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal" >
-
-        <TextView
-            android:id="@+id/verify_label_4"
-            android:textColor="@color/secondaryTextColor"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.25"/>
-
-        <AutoCompleteTextView
-            android:id="@+id/verify_word_4"
-            android:maxLines="1"
-            android:textColor="@color/textColor"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.75"
-            android:ems="10" />
-    </LinearLayout>
+        android:layout_height="fill_parent"
+        android:layout_weight="0.7"
+        android:gravity="center"
+        android:text="@string/fa_thumbs_o_up"
+        android:textColor="@color/accent"
+        android:visibility="gone"
+        android:textSize="106sp" />
 
 </LinearLayout>

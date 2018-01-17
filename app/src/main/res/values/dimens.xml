@@ -18,4 +18,5 @@
     </style>
 
     <dimen name="activity_content_margin">10dp</dimen>
+    <dimen name="backup_button_size">400dp</dimen>
 </resources>

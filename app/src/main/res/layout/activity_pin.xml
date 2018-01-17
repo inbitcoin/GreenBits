@@ -116,7 +116,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                style="@style/myButtonCircle"
+                android:layout_margin="8dp"
                 app:cpb_colorIndicator="@color/accent"
                 app:cpb_selectorIdle="@drawable/buttonprogressselector"
                 android:textColor="@color/white"

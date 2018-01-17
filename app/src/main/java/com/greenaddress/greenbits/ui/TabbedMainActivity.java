@@ -6,6 +6,7 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
@@ -13,6 +14,7 @@ import android.nfc.NfcAdapter;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -29,12 +31,14 @@ import android.view.ViewGroup;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.afollestad.materialdialogs.internal.MDButton;
 import com.blockstream.libwally.Wally;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.zxing.integration.android.IntentResult;
@@ -46,6 +50,7 @@ import com.greenaddress.greenapi.Network;
 import com.greenaddress.greenbits.ApplicationService;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.ui.monitor.NetworkMonitorActivity;
+import com.greenaddress.greenbits.ui.preferences.GaPreferenceActivity;
 import com.greenaddress.greenbits.ui.preferences.SettingsActivity;
 
 import org.bitcoinj.core.AddressFormatException;
@@ -121,6 +126,8 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
     // workaround to manage only the create/onresume when is not connected
     private Boolean firstRun = true;
+
+    private static int COUNTDOWN_DIALOG_WARNING_BACKUP = 7;
 
     private final Observer mTwoFactorObserver = new Observer() {
         @Override
@@ -441,6 +448,11 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             final Uri uri = intent.getData();
             bitidAuth(uri.toString());
         }
+
+        final String mnemonic = mService.getMnemonic();
+        final Boolean backupDone = mService.getBackupDone();
+        if (!mService.isWatchOnly() && mnemonic != null && !backupDone)
+            showBackupWarningDialog();
     }
 
     @Override
@@ -1105,5 +1117,75 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                 if (mSelectedPage == 0 && mFragments[0] != null)
                     mFragments[0].onShareClicked();
         }
+    }
+
+    /**
+     * Show backup warning dialog to remember to the user to do a backup
+     */
+    private void showBackupWarningDialog() {
+        final boolean isWarningAlreadyShowed = mService.cfg().getBoolean("session_backup_warning_showed", false);
+        if (isWarningAlreadyShowed)
+            return;
+
+        final View view = getLayoutInflater().inflate(R.layout.dialog_backup_warning, null, false);
+        final TextView smile1 = UI.find(view, R.id.smile1);
+        final TextView smile2 = UI.find(view, R.id.smile2);
+        final Button backupButton = UI.find(view, R.id.backupButton);
+
+        // set typeface for smile icons
+        final Typeface typeface = Typeface.createFromAsset(getAssets(), "fonts/NotoEmoji-Regular.ttf");
+        smile1.setTypeface(typeface);
+        smile2.setTypeface(typeface);
+
+        final MaterialDialog warningDialog = UI.popup(this, R.string.backup_wallet, R.string.skip_backup)
+                .customView(view, false)
+                .cancelable(false)
+                .build();
+
+        // try to hide title
+        final View parent = (View) warningDialog.getTitleView().getParent();
+        if (parent != null)
+            parent.setVisibility(View.GONE);
+
+
+        // set backup button
+        final Intent intent = new Intent(this, SignUpActivity.class);
+        backupButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                UI.popup(mActivity, R.string.warning, R.string.ok, R.string.cancel)
+                        .content(R.string.warning_show_mnemonic)
+                        .onPositive(new MaterialDialog.SingleButtonCallback() {
+                            @Override
+                            public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                                warningDialog.dismiss();
+                                intent.putExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, true);
+                                startActivity(intent);
+                            }
+                        })
+                        .build()
+                        .show();
+            }
+        });
+
+        // positive button, to show only for !dev_mode && mainnet and !debug
+        final MDButton positiveButton = warningDialog.getActionButton(DialogAction.POSITIVE);
+
+        final boolean isDev = mService.cfg("dev_mode").getBoolean("enabled", false);
+        if (!BuildConfig.DEBUG && !isDev)
+            positiveButton.setEnabled(false);
+
+        new CountDownTimer(COUNTDOWN_DIALOG_WARNING_BACKUP * 1000, 1000) {
+            public void onTick(long millisUntilFinished) {
+                positiveButton.setText(String.format(Locale.getDefault(), "%d", millisUntilFinished / 1000));
+            }
+            public void onFinish() {
+                positiveButton.setText(getString(R.string.skip_backup));
+                positiveButton.setEnabled(true);
+            }
+        }.start();
+
+        UI.showDialog(warningDialog);
+        mService.cfg().edit().putBoolean("session_backup_warning_showed", true).apply();
     }
 }

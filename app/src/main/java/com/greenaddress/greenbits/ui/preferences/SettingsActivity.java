@@ -3,6 +3,8 @@ import com.greenaddress.greenapi.CryptoHelper;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.NfcWriteMnemonic;
 import com.greenaddress.greenbits.ui.R;
+import com.greenaddress.greenbits.ui.SignUpActivity;
+import com.greenaddress.greenbits.ui.UI;
 
 import android.annotation.TargetApi;
 import android.app.PendingIntent;
