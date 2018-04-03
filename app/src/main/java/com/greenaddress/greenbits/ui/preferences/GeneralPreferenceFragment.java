@@ -173,7 +173,6 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
             }
         });
 
-        final Boolean advancedOptionsValue = mService.cfg("advanced_options").getBoolean("enabled", false);
         final boolean isDev = mService.cfg("dev_mode").getBoolean("enabled", false);
 
         // Transaction priority, i.e. default fees
@@ -305,13 +304,13 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
         final CheckBoxPreference advancedOptions = find("advanced_options");
         // set initial value
-        advancedOptions.setChecked(advancedOptionsValue);
+        advancedOptions.setChecked(mService.hasAdvancedOption());
 
 
         advancedOptions.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(Preference preference, Object newValue) {
-                mService.cfgEdit("advanced_options").putBoolean("enabled", (Boolean)newValue).apply();
+                mService.setAdvancedOption((Boolean)newValue);
                 advancedOptions.setChecked((Boolean) newValue);
                 return false;
             }

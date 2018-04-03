@@ -832,9 +832,8 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         mMenu = menu;
 
         // get advanced_options flag and show/hide menu items
-        Boolean advancedOptionsValue = mService.cfg("advanced_options").getBoolean("enabled", false);
         MenuItem actionNetwork = menu.findItem(R.id.action_network);
-        if (!mService.isWatchOnly() && !advancedOptionsValue) {
+        if (!mService.isWatchOnly() && !mService.hasAdvancedOption()) {
             actionNetwork.setVisible(false);
         }
         return true;

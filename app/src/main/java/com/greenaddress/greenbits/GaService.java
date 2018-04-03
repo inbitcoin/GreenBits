@@ -1736,4 +1736,20 @@ public class GaService extends Service implements INotificationHandler {
         if (activity != null)
             activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
     }
+
+    /**
+     * Set advanced option
+     * @param status the boolean status to set
+     */
+    public void setAdvancedOption(final Boolean status) {
+        cfgEdit("advanced_options").putBoolean("enabled", status).apply();
+    }
+
+    /**
+     * Get advanced option flag
+     * @return the flag status
+     */
+    public Boolean hasAdvancedOption() {
+        return cfg("advanced_options").getBoolean("enabled", false);
+    }
 }

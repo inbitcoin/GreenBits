@@ -343,7 +343,6 @@ public class SendFragment extends SubaccountFragment {
             }
         });
 
-        final Boolean advancedOptionsValue = service.cfg("advanced_options").getBoolean("enabled", false);
         mRadioGroupFee = UI.find(mView, R.id.radiogroupFee);
         mShowFeeSelector = UI.find(mView, R.id.showFeeSelector);
         mShowFeeSelector.setOnClickListener(new View.OnClickListener() {
@@ -411,7 +410,7 @@ public class SendFragment extends SubaccountFragment {
 
         // set eco priority
         setDefaultFee();
-        if (advancedOptionsValue) {
+        if (service.hasAdvancedOption()) {
             UI.show(UI.find(mView, R.id.layoutFeePro));
             UI.hide(UI.find(mView, R.id.layoutFeeBase));
         } else {
