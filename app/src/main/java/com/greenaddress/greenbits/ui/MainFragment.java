@@ -454,23 +454,27 @@ public class MainFragment extends SubaccountFragment {
                         continue;
                     }
 
+                    final String memo;
                     if (!paymentRequest.isEmpty()) {
                         // decode and read data from protocol buffer
                         byte[] data = Base64.decode(paymentRequest, Base64.DEFAULT);
                         Protos.PaymentRequest paymentRequest1 = Protos.PaymentRequest.parseFrom(data);
-
                         PaymentSession paymentSession = new PaymentSession(paymentRequest1, false);
-                        final String [] memoInfo = FormatMemo.sanitizeMemo(paymentSession.getMemo());
-                        if (memoInfo == null || memoInfo[0].isEmpty())
-                            continue;
-
-                        if (memoInfo.length == 2) {
-                            service.saveMerchantInvoiceData(txHash, null, memoInfo[0], memoInfo[1]);
-                        } else if (memoInfo.length == 3) {
-                            service.saveMerchantInvoiceData(txHash, memoInfo[2], memoInfo[0], memoInfo[1]);
-                        }
-                        toReload = true;
+                        memo = paymentSession.getMemo();
+                    } else {
+                        memo = txItem.memo;
                     }
+
+                    final String [] memoInfo = FormatMemo.sanitizeMemo(memo);
+                    if (memoInfo == null || memoInfo[0].isEmpty())
+                        continue;
+
+                    if (memoInfo.length == 2) {
+                        service.saveMerchantInvoiceData(txHash, null, memoInfo[0], memoInfo[1]);
+                    } else if (memoInfo.length == 3) {
+                        service.saveMerchantInvoiceData(txHash, memoInfo[2], memoInfo[0], memoInfo[1]);
+                    }
+                    toReload = true;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
