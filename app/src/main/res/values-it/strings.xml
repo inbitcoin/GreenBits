@@ -212,6 +212,7 @@
     <string name="sendPay">Paga</string>
     <string name="confirm">Conferma</string>
     <string name="advanced_options">Mostra opzioni avanzate</string>
+    <string name="advanced_options_desc">Abilita opzioni più dettagliate per le spese network, menù del monitor della rete e piccole modifiche di interfaccia adatte ad utenti più esperti</string>
     <string name="mainEmptyTransInbitcoinText">Qui appariranno tutte le tue transazioni non appena comincerai ad utilizzare Altana</string>
     <string name="scanQrcode">Scansiona QR code</string>
     <string name="warningMaxAmount">Sei sicuro di voler inviare tutti i tuoi bitcoin?</string>

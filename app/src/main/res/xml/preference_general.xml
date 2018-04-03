@@ -1,7 +1,9 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <CheckBoxPreference android:key="advanced_options"
-        android:title="@string/advanced_options" />
+    <CheckBoxPreference
+        android:key="advanced_options"
+        android:title="@string/advanced_options"
+        android:summary="@string/advanced_options_desc" />
 
     <Preference
         android:key="mnemonic_passphrase"
