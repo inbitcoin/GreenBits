@@ -284,7 +284,7 @@
   <string name="transactionSubmitted">Transazione inviata con successo</string>
     <string name="networkFee">Spese network</string>
     <string name="feePriorityHurry">Ho fretta</string>
-    <string name="forcedRbf">RBF è necessario per le transazioni economiche e custom, verrà abilitato per questa transazione</string>
+    <string name="forcedRbf">RBF (sostituisci transazione) è necessario con le spese network economiche, verrà quindi abilitato per questa transazione</string>
     <string-array name="send_fee_target_choices">
         <item>High</item>
         <item>Ho fretta</item>

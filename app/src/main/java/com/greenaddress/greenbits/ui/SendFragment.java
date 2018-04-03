@@ -883,8 +883,10 @@ public class SendFragment extends SubaccountFragment {
         if (feeTarget.equals(UI.FEE_TARGET.CUSTOM) || feeTarget.equals(UI.FEE_TARGET.ECONOMY) || feeTarget.equals(UI.FEE_TARGET.SUPER_ECONOMY)) {
             final Object rbf_optin = service.getUserConfig("replace_by_fee");
             if (rbf_optin == null || !((Boolean) rbf_optin)) {
-                gaActivity.toast(R.string.forcedRbf);
                 privateData.mData.put("rbf_optin", true);
+                // hide message for simple user
+                if (service.hasAdvancedOption())
+                    gaActivity.toast(R.string.forcedRbf);
             }
         }
 
