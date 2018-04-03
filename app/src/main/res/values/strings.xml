@@ -321,6 +321,7 @@
     <string name="remember_warn_title">Warning: The username will be saved on device</string>
     <string name="remember_warn_content">Saving the username on the device can be dangerous; if someone can access your memory they will have access to your username in clear text. If you choose to continue, please press "OK".</string>
     <string name="advanced_options">Show advanced options</string>
+    <string name="advanced_options_desc">Enable advanced network fee options, network status monitor menu and various user interface options for more expert users</string>
     <string name="generating_address">Generating address…</string>
     <string name="loading_transactions">Loading transactions…</string>
     <string name="request_nlocktime_email">Request nLocktime transactions</string>
@@ -481,7 +482,7 @@
     <string name="iGetIt">I get it</string>
     <string name="networkFee">Network fee</string>
     <string name="feePriorityHurry">In a hurry</string>
-    <string name="forcedRbf">RBF is required for economic and custom and will be enabled for this transition</string>
+    <string name="forcedRbf">RBF (transaction replacement) is required on economic network fee and will be enabled for this transition</string>
     <string name="save_passphrase_message">The following mnemonic phrase will be required to restore your bitcoin wallet in the future.\n\nWrite down the phrase in a secure place, if you lose it you won\'t be able to restore your wallet and all your bitcoins will be lost.</string>
     <string name="qr_core_reader_prompt">Focus a qr code in the rectangle to scan it</string>
     <string name="suggest_export_qrcode_nfc">We suggest you export the mnemonic phrase to QR Code or NFC tag.</string>

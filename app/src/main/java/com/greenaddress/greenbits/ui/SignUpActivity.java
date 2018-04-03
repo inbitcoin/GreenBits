@@ -586,7 +586,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     public static void setDefaultAccountData(final GaService service, final Activity activity) {
         // set default inbitcoin setup
         service.setUserConfig("replace_by_fee", false, false);
-        service.cfgEdit("advanced_options").putBoolean("enabled", false).apply();
+        service.setAdvancedOption(false);
 
         // get current system currency and if it's present in greenaddress, set this
         Futures.addCallback(service.getCurrencyExchangePairs(), new CB.Op<List<List<String>>>() {

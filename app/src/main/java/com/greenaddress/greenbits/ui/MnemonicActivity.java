@@ -229,7 +229,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
         hideKeyboardFrom(mMnemonicText);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         // disable advanced option items
-        mService.cfgEdit("advanced_options").putBoolean("enabled", false).apply();
+        mService.setAdvancedOption(false);
 
 
         final AsyncFunction<Void, LoginData> connectToLogin = new AsyncFunction<Void, LoginData>() {

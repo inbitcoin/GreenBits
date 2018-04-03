@@ -343,7 +343,6 @@ public class SendFragment extends SubaccountFragment {
             }
         });
 
-        final Boolean advancedOptionsValue = service.cfg("advanced_options").getBoolean("enabled", false);
         mRadioGroupFee = UI.find(mView, R.id.radiogroupFee);
         mShowFeeSelector = UI.find(mView, R.id.showFeeSelector);
         mShowFeeSelector.setOnClickListener(new View.OnClickListener() {
@@ -411,7 +410,7 @@ public class SendFragment extends SubaccountFragment {
 
         // set eco priority
         setDefaultFee();
-        if (advancedOptionsValue) {
+        if (service.hasAdvancedOption()) {
             UI.show(UI.find(mView, R.id.layoutFeePro));
             UI.hide(UI.find(mView, R.id.layoutFeeBase));
         } else {
@@ -884,8 +883,10 @@ public class SendFragment extends SubaccountFragment {
         if (feeTarget.equals(UI.FEE_TARGET.CUSTOM) || feeTarget.equals(UI.FEE_TARGET.ECONOMY) || feeTarget.equals(UI.FEE_TARGET.SUPER_ECONOMY)) {
             final Object rbf_optin = service.getUserConfig("replace_by_fee");
             if (rbf_optin == null || !((Boolean) rbf_optin)) {
-                gaActivity.toast(R.string.forcedRbf);
                 privateData.mData.put("rbf_optin", true);
+                // hide message for simple user
+                if (service.hasAdvancedOption())
+                    gaActivity.toast(R.string.forcedRbf);
             }
         }
 
