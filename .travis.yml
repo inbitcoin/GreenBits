@@ -5,28 +5,6 @@ matrix:
     - services:
         - docker
       script: docker run -v $PWD:/gb greenaddress/android@sha256:d59365ad8d61059e915d233a6afcbcb69be6320f0f62f2cb75d2730fe1e6819f /bin/sh -c "cd /gb/app && ./prepare_fdroid.sh && cd /gb && ./gradlew --project-dir=bitcoinj/tools build && ./gradlew assembleProductionRelease"
-    - os: osx
-      osx_image: xcode8.3
-      env:
-        - ANDROID_NDK=/Users/travis/opt/android-ndk-r14b
-        - ANDROID_HOME=/Users/travis/opt
-        - SDK_FILENAME=sdk-tools-darwin-3859397.zip
-        - NDK_FILENAME=android-ndk-r14b-darwin-x86_64.zip
-      install:
-        - mkdir -p $HOME/opt
-        - cd $HOME/opt && curl -sSO https://dl.google.com/android/repository/${SDK_FILENAME} && unzip -qq ${SDK_FILENAME} &> /dev/null
-        - cd $HOME/opt && curl -sSO https://dl.google.com/android/repository/${NDK_FILENAME} && unzip -qq ${NDK_FILENAME} &> /dev/null
-        - brew update &> /dev/null
-        - brew upgrade &> /dev/null
-        - brew install swig coreutils gnu-sed automake autoconf pkg-config &> /dev/null
-        - yes | $HOME/opt/tools/bin/sdkmanager "tools" "platform-tools" &> /dev/null
-        - yes | $HOME/opt/tools/bin/sdkmanager "build-tools;26.0.2" &> /dev/null
-        - yes | $HOME/opt/tools/bin/sdkmanager "platforms;android-26" &> /dev/null
-        - yes | $HOME/opt/tools/bin/sdkmanager "extras;android;m2repository" "extras;google;m2repository" &> /dev/null
-      script:
-        - export JAVA_HOME="$(/usr/libexec/java_home -v 1.8)"
-        - cd $HOME/build/greenaddress/GreenBits/app && ./fetch_libwally_binaries.sh
-        - cd $HOME/build/greenaddress/GreenBits && ./gradlew assembleProductionDebug
     - services:
         - docker
       script: docker run -v $PWD:/gb greenaddress/android@sha256:d59365ad8d61059e915d233a6afcbcb69be6320f0f62f2cb75d2730fe1e6819f /bin/sh -c "cd /gb/app && ./prepare_fdroid.sh && cd /gb && ./gradlew --project-dir=bitcoinj/tools build && ./gradlew assembleBtctestnetRelease"
