@@ -200,7 +200,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             }
             return false;
         }
-        final Snackbar snackbar = Snackbar
+        snackbar = Snackbar
                 .make(findViewById(R.id.main_content), getString(messageId), Snackbar.LENGTH_INDEFINITE)
                 .setActionTextColor(Color.RED)
                 .setAction(getString(actionId), new View.OnClickListener() {
