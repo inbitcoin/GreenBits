@@ -64,10 +64,13 @@ public abstract class GaPreferenceActivity extends AppCompatPreferenceActivity {
 
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
-        if (item.getItemId() != android.R.id.home)
-            return false;
-        finish();
-        return true;
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                onBackPressed();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     private GreenAddressApplication getGAApp() {
