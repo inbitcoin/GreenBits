@@ -235,6 +235,12 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             toTwoFactor.putExtra(SettingsActivity.EXTRA_SHOW_FRAGMENT, TwoFactorPreferenceFragment.class.getName());
             toTwoFactor.putExtra(SettingsActivity.EXTRA_NO_HEADERS, true);
 
+            // if no hide two fac warning set, set default to true
+            if (!mService.cfg().contains("hideTwoFacWarning"))
+                mService.cfg().edit().putBoolean("hideTwoFacWarning", true).apply();
+            if (!mService.cfg().contains("hideSingleTwoFacWarning"))
+                mService.cfg().edit().putBoolean("hideSingleTwoFacWarning", true).apply();
+
             if (!mService.hasAnyTwoFactor())
                 showWarningBanner(R.string.set2FA, R.string.noTwoFactorWarning, "hideTwoFacWarning", toTwoFactor, REQUEST_SETTINGS);
             else
