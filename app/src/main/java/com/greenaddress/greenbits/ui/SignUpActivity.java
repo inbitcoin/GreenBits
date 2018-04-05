@@ -611,7 +611,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
                                     if (first_exchange.isEmpty())
                                         first_exchange = pair.get(1);
 
-                                    // try to set exchange fround dafault list
+                                    // try to set exchange found default list
                                     final Iterator exchangesIterator = defaultExchanges.iterator();
                                     while (exchangesIterator.hasNext() && !pairFound) {
                                         String exchange = (String) exchangesIterator.next();
@@ -623,7 +623,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
                             }
 
                             // set first exchange if no default exchange found
-                            if (!pairFound)
+                            if (!pairFound && !first_exchange.isEmpty())
                                 service.setPricingSource(currentCurrency, first_exchange);
                         }
                     });
