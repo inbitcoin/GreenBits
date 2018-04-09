@@ -47,10 +47,10 @@ android {
         applicationId 'it.inbitcoin.altana'
         minSdkVersion 14
         targetSdkVersion 26
-        versionCode 73
+        versionCode 80
         // Don't use defaultConfig.getProperty("versionCode") in versionName
         // because it breaks F-Droid!
-        versionName '18.01.17'
+        versionName '18.04'
     }
     buildTypes {
         release {
