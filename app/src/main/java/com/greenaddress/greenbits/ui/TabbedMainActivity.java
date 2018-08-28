@@ -193,11 +193,11 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         //startService(new Intent(this, ApplicationService.class));
     }
 
-    private TextView showWarningBanner(final int messageId, final String hideCfgName) {
-        return showWarningBanner(getString(messageId), hideCfgName);
+    private TextView showWarningBanner(final int messageId, final String hideCfgName, final Boolean emailWarning) {
+        return showWarningBanner(getString(messageId), hideCfgName, emailWarning);
     }
 
-    private TextView showWarningBanner(final String message, final String hideCfgName) {
+    private TextView showWarningBanner(final String message, final String hideCfgName, final Boolean emailWarning) {
         if (hideCfgName != null && mService.cfg().getBoolean(hideCfgName, false))
             return null;
 
@@ -212,14 +212,28 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         snackbar = Snackbar
                 .make(findViewById(R.id.main_content), message, mSnackbarDuration);
 
+        final String actionString;
+        if (emailWarning)
+            actionString = getString(R.string.setEmail);
+        else
+            actionString = getString(R.string.set2FA);
+
         if (hideCfgName != null) {
             snackbar.setActionTextColor(Color.RED);
-            snackbar.setAction(getString(R.string.set2FA), new View.OnClickListener() {
+            snackbar.setAction(actionString, new View.OnClickListener() {
                 @Override
                 public void onClick(final View v) {
-                    final Intent intent = new Intent(TabbedMainActivity.this, SettingsActivity.class);
+                    final Intent intent;
+                    final int requestCode;
+                    if (emailWarning) {
+                        intent = new Intent(TabbedMainActivity.this, SetEmailActivity.class);
+                        requestCode = SetEmailActivity.REQUEST_ENABLE_EMAIL;
+                    } else {
+                        intent = new Intent(TabbedMainActivity.this, SettingsActivity.class);
+                        requestCode = REQUEST_SETTINGS;
+                    }
                     intent.putExtra(SettingsActivity.EXTRA_SHOW_FRAGMENT, TwoFactorPreferenceFragment.class.getName());
-                    startActivityForResult(intent, REQUEST_SETTINGS);
+                    startActivityForResult(intent, requestCode);
                 }
             });
         }
@@ -242,8 +256,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             mService.isWatchOnly())
             return; // Not loaded, watch only, or reset in progress
 
-        final Intent toSetEmail = new Intent(TabbedMainActivity.this, SetEmailActivity.class);
-        final boolean shown = false; // FIXME !mService.hasEmailConfirmed() && showWarningBanner(R.string.setEmail, R.string.noEmailWarning, "hideNoEmailWarning", toSetEmail, SetEmailActivity.REQUEST_ENABLE_EMAIL);
+        final boolean shown = !mService.hasEmailConfirmed() && showWarningBanner(R.string.noEmailWarning, "hideNoEmailWarning", true) != null;
         
         if (!shown && (!mService.hasAnyTwoFactor() || mService.getEnabledTwoFactorMethods().size() == 1)) {
             final Intent toTwoFactor = new Intent(TabbedMainActivity.this, SettingsActivity.class);
@@ -257,9 +270,9 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                 mService.cfg().edit().putBoolean("hideSingleTwoFacWarning", true).apply();
 
             if (!mService.hasAnyTwoFactor())
-                showWarningBanner(R.string.noTwoFactorWarning, "hideTwoFacWarning");
+                showWarningBanner(R.string.noTwoFactorWarning, "hideTwoFacWarning", false);
             else
-                showWarningBanner(R.string.singleTwoFactorWarning, "hideSingleTwoFacWarning");
+                showWarningBanner(R.string.singleTwoFactorWarning, "hideSingleTwoFacWarning", false);
         }
     }
 
@@ -385,12 +398,12 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
         TextView banner = null;
         if (mService.isTwoFactorResetDisputed())
-            banner = showWarningBanner(R.string.twofactor_reset_disputed_banner, null);
+            banner = showWarningBanner(R.string.twofactor_reset_disputed_banner, null, false);
         else {
             final Integer days = mService.getTwoFactorResetDaysRemaining();
             if (days != null) {
                 final String message = getString(R.string.twofactor_reset_banner, days);
-                banner = showWarningBanner(message, null);
+                banner = showWarningBanner(message, null, false);
             } else {
                 // Show a warning if the user has unacked messages
                 if (mService.haveUnackedMessages()) {
@@ -399,7 +412,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                        msgId = R.string.unacked_system_messages_wo;
                     else
                        msgId = R.string.unacked_system_messages;
-                    banner = showWarningBanner(msgId, null);
+                    banner = showWarningBanner(msgId, null, false);
                 }
             }
         }

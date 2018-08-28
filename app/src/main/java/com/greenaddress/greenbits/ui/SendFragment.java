@@ -37,7 +37,7 @@ import android.widget.Toast;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
-//import com.androidadvance.topsnackbar.TSnackbar;
+import com.androidadvance.topsnackbar.TSnackbar;
 import com.blockstream.libwally.Wally;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -440,25 +440,6 @@ public class SendFragment extends SubaccountFragment {
         }
 
         mScanIcon.setOnClickListener(new View.OnClickListener() {
-                    /*
-                    FIXME
-                                        @Override
-                                        public void onClick(final View v) {
-
-                                            if (Build.VERSION.SDK_INT >= 23) {
-                                                GaIntentIntegrator.scanQRCode(gaActivity, TabbedMainActivity.REQUEST_SEND_QR_SCAN);
-                                            } else {
-                                                final Intent qrcodeScanner = new Intent(gaActivity, ScanActivity.class);
-                                                qrcodeScanner.putExtra("sendAmount", UI.getText(mAmountEdit));
-                                                int requestCode = TabbedMainActivity.REQUEST_SEND_QR_SCAN;
-                                                if (mIsExchanger)
-                                                    requestCode = TabbedMainActivity.REQUEST_SEND_QR_SCAN_EXCHANGER;
-                                                gaActivity.startActivityForResult(qrcodeScanner, requestCode);
-                                            }
-                                        }
-                                    }
-        );
-        */
             @Override
             public void onClick(final View v) {
                 onScanIconClicked();
@@ -679,7 +660,6 @@ public class SendFragment extends SubaccountFragment {
     }
 
     public void showVendorSnackbar() {
-        /* FIXME
         final TSnackbar tsnackbar = TSnackbar.make(getActivity().findViewById(R.id.container), R.string.vendorMessage, TSnackbar.LENGTH_INDEFINITE);
         tsnackbar.setAction(R.string.sellBitcoin, new View.OnClickListener() {
             @Override
@@ -705,7 +685,6 @@ public class SendFragment extends SubaccountFragment {
                 tsnackbar.dismiss();
             }
         }.start();
-        */
     }
 
     private void resetAllFields() {
@@ -901,12 +880,16 @@ public class SendFragment extends SubaccountFragment {
             final int permsRequestCode = 100;
             gaActivity.requestPermissions(perms, permsRequestCode);
         } else {
-            final Intent qrcodeScanner = new Intent(gaActivity, ScanActivity.class);
-            qrcodeScanner.putExtra("sendAmount", UI.getText(mAmountEdit));
-            int requestCode = TabbedMainActivity.REQUEST_SEND_QR_SCAN;
-            if (mIsExchanger)
-                requestCode = TabbedMainActivity.REQUEST_SEND_QR_SCAN_EXCHANGER;
-            gaActivity.startActivityForResult(qrcodeScanner, requestCode);
+            if (Build.VERSION.SDK_INT >= 23) {
+                GaIntentIntegrator.scanQRCode(gaActivity, TabbedMainActivity.REQUEST_SEND_QR_SCAN);
+            } else {
+                final Intent qrcodeScanner = new Intent(gaActivity, ScanActivity.class);
+                qrcodeScanner.putExtra("sendAmount", UI.getText(mAmountEdit));
+                int requestCode = TabbedMainActivity.REQUEST_SEND_QR_SCAN;
+                if (mIsExchanger)
+                    requestCode = TabbedMainActivity.REQUEST_SEND_QR_SCAN_EXCHANGER;
+                gaActivity.startActivityForResult(qrcodeScanner, requestCode);
+            }
         }
     }
 
@@ -1437,8 +1420,8 @@ public class SendFragment extends SubaccountFragment {
                 public void onClick(final View btn) {
                     // Toggle display between fiat and BTC
                     if (mSummaryInBtc[0]) {
-// FIXME                        AmountFields.changeFiatIcon((FontAwesomeTextView) UI.find(v, R.id.newTxAmountUnitText), fiatCurrency);
-//                        AmountFields.changeFiatIcon((FontAwesomeTextView) UI.find(v, R.id.newTxFeeUnit), fiatCurrency);
+                        AmountFields.changeFiatIcon((FontAwesomeTextView) UI.find(v, R.id.newTxAmountUnitText), fiatCurrency, false);
+                        AmountFields.changeFiatIcon((FontAwesomeTextView) UI.find(v, R.id.newTxFeeUnit), fiatCurrency, false);
                         UI.setAmountText((TextView) UI.find(v, R.id.newTxAmountText), fiatAmount);
                         UI.setAmountText((TextView) UI.find(v, R.id.newTxFeeText), fiatFee);
                     } else {
@@ -1670,7 +1653,10 @@ public class SendFragment extends SubaccountFragment {
                     viewPager.setCurrentItem(1);
                 } else {
                     gaActivity.toast(R.string.transactionSubmitted);
-                    gaActivity.finish();
+                    if (mIsVendor)
+                        goBack();
+                    else
+                        gaActivity.finish();
                 }
             }
         });
