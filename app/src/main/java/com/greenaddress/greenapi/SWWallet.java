@@ -39,9 +39,6 @@ public class SWWallet extends ISigningWallet {
         mRootKey = key;
     }
 
-    @Override
-    public boolean requiresPrevoutRawTxs() { return false; }
-
     protected SWWallet derive(final Integer childNumber) {
         return new SWWallet(HDKey.deriveChildKey(mRootKey, childNumber));
     }
@@ -111,6 +108,22 @@ public class SWWallet extends ISigningWallet {
         final ECKey.ECDSASignature sig;
         sig = ECKey.fromPrivate(key.getPrivKey()).sign(Sha256Hash.wrap(challenge));
         return new String[]{ sig.r.toString(), sig.s.toString() };
+    }
+
+    @Override
+    public byte[] signBitcoinMessageHash(final byte[] sha256d, final int[] path) {
+        if (sha256d.length != Wally.SHA256_LEN)
+            return null; // Dont sign anything but a message hash
+        if (path.length < 2 || path[0] != 0x4741b11e || path[1] != HDKey.BRANCH_MESSAGES)
+            return null; // Dont sign on any path except messages paths
+
+        final byte[] sha256dHex = Wally.hex_from_bytes(sha256d).getBytes();
+        final byte[] messageHash = Wally.format_bitcoin_message(sha256dHex,
+                                                                Wally.BITCOIN_MESSAGE_FLAG_HASH);
+        DeterministicKey key = mRootKey;
+        for (int i : path)
+            key = HDKey.deriveChildKey(key, i);
+        return ECKey.fromPrivate(key.getPrivKey()).sign(Sha256Hash.wrap(messageHash)).encodeToDER();
     }
 
     @Override

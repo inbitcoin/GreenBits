@@ -396,17 +396,16 @@
                 android:gravity="center"
                 android:orientation="vertical">
 
-                <com.dd.CircularProgressButton
+                <com.greenaddress.greenbits.ui.CircularButton
                     android:id="@+id/sendSendButton"
                     android:layout_margin="8dp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
                     android:layout_marginStart="20dp"
-                    android:textColor="@color/white"
-                    app:cpb_colorIndicator="@color/accent"
-                    app:cpb_selectorIdle="@drawable/buttonprogressselector"
-                    app:cpb_textIdle="@string/send" />
+                    app:cardBackgroundColor="@color/colorAccent"
+                    app:textColor="@color/white"
+                    app:text="@string/send" />
 
             </LinearLayout>
         </LinearLayout>

@@ -61,15 +61,15 @@
                 android:text="@string/backup_wallet"
                 android:textColor="@color/white" />
 
-            <com.dd.CircularProgressButton
+            <com.greenaddress.greenbits.ui.CircularButton
                 android:id="@+id/noBackupButton"
                 android:layout_width="@dimen/backup_button_size"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                app:cpb_colorIndicator="@color/accent"
-                app:cpb_selectorIdle="@drawable/buttonprogressselector_light"
-                android:textColor="@color/colorAccent"
-                app:cpb_textIdle="@string/skip_backup" />
+                android:layout_margin="3dp"
+                app:cardBackgroundColor="@color/white"
+                app:textColor="@color/colorAccent"
+                app:text="@string/skip_backup" />
         </LinearLayout>
 
     </LinearLayout>

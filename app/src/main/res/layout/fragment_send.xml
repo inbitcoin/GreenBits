@@ -10,6 +10,7 @@
     >
 
     <ScrollView
+        android:id="@+id/sendLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true">
@@ -382,7 +383,7 @@
                             android:layout_width="50dp"
                             android:layout_height="40dp"
                             android:layout_weight="1"
-                            android:textColor="@color/cpb_red"
+                            android:textColor="@color/lightRed"
                             android:background="@drawable/custom_radio"
                             android:button="@android:color/transparent"
                             android:gravity="center"
@@ -567,17 +568,16 @@
                         android:text="@string/cancel"
                         android:textColor="@color/accent" />
 
-                    <com.dd.CircularProgressButton
+                    <com.greenaddress.greenbits.ui.CircularButton
                         android:id="@+id/sendSendButton"
-                        android:layout_margin="8dp"
+                        android:layout_margin="3dp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_horizontal"
                         android:layout_marginStart="10dp"
-                        android:textColor="@color/white"
-                        app:cpb_colorIndicator="@color/accent"
-                        app:cpb_selectorIdle="@drawable/buttonprogressselector"
-                        app:cpb_textIdle="@string/send" />
+                        app:cardBackgroundColor="@color/colorAccent"
+                        app:textColor="@color/white"
+                        app:text="@string/send" />
                 </LinearLayout>
             </LinearLayout>
 

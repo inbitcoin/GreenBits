@@ -22,7 +22,7 @@ public class FragmentEmail extends GAFragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         final View mView = inflater.inflate(R.layout.fragment_email, container, false);
         final Button continueButton = UI.find(mView, R.id.continueButton);
-        final Button skipButton = UI.find(mView, R.id.skipButton);
+        final CircularButton skipButton = UI.find(mView, R.id.skipButton);
 
         continueButton.setOnClickListener(new View.OnClickListener() {
             @Override

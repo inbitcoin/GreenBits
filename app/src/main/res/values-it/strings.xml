@@ -82,18 +82,17 @@
     <string name="invalidAddress">Indirizzo non valido</string>
     <string name="invalidAmount">Importo non valido</string>
     <string name="noBalanceFirstLine">Iniziare con i <a href="https://bitcoin.org/it/getting-started">Bitcoin</a></string>
-    <string name="noBalanceSecondLine">Dove <a href="http://howtobuybitcoins.info/">comprare</a></string>
+    <string name="noBalanceSecondLine">Dove <a href="https://howtobuybitcoins.info">comprare</a></string>
     <string name="noBalanceThirdLine">Leggi le nostre <a href="https://greenaddress.it/it/faq">FAQ</a></string>
-    <string name="trezor_headline">Per piacere segui le istruzioni sul Hardware Wallet</string>
+    <string name="hw_wallet_headline">Per piacere segui le istruzioni sul Hardware Wallet</string>
     <string name="trezorProvidePin">Inserisci il tuo Trezor PIN per piacere. Guarda sul Hardware Wallet per la posizione dei tasti:</string>
     <string name="trezorProvidePassphrase">Per piacere inserisci la passphrase del tuo Hardware Wallet</string>
     <string name="main_account">Principale</string>
     <string name="footerAccount">Conto</string>
     <string name="btchipProvidePIN">Digita il tuo PIN per BTChip:</string>
-    <string name="firstLoginRequestedInstructionsOldTrezor">Rilevato Hardware Wallet firmware obsoleto. Per piacere fai un aggiornamento almeno a 1.5.2 da http://mytrezor.com/ dal tuo PC.</string>
+    <string name="trezor_firmware_outdated">Rilevato Hardware Wallet firmware obsoleto. Per piacere fai un aggiornamento almeno a 1.6 da https:/mytrezor.com/ dal tuo PC.</string>
     <string name="btchipInvalidPIN">PIN incorretto. Tentativi rimasti: %d. Per piacere ricollega il tuo Btchip prima di riprovare.</string>
     <string name="btchipNotSetup">BTChip non è inizializzato. Per piacere inizializzalo sul tuo desktop/laptop.</string>
-    <string name="instantConfirmation">Conferma istantanea</string>
     <string name="mnemonic_passphrase">Frase mnemonica</string>
     <string name="mnemonic_passphrase_not_available">Frase mnemonica non disponibile</string>
     <string name="autologout_time">Logout automatico</string>
@@ -228,6 +227,12 @@
     <string name="segwit_disable">Disabilita Segwit</string>
     <string name="segwit_enable">Abilita Segwit</string>
     <string name="commissionOnTheSale">Commissione sulla vendita</string>
+    <string name="bip70_session_expired">Sessione scaduta, prova di nuovo</string>
+    <string name="bip70_invoice_not_found">Fattura non trovata, prova di nuovo</string>
+    <string name="bip70_invalid_payment_url">Indirizzo pagamento invalido, prova di nuovo</string>
+    <string name="bip70_invalid_payment">Pagamento invalido</string>
+    <string name="bip70_payment_failure">Pagamento fallito</string>
+    <string name="bip70_invalid_pki">Impossibile verificare il servizio "%s". Continuare ugualmente?</string>
     <string name="total">Totale</string>
     <string name="sellBitcoin">Vendi bitcoin</string>
     <string name="sweep_wait_message">Questa operazione può richiedere alcuni secondi…</string>

@@ -16,20 +16,34 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.GeneratedMessage;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.spv.Socks5SocketFactory;
 import com.greenaddress.greenbits.ui.BuildConfig;
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
 
-import org.bitcoinj.core.Coin;
+import org.bitcoin.protocols.payments.Protos;
+import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.protocols.payments.PaymentProtocol;
+import org.bitcoinj.protocols.payments.PaymentProtocolException;
+import org.bitcoinj.protocols.payments.PaymentSession;
 import org.codehaus.jackson.map.MappingJsonFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
 import java.net.SocketAddress;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,6 +88,7 @@ public class WalletClient {
     private final INotificationHandler mNotificationHandler;
     private SocketAddress mProxyAddress;
     private final OkHttpClient mHttpClient = new OkHttpClient();
+    private final OkHttpClient mHttpClientBIP70 = new OkHttpClient();
     private boolean mTorEnabled;
     private WampClient mConnection;
     private LoginData mLoginData;
@@ -248,11 +263,15 @@ public class WalletClient {
                 logCallDetails(procedure, e.getMessage(), args);
             throw new GAException("rejected");
         } catch (final Exception e) {
-            Log.d(TAG, "Sync RPC exception: (" + procedure + ")->" + e.toString());
             String uri = GAException.INTERNAL;
             String error = e.toString();
-            if (e instanceof ApplicationError) {
-                final ArrayNode a = ((ApplicationError) e).arguments();
+            Log.d(TAG, "Sync RPC exception: (" + procedure + ")->" + error);
+            if (e instanceof ApplicationError || e.getCause() instanceof ApplicationError) {
+                final ArrayNode a;
+                if (e instanceof ApplicationError)
+                    a = ((ApplicationError) e).arguments();
+                else
+                    a = ((ApplicationError) e.getCause()).arguments();
                 if (a != null && a.size() >= 2) {
                     uri = a.get(0).asText();
                     error = a.get(1).asText();
@@ -291,11 +310,13 @@ public class WalletClient {
         if (TextUtils.isEmpty(host) || TextUtils.isEmpty(port)) {
             mProxyAddress = null;
             mHttpClient.setSocketFactory(null);
+            mHttpClientBIP70.setSocketFactory(null);
             return;
         }
         try {
             mProxyAddress = new InetSocketAddress(host, Integer.parseInt(port));
             mHttpClient.setSocketFactory(new Socks5SocketFactory(host, port));
+            mHttpClientBIP70.setSocketFactory(new Socks5SocketFactory(host, port));
         } catch (final UnknownHostException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -659,6 +680,24 @@ public class WalletClient {
         return password.getBytes();
     }
 
+    public JSONMap getNextSystemMessage(final int messageId) {
+        try {
+            return new JSONMap((Map<String, Object>) syncCall("login.get_system_message", Map.class, messageId));
+        } catch (final Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public boolean ackSystemMessage(final int messageId, final byte[] messageHash, final byte[] sig) {
+        try {
+            return syncCall("login.ack_system_message", Boolean.class, messageId, h(messageHash), h(sig));
+        } catch (final Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public JSONMap getNewAddress(final int subAccount, final String addrType) {
         try {
             final JSONMap m = new JSONMap((Map<String, Object>) syncCall("vault.fund", Map.class, subAccount, true, addrType));
@@ -697,36 +736,6 @@ public class WalletClient {
         return PinData.fromMnemonic(pinIdentifier, mnemonic, password);
     }
 
-    public ListenableFuture<Map<?, ?>> processBip70URL(final String url) {
-        return simpleCall("vault.process_bip0070_url", Map.class, url);
-    }
-
-    public ListenableFuture<PreparedTransaction> preparePayreq(final Coin amount, final Map<?, ?> data, final JSONMap privateData) {
-
-        final SettableFuture<PreparedTransaction.PreparedData> rpc = SettableFuture.create();
-
-
-        final Map dataClone = new HashMap<>();
-        for (final Object k : data.keySet())
-            dataClone.put(k, data.get(k));
-
-        if (privateData != null && privateData.containsKey("subaccount"))
-            dataClone.put("subaccount", privateData.get("subaccount"));
-
-        clientCall(rpc, "vault.prepare_payreq", Map.class, new CallHandler() {
-            public void onResult(final Object prepared) {
-                rpc.set(new PreparedTransaction.PreparedData((Map) prepared, privateData.mData, mLoginData.mSubAccounts, mHttpClient));
-            }
-        }, amount.longValue(), dataClone, privateData);
-
-        return Futures.transform(rpc, new Function<PreparedTransaction.PreparedData, PreparedTransaction>() {
-            @Override
-            public PreparedTransaction apply(final PreparedTransaction.PreparedData ptxData) {
-                return new PreparedTransaction(ptxData);
-            }
-        }, mExecutor);
-    }
-
     public ListenableFuture<Map<?, ?>> prepareSweepSocial(final byte[] pubKey, final boolean useElectrum) {
         final Integer[] pubKeyObjs = new Integer[pubKey.length];
         for (int i = 0; i < pubKey.length; ++i)
@@ -743,10 +752,12 @@ public class WalletClient {
         return simpleCall("vault.send_tx", null, sigs, twoFacData);
     }
 
-    public ListenableFuture<Map<String, Object>> sendRawTransaction(final Transaction tx, final Map<String, Object> twoFacData, final JSONMap privateData) {
+    public ListenableFuture<Map<String, Object>>
+    sendRawTransaction(final Transaction tx, final Map<String, Object> twoFacData,
+                       final JSONMap privateData, final boolean returnTx) {
         final String txHex = h(tx.bitcoinSerialize());
         return simpleCall("vault.send_raw_tx", Map.class, txHex, twoFacData,
-                          privateData == null ? null : privateData.mData);
+                          privateData == null ? null : privateData.mData, returnTx);
     }
 
     public ListenableFuture<List<byte[]>> signTransaction(final ISigningWallet signingWallet, final PreparedTransaction ptx) {
@@ -864,17 +875,12 @@ public class WalletClient {
         return transactionCall("txs.get_raw_unspent_output", txHash.toString());
     }
 
-    // FIXME: Share this with getRawOutputHex/ un-async it
-    public ListenableFuture<Transaction> getRawOutput(final Sha256Hash txHash) {
-        return transactionCall("txs.get_raw_output", txHash.toString());
-    }
-
     public String getRawOutputHex(final Sha256Hash txHash) throws Exception {
         return syncCall("txs.get_raw_output", String.class, txHash.toString());
     }
 
-    public ListenableFuture<Boolean> changeMemo(final String txHashHex, final String memo) {
-        return simpleCall("txs.change_memo", Boolean.class, txHashHex, memo);
+    public ListenableFuture<Boolean> changeMemo(final String txHashHex, final String memo, final String memoType) {
+        return simpleCall("txs.change_memo", Boolean.class, txHashHex, memo, memoType);
     }
 
     public ListenableFuture<Boolean> setPricingSource(final String currency, final String exchange) {
@@ -895,8 +901,132 @@ public class WalletClient {
         return syncCall("twofactor.disable_" + type, Boolean.class, twoFacData);
     }
 
+    public Integer getTwoFactorResetDaysRemaining() {
+        final boolean isActive = mLoginData == null ? false : mLoginData.get("reset_2fa_active");
+        return isActive ? mLoginData.get("reset_2fa_days_remaining") : null;
+    }
+
+    public boolean isTwoFactorResetDisputed() {
+        return mLoginData.get("reset_2fa_disputed");
+    }
+
+    public void updateTwoFactorResetStatus(final JSONMap data) {
+        mLoginData.mRawData.put("reset_2fa_active", data.getBool("reset_2fa_active"));
+        mLoginData.mRawData.put("reset_2fa_days_remaining", data.getInt("reset_2fa_days_remaining"));
+        mLoginData.mRawData.put("reset_2fa_disputed", data.getBool("reset_2fa_disputed"));
+    }
+
+    public JSONMap requestTwoFactorReset(final String email) throws Exception {
+        return new JSONMap((Map<String, Object>) syncCall("twofactor.request_reset", Map.class, email));
+    }
+
+    public JSONMap confirmTwoFactorReset(final String email, final boolean isDispute, final Object twoFacData) throws Exception {
+        return new JSONMap((Map<String, Object>) syncCall("twofactor.confirm_reset", Map.class, email, isDispute, twoFacData));
+    }
+
+    public void cancelTwoFactorReset(final Object twoFacData) throws Exception {
+        syncCall("twofactor.cancel_reset", Map.class, twoFacData);
+    }
+
     public JSONMap getSpendingLimits() throws Exception {
         return new JSONMap((Map<String, Object>) syncCall("login.get_spending_limits", Map.class));
+    }
+
+    public ListenableFuture<PaymentSession> fetchPaymentRequest(final String url) {
+        final SettableFuture<PaymentSession> rpc = SettableFuture.create();
+        final Request request = new Request.Builder().url(url)
+                .addHeader("Accept", PaymentProtocol.MIMETYPE_PAYMENTREQUEST).build();
+
+        mHttpClientBIP70.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(final Request request, final IOException e) {
+                Log.d(TAG,"fetchPaymentRequest.onFailure: " +  e.toString());
+                rpc.set(null);
+            }
+
+            @Override
+            public void onResponse(final Response response) throws IOException {
+                try {
+                    final Protos.PaymentRequest paymentRequest = Protos.PaymentRequest.parseFrom(response.body().bytes());
+                    rpc.set(new PaymentSession(paymentRequest, true));
+                } catch (final PaymentProtocolException | InvalidProtocolBufferException e) {
+                    Log.d(TAG, "fetchPaymentRequest.onResponse: " + e.toString());
+                    rpc.set(null);
+                }
+            }
+        });
+        return rpc;
+    }
+
+    public static byte[] serializeProtobuf(final GeneratedMessage msg) {
+        final byte[] byteArray = new byte[msg.getSerializedSize()];
+        final CodedOutputStream codedOutputStream = CodedOutputStream.newInstance(byteArray);
+        try {
+            msg.writeTo(codedOutputStream);
+        } catch (final IOException e) {
+            Log.e(TAG, "failed to serialize message: " + e.toString());
+            e.printStackTrace();
+            return null;
+        }
+        return byteArray;
+    }
+
+    public ListenableFuture<PaymentProtocol.Ack> sendPayment(final PaymentSession paymentSession,
+                                                             final List<Transaction> txns,
+                                                             final Address refundAddr,
+                                                             final String memo)
+        throws IOException, PaymentProtocolException.InvalidNetwork,
+            PaymentProtocolException.Expired, PaymentProtocolException.InvalidPaymentURL {
+
+        Protos.Payment payment = paymentSession.getPayment(txns, refundAddr, memo);
+        if (payment == null)
+            return null;
+        if (paymentSession.isExpired())
+            throw new PaymentProtocolException.Expired("PaymentRequest is expired");
+        URL url;
+        try {
+            url = new URL(paymentSession.getPaymentUrl());
+        } catch (final MalformedURLException e) {
+            throw new PaymentProtocolException.InvalidPaymentURL(e);
+        }
+
+        final byte[] paymentBytes;
+        final SettableFuture<PaymentProtocol.Ack> rpc = SettableFuture.create();
+
+        if ((paymentBytes = serializeProtobuf(payment)) == null) {
+            rpc.set(null);
+            return rpc;
+        }
+
+        final MediaType mediaType = MediaType.parse(PaymentProtocol.MIMETYPE_PAYMENT);
+        final RequestBody body = RequestBody.create(mediaType, paymentBytes);
+
+        final Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Content-Type", PaymentProtocol.MIMETYPE_PAYMENT)
+                .addHeader("Accept", PaymentProtocol.MIMETYPE_PAYMENTACK)
+                .addHeader("Content-Length", Integer.toString(payment.getSerializedSize()))
+                .post(body)
+                .build();
+
+        mHttpClientBIP70.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Request request, IOException e) {
+                rpc.set(null);
+            }
+
+            @Override
+            public void onResponse(final Response response) {
+                try {
+                    Protos.PaymentACK paymentAck = Protos.PaymentACK.parseFrom(response.body().bytes());
+                    rpc.set(PaymentProtocol.parsePaymentAck(paymentAck));
+                } catch (final Exception e) {
+                    rpc.set(null);
+                }
+            }
+        });
+
+        return rpc;
     }
 
     /* apidoc: Set email address for two factor authentication. Method not available if email 2FA is enabled. */
@@ -910,7 +1040,7 @@ public class WalletClient {
     }
 
     public ListenableFuture<String> create2to2subaccount(final int pointer, final String name,
-                                                      final String user_public, final String user_chaincode) {
+                                                         final String user_public, final String user_chaincode) {
         return simpleCall("txs.create_subaccount", String.class, pointer, name, user_public, user_chaincode);
     }
 }

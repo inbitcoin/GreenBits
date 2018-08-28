@@ -96,8 +96,9 @@ public class Trezor {
         final UsbManager manager = (UsbManager)context.getSystemService(Context.USB_SERVICE);
 
         for (final UsbDevice device: manager.getDeviceList().values()) {
-            // Check if the device is TREZOR (or AvalonWallet or BWALLET) or KeepKey
-            if (((device.getVendorId() != 0x534c && device.getVendorId() != 0x2B24) || device.getProductId() != 0x0001) &&
+            // Check if the device is TREZOR (or AvalonWallet or BWALLET)
+
+            if ((device.getVendorId() != 0x534c || device.getProductId() != 0x0001) &&
                     (device.getVendorId() != 0x10c4 || device.getProductId() != 0xea80)) {
                 continue;
             }
@@ -254,6 +255,7 @@ public class Trezor {
             request.queue(ByteBuffer.wrap(buffer), 64);
             mConn.requestWait();
         }
+        request.close();
     }
 
     private Message parseMessageFromBytes(final MessageType type, final byte[] data) {
@@ -323,6 +325,7 @@ public class Trezor {
             logData("read(cont):", b);
             data.put(b, 1, b[0] & 0xFF);
         }
+        request.close();
         return parseMessageFromBytes(type, Arrays.copyOfRange(data.array(), 0, msg_size));
     }
 

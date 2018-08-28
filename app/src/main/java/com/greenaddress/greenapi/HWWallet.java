@@ -13,8 +13,6 @@ import java.io.IOException;
 public abstract class HWWallet extends ISigningWallet {
 
     @Override
-    public boolean requiresPrevoutRawTxs() { return true; }
-
     public DeterministicKey getSubAccountPublicKey(final int subAccount) {
         return getMyKey(subAccount).getPubKey();
     }
@@ -44,6 +42,20 @@ public abstract class HWWallet extends ISigningWallet {
                 break;
         }
         return new String[]{signature.r.toString(), signature.s.toString(), String.valueOf(recId)};
+    }
+
+    @Override
+    public byte[] signBitcoinMessageHash(final byte[] sha256d, final int[] path) {
+        if (sha256d.length != Wally.SHA256_LEN)
+            return null; // Dont sign anything but a message hash
+        if (path.length < 2 || path[0] != 0x4741b11e || path[1] != HDKey.BRANCH_MESSAGES)
+            return null; // Dont sign on any path except messages paths
+
+        HWWallet key = this;
+        for (int i : path)
+            key = (HWWallet) key.derive(i);
+
+        return key.signMessage(Wally.hex_from_bytes(sha256d)).encodeToDER();
     }
 
     private HWWallet getMyKey(final int subAccount) {

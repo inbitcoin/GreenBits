@@ -1,15 +1,14 @@
 package com.greenaddress.greenbits.ui;
 
 import android.app.Dialog;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -19,8 +18,10 @@ import android.widget.TextView;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.btchip.BTChipConstants;
 import com.btchip.BTChipDongle;
 import com.btchip.BTChipDongle.BTChipPublicKey;
+import com.btchip.BTChipDongle.BTChipFirmware;
 import com.btchip.BTChipException;
 import com.btchip.comm.BTChipTransport;
 import com.btchip.comm.android.BTChipTransportAndroid;
@@ -42,6 +43,7 @@ import com.satoshilabs.trezor.TrezorGUICallback;
 import org.bitcoinj.crypto.DeterministicKey;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 import nordpol.android.AndroidCard;
@@ -53,7 +55,20 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
     private static final String TAG = RequestLoginActivity.class.getSimpleName();
     private static final byte DUMMY_COMMAND[] = { (byte)0xE0, (byte)0xC4, (byte)0x00, (byte)0x00, (byte)0x00 };
 
-    private Dialog mBTChipDialog;
+    private static final int VENDOR_BTCHIP = 0x2581;
+    private static final int VENDOR_LEDGER = 0x2c97;
+    private static final int VENDOR_TREZOR = 0x534c;
+
+    private UsbManager mUsbManager;
+    private UsbDevice mUsb;
+
+    private TextView mInstructionsText;
+    private ProgressBar mLoginProgress;
+    private Dialog mPinDialog;
+    private String mPin;
+    private Integer mVendorId;
+
+
     private BTChipHWWallet mHwWallet;
     private TagDispatcher mTagDispatcher;
     private Tag mTag;
@@ -64,7 +79,50 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
     protected int getMainViewId() { return R.layout.activity_first_login_requested; }
 
     @Override
-    protected void onCreateWithService(final Bundle savedInstanceState) {}
+    protected void onCreateWithService(final Bundle savedInstanceState) {
+        mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+
+        mInstructionsText = UI.find(this, R.id.first_login_instructions);
+        mLoginProgress = UI.find(this, R.id.signingLogin);
+
+        final Intent intent = getIntent();
+        if (intent != null && ACTION_USB_ATTACHED.equalsIgnoreCase(intent.getAction())) {
+            // A new USB device was plugged in and the app wasn't running
+            onUsbAttach((UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE));
+        }
+    }
+
+    @Override
+    protected void onNewIntent(final Intent intent) {
+        Log.d(TAG, "onNewIntent");
+        setIntent(intent);
+        if (ACTION_USB_ATTACHED.equalsIgnoreCase(intent.getAction())) {
+            // A new USB device was plugged in
+            onUsbAttach((UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE));
+        }
+    }
+
+    protected void onUsbAttach(final UsbDevice usb) {
+        Log.d(TAG, "onUsbAttach");
+        mUsb = usb;
+        if (usb == null)
+            return;
+
+        mVendorId = usb.getVendorId();
+        Log.d(TAG, "Vendor: " + mVendorId + " Product: " + usb.getProductId());
+
+        if (mVendorId == VENDOR_TREZOR) {
+            onTrezor();
+        } else if (mVendorId == VENDOR_BTCHIP || mVendorId == VENDOR_LEDGER) {
+            if (BTChipTransportAndroid.isLedgerWithScreen(usb)) {
+                // User entered PIN on-device
+                setupLedgerConnection();
+            } else {
+                // Prompt for PIN to unlock device before setting it up
+                runOnUiThread(new Runnable() { public void run() { showPinDialog(); }});
+            }
+        }
+    }
 
     private boolean onTrezor() {
         final Trezor t;
@@ -74,7 +132,7 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
                 final SettableFuture<String> ret = SettableFuture.create();
                 RequestLoginActivity.this.runOnUiThread(new Runnable() {
                     public void run() {
-                        final View v = getLayoutInflater().inflate(R.layout.dialog_trezor_pin, null, false);
+                        final View v = UI.inflateDialog(RequestLoginActivity.this, R.layout.dialog_trezor_pin);
                         final Button[] buttons = new Button[]{
                                 // upside down
                                 UI.find(v, R.id.trezorPinButton7),
@@ -121,7 +179,7 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
                 final SettableFuture<String> ret = SettableFuture.create();
                 RequestLoginActivity.this.runOnUiThread(new Runnable() {
                     public void run() {
-                        final View v = getLayoutInflater().inflate(R.layout.dialog_trezor_passphrase, null, false);
+                        final View v = UI.inflateDialog(RequestLoginActivity.this, R.layout.dialog_trezor_passphrase);
                         final EditText passphraseValue = UI.find(v, R.id.trezorPassphraseValue);
                         UI.popup(RequestLoginActivity.this, "Hardware Wallet passphrase")
                                 .customView(v, true)
@@ -145,28 +203,30 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
         if (t == null)
             return false;
 
-        final int VENDOR_TREZOR = 21324, VENDOR_KEEPKEY = 11044;
-
         final List<Integer> version = t.getFirmwareVersion();
         boolean isFirmwareOutdated = false;
         if (t.getVendorId() == VENDOR_TREZOR) {
             isFirmwareOutdated = version.get(0) < 1 ||
-                                 (version.get(0) == 1 && version.get(1) < 5) ||
-                                 (version.get(0) == 1 && version.get(1) == 5 && version.get(2) < 2);
+                                 (version.get(0) == 1 && version.get(1) < 6) ||
+                                 (version.get(0) == 1 && version.get(1) == 6 && version.get(2) < 0);
         }
-        if (t.getVendorId() == VENDOR_KEEPKEY && version.get(0) < 4)
-            isFirmwareOutdated = true;
 
-        if (isFirmwareOutdated) {
-            final TextView instructions = UI.find(this, R.id.firstLoginRequestedInstructionsText);
-            instructions.setText(R.string.firstLoginRequestedInstructionsOldTrezor);
+        if (!isFirmwareOutdated) {
+            onTrezorConnected(t);
             return true;
         }
+
+        showFirmwareOutdated(R.string.trezor_firmware_outdated,
+                             new Runnable() { public void run() { onTrezorConnected(t); } });
+        return true;
+    }
+
+    private void onTrezorConnected(final Trezor t) {
         final TrezorHWWallet trezor = new TrezorHWWallet(t);
 
-        Futures.addCallback(Futures.transform(mService.onConnected, new AsyncFunction<Void, LoginData>() {
+        Futures.addCallback(Futures.transformAsync(mService.onConnected, new AsyncFunction<Void, LoginData>() {
             @Override
-            public ListenableFuture<LoginData> apply(final Void input) throws Exception {
+            public ListenableFuture<LoginData> apply(final Void input) {
                 return mService.login(trezor);
             }
         }), new FutureCallback<LoginData>() {
@@ -204,219 +264,156 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
                 finishOnUiThread();
             }
         });
-        return true;
-    }
-
-    private void onLedger(final Intent intent) {
-        final TextView edit = UI.find(this, R.id.firstLoginRequestedInstructionsText);
-        UI.clear(edit);
-        UI.hide(edit);
-        // not TREZOR/KeepKey/BWALLET/AvalonWallet, so must be BTChip
-        if (mTag != null)
-            showPinDialog();
-        else {
-            final UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            if (device != null)
-                if (BTChipTransportAndroid.isLedgerWithScreen(device))
-                    login(device);
-                else
-                    showPinDialog(device);
-        }
-    }
-
-    private void onUsbDeviceDetected(final Intent intent) {
-        if (onTrezor())
-            return;
-
-        onLedger(intent);
     }
 
     private void showPinDialog() {
-        showPinDialog(null);
+        mPinDialog = UI.dismiss(this, mPinDialog);
+
+        final View v = UI.inflateDialog(this, R.layout.dialog_btchip_pin);
+
+        mPinDialog = UI.popup(this, R.string.pinTitleText)
+            .customView(v, true)
+            .onPositive(new MaterialDialog.SingleButtonCallback() {
+                @Override
+                public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                    UI.show(UI.find(RequestLoginActivity.this, R.id.signingLogin));
+                    mPin = UI.getText(v, R.id.btchipPINValue);
+                    mService.getExecutor().submit(new Callable<Void>() {
+                        @Override
+                        public Void call() { setupLedgerConnection(); return null; }
+                    });
+                }
+            })
+            .onNegative(new MaterialDialog.SingleButtonCallback() {
+                @Override
+                public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                    toast(R.string.err_request_login_no_pin);
+                    finish();
+                }
+            }).build();
+
+        UI.mapEnterToPositive(mPinDialog, R.id.btchipPINValue);
+        UI.showDialog(mPinDialog);
     }
 
-    private void login(final UsbDevice device) {
+    private void setupLedgerConnection() {
+        showInstructions(R.string.logging_in);
+        final String pin = mPin;
+        mPin = null;
 
-        Futures.addCallback(Futures.transform(mService.onConnected, new AsyncFunction<Void, LoginData>() {
+        final BTChipTransport transport;
+        if (mUsb != null) {
+            transport = BTChipTransportAndroid.open(mUsbManager, mUsb);
+            if (transport == null) {
+                showInstructions(R.string.hw_wallet_reconnect);
+                return;
+            }
+        } else if ((transport = getTransport(mTag)) == null) {
+            showInstructions(R.string.hw_wallet_headline);
+
+            // Prompt the user to tap
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    mNfcWaitDialog = new MaterialDialog.Builder(RequestLoginActivity.this)
+                        .title(R.string.btchip).content(R.string.please_tap_card).build();
+                    mNfcWaitDialog.show();
+                }
+            });
+            return;
+        }
+
+        transport.setDebug(BuildConfig.DEBUG);
+        try {
+            final BTChipFirmware fw = (new BTChipDongle(transport, true)).getFirmwareVersion();
+            final int major = fw.getMajor(), minor = fw.getMinor(), patch = fw.getPatch();
+
+            Log.d(TAG, "BTChip/Ledger firmware version " + fw.toString() + '(' +
+                    major + '.' + minor + '.' + patch + ')');
+
+            boolean isFirmwareOutdated = false;
+            if (mVendorId == VENDOR_BTCHIP) {
+                isFirmwareOutdated = major < 0x2001 ||
+                    (major == 0x2001 && minor < 0) || // Just for consistency in checking code
+                    (major == 0x2001 && minor == 0 && patch < 4);
+            } else if (mVendorId == VENDOR_LEDGER) {
+                isFirmwareOutdated = major < 0x3001 ||
+                    (major == 0x3001 && minor < 2) ||
+                    (major == 0x3001 && minor == 2 && patch < 5);
+            }
+
+            if (!isFirmwareOutdated) {
+                onLedgerConnected(transport, pin);
+                return;
+            }
+
+            showFirmwareOutdated(R.string.ledger_firmware_outdated,
+                                 new Runnable() { public void run() { onLedgerConnected(transport, pin); } });
+        } catch (final BTChipException e) {
+            if (e.getSW() != BTChipConstants.SW_INS_NOT_SUPPORTED)
+                e.printStackTrace();
+            // We are in dashboard mode, prompt the user to open the btcoin app.
+            showInstructions(R.string.ledger_open_bitcoin_app);
+        }
+    }
+
+    private void onLedgerConnected(final BTChipTransport transport, final String pin) {
+        runOnUiThread(new Runnable() { public void run() { UI.show(mLoginProgress); } });
+
+        final SettableFuture<Integer> pinCB = SettableFuture.create();
+
+        final boolean havePin = !TextUtils.isEmpty(pin);
+        Log.d(TAG, "Creating HW wallet" + (havePin ? " with PIN" : ""));
+        if (havePin)
+            mHwWallet = new BTChipHWWallet(transport, pin, pinCB);
+        else
+            mHwWallet = new BTChipHWWallet(transport);
+
+        // Try to log in once we are connected
+        Futures.addCallback(Futures.transformAsync(mService.onConnected, new AsyncFunction<Void, LoginData>() {
+            @Override
+            public ListenableFuture<LoginData> apply(final Void input) {
+                if (!havePin)
+                    return mService.login(mHwWallet); // Login directly
+
+                // Otherwise, log in once the users PIN is correct
+                return Futures.transformAsync(pinCB, new AsyncFunction<Integer, LoginData>() {
                     @Override
-                    public ListenableFuture<LoginData> apply(final Void nada) throws Exception {
-                        final BTChipTransport transport;
-                        if (device != null) {
-                            final UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-                            transport = BTChipTransportAndroid.open(manager, device);
-                        } else {
-                            // If the tag was already tapped, work with it
-                            transport = getTransport(mTag);
-                            if (transport == null) {
-                                // Prompt the user to tap
-                                runOnUiThread(new Runnable() {
-                                    public void run() {
-                                        mNfcWaitDialog = new MaterialDialog.Builder(RequestLoginActivity.this)
-                                                .title("BTChip")
-                                                .content("Please tap card")
-                                                .build();
-                                        mNfcWaitDialog.show();
-                                    }
-                                });
-                                return Futures.immediateFuture(null);
-                            }
-                        }
-                        final TextView instructions = UI.find(RequestLoginActivity.this, R.id.firstLoginRequestedInstructionsText);
+                    public ListenableFuture<LoginData> apply(final Integer remainingAttempts) {
+                        if (remainingAttempts == -1)
+                            return mService.login(mHwWallet); // -1 means success, so login
 
-                        transport.setDebug(BuildConfig.DEBUG);
-                        final BTChipDongle dongle = new BTChipDongle(transport, true);
-                        try {
-                            dongle.getFirmwareVersion();
-                        } catch (final BTChipException e) {
-                            e.printStackTrace();
-                            // we are in dashboard mode ignore usb
-                            runOnUiThread(new Runnable() {
-                                public void run() {
-                                    UI.show(instructions);
-                                    instructions.setText(R.string.firstLoginRequestedPleaseOpenBitcoinApp);
-                                }
-                            });
-                            return Futures.immediateFuture(null);
-                        }
-                        mHwWallet = new BTChipHWWallet(transport);
-                        final ProgressBar loginProgress = UI.find(RequestLoginActivity.this, R.id.signingLogin);
+                        final String msg;
+                        if (remainingAttempts > 0)
+                            msg = getString(R.string.btchipInvalidPIN, remainingAttempts);
+                        else
+                            msg = getString(R.string.btchipNotSetup);
+
                         runOnUiThread(new Runnable() {
                             public void run() {
-                                UI.show(loginProgress);
+                                toast(msg);
+                                finish();
                             }
                         });
-                        return mService.login(mHwWallet);
-                    }
-
-        }), mOnLoggedIn);
-    }
-
-    private void showPinDialog(final UsbDevice device) {
-        final SettableFuture<String> pinFuture = SettableFuture.create();
-        RequestLoginActivity.this.runOnUiThread(new Runnable() {
-            public void run() {
-                final View v = getLayoutInflater().inflate(R.layout.dialog_btchip_pin, null, false);
-                final EditText pinValue = UI.find(v, R.id.btchipPINValue);
-                final ProgressBar loginProgress = UI.find(RequestLoginActivity.this, R.id.signingLogin);
-                mBTChipDialog = UI.popup(RequestLoginActivity.this, "BTChip PIN")
-                        .customView(v, true)
-                        .onPositive(new MaterialDialog.SingleButtonCallback() {
-                            @Override
-                            public void onClick(final MaterialDialog dialog, final DialogAction which) {
-                                UI.show(loginProgress);
-                                pinFuture.set(UI.getText(pinValue));
-                            }
-                        })
-                        .onNegative(new MaterialDialog.SingleButtonCallback() {
-                            @Override
-                            public void onClick(final MaterialDialog dialog, final DialogAction which) {
-                                RequestLoginActivity.this.toast(R.string.err_request_login_no_pin);
-                                RequestLoginActivity.this.finish();
-                            }
-                        }).build();
-
-                pinValue.requestFocus();
-                pinValue.setOnEditorActionListener(
-                        UI.getListenerRunOnEnter(new Runnable() {
-                            public void run() {
-                                UI.show(loginProgress);
-                                mBTChipDialog.hide();
-                                pinFuture.set(UI.getText(pinValue));
-                            }
-                        })
-                );
-                UI.showDialog(mBTChipDialog);
-            }
-        });
-        Futures.addCallback(Futures.transform(mService.onConnected, new AsyncFunction<Void, LoginData>() {
-            @Override
-            public ListenableFuture<LoginData> apply(final Void input) throws Exception {
-                return Futures.transform(pinFuture, new AsyncFunction<String, LoginData>() {
-                    @Override
-                    public ListenableFuture<LoginData> apply(final String pin) throws Exception {
-
-                        mTransportFuture = SettableFuture.create();
-                        if (device != null) {
-                            final UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-                            mTransportFuture.set(BTChipTransportAndroid.open(manager, device));
-                        } else {
-                            // If the tag was already tapped, work with it
-                            final BTChipTransport transport = getTransport(mTag);
-                            if (transport != null)
-                                mTransportFuture.set(transport);
-                            else {
-                                // Prompt the user to tap
-                                mNfcWaitDialog = new MaterialDialog.Builder(RequestLoginActivity.this)
-                                        .title("BTChip")
-                                        .content("Please tap card")
-                                        .build();
-                                mNfcWaitDialog.show();
-                            }
-                        }
-                        return Futures.transform(mTransportFuture, new AsyncFunction<BTChipTransport, LoginData>() {
-                            @Override
-                            public ListenableFuture<LoginData> apply(final BTChipTransport transport) {
-                                transport.setDebug(BuildConfig.DEBUG);
-                                final SettableFuture<Integer> remainingAttemptsFuture = SettableFuture.create();
-                                mHwWallet = new BTChipHWWallet(transport, pin, remainingAttemptsFuture);
-                                return Futures.transform(remainingAttemptsFuture, new AsyncFunction<Integer, LoginData>() {
-                                    @Override
-                                    public ListenableFuture<LoginData> apply(final Integer remainingAttempts) {
-
-                                        if (remainingAttempts == -1)
-                                            return mService.login(mHwWallet); // -1 means success, so login
-
-                                        final String msg;
-                                        if (remainingAttempts > 0)
-                                            msg = getString(R.string.btchipInvalidPIN, remainingAttempts);
-                                        else
-                                            msg = getString(R.string.btchipNotSetup);
-
-                                        RequestLoginActivity.this.runOnUiThread(new Runnable() {
-                                            public void run() {
-                                                RequestLoginActivity.this.toast(msg);
-                                                RequestLoginActivity.this.finish();
-                                            }
-                                        });
-                                        return Futures.immediateFuture(null);
-                                    }
-                                });
-                            }
-                        });
+                        return Futures.immediateFuture(null);
                     }
                 });
             }
         }), mOnLoggedIn);
     }
 
-
     private final FutureCallback<LoginData> mOnLoggedIn = new FutureCallback<LoginData>() {
         @Override
         public void onSuccess(final LoginData result) {
             if (result != null)
-                RequestLoginActivity.this.onLoginSuccess();
+                onLoginSuccess();
         }
 
         @Override
         public void onFailure(final Throwable t) {
             t.printStackTrace();
             if (Throwables.getRootCause(t) instanceof LoginFailed) {
-                // Attempt auto register
                 try {
-                    final BTChipPublicKey masterPublicKey = mHwWallet.getDongle().getWalletPublicKey("");
-                    Futures.addCallback(mService.signup(mHwWallet, /*mnemonic*/ null, "HW", KeyUtils.compressPublicKey(masterPublicKey.getPublicKey()), masterPublicKey.getChainCode()),
-                            new FutureCallback<LoginData>() {
-                                @Override
-                                public void onSuccess(final LoginData result) {
-                                    RequestLoginActivity.this.onLoginSuccess();
-                                }
-
-                                @Override
-                                public void onFailure(final Throwable t) {
-                                    t.printStackTrace();
-                                    finishOnUiThread();
-                                }
-                            });
+                    autoRegister(); // Attempt to auto register the user
                     return;
                 } catch (final Exception e) {
                     e.printStackTrace();
@@ -426,10 +423,30 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
         }
     };
 
+    private void autoRegister() throws BTChipException {
+        showInstructions(R.string.hw_wallet_registering);
+
+        final BTChipPublicKey hdkey = mHwWallet.getDongle().getWalletPublicKey("");
+        final byte[] pubkey = KeyUtils.compressPublicKey(hdkey.getPublicKey());
+        Futures.addCallback(mService.signup(mHwWallet, null, "HW", pubkey, hdkey.getChainCode()),
+            new FutureCallback<LoginData>() {
+                @Override
+                public void onSuccess(final LoginData result) {
+                    onLoginSuccess();
+                }
+
+                @Override
+                public void onFailure(final Throwable t) {
+                    t.printStackTrace();
+                    finishOnUiThread();
+                }
+            });
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mBTChipDialog = UI.dismiss(this, mBTChipDialog);
+        mPinDialog = UI.dismiss(this, mPinDialog);
     }
 
     @Override
@@ -441,38 +458,37 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
 
     @Override
     public void onResumeWithService() {
-        registerReceiver(mOnUsb, new IntentFilter(UsbManager.ACTION_USB_DEVICE_ATTACHED));
+        if (mService.isLoggedOrLoggingIn() && mService.getSigningWallet() != null) {
+            // Already logged in, could be from different app via intent.
+            // FIXME: also call if trezor equal to current service wallet
+            if (mHwWallet == null || mService.getSigningWallet().equals(mHwWallet))
+                onLoginSuccess();
+        }
 
         mTag = getIntent().getParcelableExtra(NfcAdapter.EXTRA_TAG);
         mTagDispatcher = TagDispatcher.get(this, this);
 
-        if (((mTag != null) && (NfcAdapter.ACTION_TECH_DISCOVERED.equals(getIntent().getAction()))) ||
-                (getIntent().getAction() != null &&
-                        getIntent().getAction().equals(UsbManager.ACTION_USB_DEVICE_ATTACHED))) {
-            onUsbDeviceDetected(getIntent());
+        if (mTag != null && NfcAdapter.ACTION_TECH_DISCOVERED.equals(getIntent().getAction())) {
+            // FIXME: Can this be done in onCreate/onNewIntent?
+            onUsbAttach((UsbDevice) getIntent().getParcelableExtra(UsbManager.EXTRA_DEVICE));
             return;
         }
 
-        if (mService.cfg("pin").getString("ident", null) != null)
-            startActivityForResult(new Intent(this, PinActivity.class), 0);
-        else
-            startActivityForResult(new Intent(this, MnemonicActivity.class), 0);
+        if (mUsb == null) {
+            // No hardware wallet, jump to PIN or mnemonic entry
+            if (mService.cfg("pin").getString("ident", null) != null)
+                startActivityForResult(new Intent(this, PinActivity.class), 0);
+            else
+                startActivityForResult(new Intent(this, MnemonicActivity.class), 0);
+        }
 
         mTagDispatcher.enableExclusiveNfc();
     }
 
     @Override
     public void onPauseWithService() {
-        unregisterReceiver(mOnUsb);
         mTagDispatcher.disableExclusiveNfc();
     }
-
-    private final BroadcastReceiver mOnUsb = new BroadcastReceiver() {
-        @Override
-        public void onReceive(final Context context, final Intent intent) {
-            onUsbDeviceDetected(intent);
-        }
-    };
 
     private BTChipTransport getTransport(final Tag t) {
         BTChipTransport transport = null;
@@ -518,5 +534,41 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
 
             runOnUiThread(new Runnable() { public void run() { mNfcWaitDialog.hide(); } });
         }
+    }
+
+    private void showInstructions(final int resId) {
+        runOnUiThread(new Runnable() {
+            public void run() {
+                mInstructionsText.setText(resId);
+                UI.show(mInstructionsText);
+            }
+        });
+    }
+
+    private void showFirmwareOutdated(final int resId, final Runnable onContinue) {
+        // FIXME: Close and set mUsb to null for ledger in onNegative/onCancel
+
+        if (!BuildConfig.DEBUG) {
+            // Only allow the user to skip firmware checks in debug builds.
+            showInstructions(resId);
+            return;
+        }
+
+        final Runnable closeCB = new Runnable() { public void run() { finishOnUiThread(); } };
+        runOnUiThread(new Runnable() {
+            public void run() {
+                final MaterialDialog d;
+                d = UI.popup(RequestLoginActivity.this, R.string.warning, R.string.continueText, R.string.cancel)
+                      .content(resId)
+                      .onPositive(new MaterialDialog.SingleButtonCallback() {
+                          @Override
+                          public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                              onContinue.run();
+                          }
+                      }).build();
+                UI.setDialogCloseHandler(d, closeCB);
+                d.show();
+            }
+        });
     }
 }

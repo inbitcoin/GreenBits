@@ -33,7 +33,6 @@ import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.blockstream.libwally.Wally;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.greenaddress.greenapi.ConfidentialAddress;
 import com.greenaddress.greenapi.GAException;
 import com.greenaddress.greenapi.GATx;
@@ -44,9 +43,7 @@ import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.QrBitmap;
 
 import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.params.RegTestParams;
 
 import java.io.BufferedOutputStream;
@@ -448,7 +445,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
             return;
         }
 
-        CB.after(mService.changeMemo(mTxItem.txHash.toString(), newMemo),
+        CB.after(mService.changeMemo(mTxItem.txHash.toString(), newMemo, null),
                 new CB.Toast<Boolean>(this) {
                     @Override
                     public void onSuccess(final Boolean result) {
@@ -810,11 +807,8 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
                 randomizedChange = GATx.randomizeChangeOutput(tx);
         }
 
-        final Coin actualAmount;
-        if (!sendAll)
-            actualAmount = amount;
-        else {
-            actualAmount = total.subtract(fee);
+        if (sendAll) {
+            final Coin actualAmount = total.subtract(fee);
             if (!actualAmount.isGreaterThan(Coin.ZERO))
                 return createFailed(R.string.insufficientFundsText);
             final int amtIndex = tx.getOutputs().size() == 1 ? 0 : (randomizedChange ? 1 : 0);
@@ -872,7 +866,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
             }
         }
 
-        final View v = getLayoutInflater().inflate(R.layout.dialog_new_transaction, null, false);
+        final View v = UI.inflateDialog(this, R.layout.dialog_new_transaction);
 
         final TextView amountLabel = UI.find(v, R.id.newTxAmountLabel);
         amountLabel.setText(R.string.newFeeText);
@@ -882,7 +876,6 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
         UI.hide(UI.find(v, R.id.newTxRecipientLabel), UI.find(v, R.id.newTxRecipientText));
 
         final Button showFiatBtcButton = UI.find(v, R.id.newTxShowFiatBtcButton);
-        final TextView recipientText = UI.find(v, R.id.newTxRecipientText);
         final EditText newTx2FACodeText = UI.find(v, R.id.newTx2FACodeText);
         final String fiatNewFee = mService.coinToFiat(newFee);
         final String fiatOldFee = mService.coinToFiat(oldFee);
@@ -933,10 +926,10 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
                     public void onClick(final MaterialDialog dialog, final DialogAction which) {
                         if (twoFacData != null && twoFacData.containsKey("method"))
                             twoFacData.put("code", UI.getText(newTx2FACodeText));
-                        Futures.addCallback(mService.sendRawTransaction(signedTx, twoFacData, null),
-                                            new CB.Toast<String>(TransactionActivity.this) {
+                        Futures.addCallback(mService.sendRawTransaction(signedTx, twoFacData, null, false),
+                                            new CB.Toast<Pair<String, String>>(TransactionActivity.this) {
                             @Override
-                            public void onSuccess(final String dummy) {
+                            public void onSuccess(final Pair<String, String> unused) {
                                 // FIXME: Add notification with "Transaction sent"?
                                 UI.dismiss(TransactionActivity.this, TransactionActivity.this.mSummary);
                                 finishOnUiThread();

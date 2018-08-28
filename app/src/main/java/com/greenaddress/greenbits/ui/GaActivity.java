@@ -18,7 +18,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
-import com.dd.CircularProgressButton;
 import com.google.common.util.concurrent.Futures;
 import com.google.zxing.integration.android.IntentResult;
 import com.greenaddress.greenbits.GaService;
@@ -37,6 +36,7 @@ import de.schildbach.wallet.ui.ScanActivity;
 public abstract class GaActivity extends AppCompatActivity {
 
     private static final String TAG = GaActivity.class.getSimpleName();
+    protected static final String ACTION_USB_ATTACHED = "android.hardware.usb.action.USB_DEVICE_ATTACHED";
 
     // Both of these variables are only assigned in the UI thread.
     // mService is available to all derived classes as soon as
@@ -89,8 +89,7 @@ public abstract class GaActivity extends AppCompatActivity {
 
     @Override
     final public void onPause() {
-        Log.d(TAG, "onPause -> " + getClass().getSimpleName() +
-              (mService == null ? " (no attached service)" : ""));
+        Log.d(TAG, getLogMessage("onPause"));
         super.onPause();
         mResumed = false;
         if (mService != null) {
@@ -101,14 +100,18 @@ public abstract class GaActivity extends AppCompatActivity {
 
     @Override
     final public void onResume() {
-        Log.d(TAG, "onResume -> " + getClass().getSimpleName() +
-              (mService == null ? " (no attached service)" : ""));
+        Log.d(TAG, getLogMessage("onResume"));
         super.onResume();
         mResumed = true;
         if (mService != null) {
             mService.incRef();
             onResumeWithService();
         }
+    }
+
+    private String getLogMessage(final String caller) {
+        return caller + " -> " + getClass().getSimpleName() +
+            (mService == null ? " (no attached service)" : "");
     }
 
     /** Override to provide the main view id */
@@ -170,10 +173,10 @@ public abstract class GaActivity extends AppCompatActivity {
         }
     }
 
-    public void toast(final Throwable t) { UI.toast(this, t, null); }
+    public void toast(final Throwable t) { UI.toast(this, t, (Button) null); }
     public void toast(final int id) { UI.toast(this, id, Toast.LENGTH_LONG); }
     public void toast(final int id, final Button reenable) { UI.toast(this, getString(id), reenable); }
-    public void toast(final int id, final CircularProgressButton reenable) { UI.toast(this, getString(id), reenable); }
+    public void toast(final int id, final CircularButton reenable) { UI.toast(this, getString(id), reenable); }
     public void toast(final String s) { UI.toast(this, s, Toast.LENGTH_LONG); }
     public void shortToast(final int id) { UI.toast(this, id, Toast.LENGTH_SHORT); }
 
@@ -277,4 +280,14 @@ public abstract class GaActivity extends AppCompatActivity {
         return true;
     }
 
-}
+    protected void exitApp() {
+        if (mService != null)
+            mService.disconnect(false);
+
+        // FIXME: Should pass flag to activity so it shows it was forced logged out
+        Intent intent = new Intent(GaActivity.this, FirstScreenActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finishOnUiThread();
+    }
+ }

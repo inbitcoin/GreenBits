@@ -18,6 +18,7 @@ import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
+import android.util.Pair;
 import android.util.SparseArray;
 import android.view.WindowManager;
 
@@ -33,6 +34,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.greenaddress.bitid.BitID;
+import com.google.protobuf.GeneratedMessage;
 import com.greenaddress.greenapi.ConfidentialAddress;
 import com.greenaddress.greenapi.CryptoHelper;
 import com.greenaddress.greenapi.ElementsRegTestParams;
@@ -52,6 +54,7 @@ import com.greenaddress.greenbits.spv.SPV;
 import com.greenaddress.greenbits.ui.BuildConfig;
 import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.UI;
+import com.greenaddress.greenbits.wallets.TrezorHWWallet;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.AddressFormatException;
@@ -63,7 +66,11 @@ import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.crypto.DeterministicKey;
-import org.bitcoinj.params.RegTestParams;
+import org.bitcoinj.params.MainNetParams;
+import org.bitcoinj.params.TestNet3Params;
+import org.bitcoinj.protocols.payments.PaymentProtocol;
+import org.bitcoinj.protocols.payments.PaymentProtocolException;
+import org.bitcoinj.protocols.payments.PaymentSession;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.utils.ExchangeRate;
@@ -93,6 +100,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 
 public class GaService extends Service implements INotificationHandler {
     private static final String TAG = GaService.class.getSimpleName();
@@ -145,6 +153,8 @@ public class GaService extends Service implements INotificationHandler {
     private String mReceivingId;
     private Coin mDustThreshold = Coin.valueOf(546); // Per 0.13.0, updated on login
     private Coin mMinFeeRate = Coin.valueOf(1000); // Per 0.12.0, updated on login
+    private int mCurrentSystemMessageId = 0; // 0 if no outstanding messages
+    private int mNextSystemMessageId = 0; // 0 if no outstanding messages
     private Map<?, ?> mTwoFactorConfig;
     private final GaObservable mTwoFactorConfigObservable = new GaObservable();
     private String mDeviceId;
@@ -163,6 +173,16 @@ public class GaService extends Service implements INotificationHandler {
 
     public ISigningWallet getSigningWallet() {
         return mClient.getSigningWallet();
+    }
+
+    public boolean isHardwareWallet() {
+        final ISigningWallet wallet = getSigningWallet();
+        return wallet != null && !(wallet instanceof SWWallet);
+    }
+
+    public boolean haveUnattendedSigning() {
+        final ISigningWallet wallet = getSigningWallet();
+        return wallet != null && !(wallet instanceof TrezorHWWallet);
     }
 
     public String getBitcoinUnit() {
@@ -276,6 +296,29 @@ public class GaService extends Service implements INotificationHandler {
         }, mExecutor);
     }
 
+    private static String getBech32Prefix() {
+        if (Network.NETWORK == MainNetParams.get())
+            return "bc";
+        if (Network.NETWORK == TestNet3Params.get())
+            return "tb";
+        return "bcrt";
+    }
+
+    public static byte[] decodeBech32Address(final String address) {
+        try {
+            final byte decoded[] = Wally.addr_segwit_to_bytes(address, getBech32Prefix(), 0);
+            // Valid native segwit addresses are v0 p2wphk or v0 p2wsh, i.e.
+            // 0 PUSH(hash160 or sha256)
+            if ((decoded.length == Wally.WALLY_SCRIPTPUBKEY_P2WPKH_LEN ||
+                 decoded.length == Wally.WALLY_SCRIPTPUBKEY_P2WSH_LEN) &&
+                decoded[0] == 0 && decoded[1] == decoded.length - 2)
+                return decoded;
+        } catch (final Exception e) {
+            // Fall through
+        }
+        return null;
+    }
+
     public static boolean isValidAddress(final String address) {
         try {
             if (IS_ELEMENTS)
@@ -284,7 +327,9 @@ public class GaService extends Service implements INotificationHandler {
                 Address.fromBase58(Network.NETWORK, address);
             return true;
         } catch (final AddressFormatException e) {
-            return false;
+            if (IS_ELEMENTS)
+                return false; // No bech32 for elements yet
+            return decodeBech32Address(address) != null;
         }
     }
 
@@ -416,6 +461,8 @@ public class GaService extends Service implements INotificationHandler {
     public void onConnectionClosed(final int code) {
         HDKey.resetCache(null);
         HDClientKey.resetCache(null, null);
+        mCurrentSystemMessageId = 0;
+        mNextSystemMessageId = 0;
 
         // Server error codes FIXME: These should be in a class somewhere
         // 4000 (concurrentLoginOnDifferentDeviceId) && 4001 (concurrentLoginOnSameDeviceId!)
@@ -576,6 +623,11 @@ public class GaService extends Service implements INotificationHandler {
             getAvailableTwoFactorMethods();
             mSPV.startAsync();
         }
+
+        final Integer nextMessageId = loginData.get("next_system_message_id");
+        mCurrentSystemMessageId = nextMessageId == null ? 0 : nextMessageId;
+        mNextSystemMessageId = 0;
+
         mState.transitionTo(ConnState.LOGGEDIN);
     }
 
@@ -626,6 +678,45 @@ public class GaService extends Service implements INotificationHandler {
                });
     }
 
+    public Pair<String, Integer> getNextSystemMessage() {
+        if (isWatchOnly() || mCurrentSystemMessageId == 0)
+            return null;
+
+        final JSONMap msgData = mClient.getNextSystemMessage(mCurrentSystemMessageId);
+        if (msgData == null)
+            return null; // Exception, leave current/next ids as is
+
+        final String message = msgData.get("message");
+        mCurrentSystemMessageId = msgData.get("message_id");
+        mNextSystemMessageId = msgData.getInt("next_message_id");
+        if (TextUtils.isEmpty(message))
+           return null;
+        return new Pair<>(message, mCurrentSystemMessageId);
+    }
+
+    public boolean signAndAckSystemMessage(final String message) {
+        // Compute the hash to sign from the message text
+        final byte[] sha256d = Wally.sha256d(message.getBytes());
+
+        // Compute the path to sign with
+        final int[] path = new int[] {
+            0x4741b11e,
+            HDKey.BRANCH_MESSAGES,
+           ((sha256d[28] & 0x7f) << 24) | ((sha256d[29] & 0xff) << 16) |
+           ((sha256d[30] & 0xff) << 8) | (sha256d[31] & 0xff) };
+
+        // Sign the message hash with the users key derived from the path
+        final byte[] sig = getSigningWallet().signBitcoinMessageHash(sha256d, path);
+
+        // Ack the message with the server
+        if (!mClient.ackSystemMessage(mCurrentSystemMessageId, sha256d, sig))
+            return false;
+        // Update ids
+        mCurrentSystemMessageId = mNextSystemMessageId;
+        mNextSystemMessageId = 0;
+        return true;
+    }
+
     public ListenableFuture<LoginData> signup(final String mnemonic) {
         final SWWallet sw = new SWWallet(mnemonic);
         return signup(sw, mnemonic, /*agent*/ null, sw.getMasterKey().getPubKey(),
@@ -652,12 +743,12 @@ public class GaService extends Service implements INotificationHandler {
     // Get the fee rate to confirm at the next blockNum blocks in BTC/1000 bytes
     public Double getFeeRate(final int blockNum) {
         final JSONMap m = new JSONMap((Map) getFeeEstimates().get(Integer.toString(blockNum)));
-        return m == null ? null : m.getDouble("feerate");
+        return m.getDouble("feerate");
     }
 
     public Integer getFeeBlocks(final int blockNum) {
         final JSONMap m = new JSONMap((Map) getFeeEstimates().get(Integer.toString(blockNum)));
-        return m == null ? null : m.getInt("blocks");
+        return m.getInt("blocks");
     }
 
     public Coin getMinFeeRate() {
@@ -666,6 +757,10 @@ public class GaService extends Service implements INotificationHandler {
 
     public Coin getDustThreshold() {
         return mDustThreshold;
+    }
+
+    public boolean haveUnackedMessages() {
+        return mCurrentSystemMessageId != 0;
     }
 
     public void disconnect(final boolean autoReconnect) {
@@ -810,49 +905,8 @@ public class GaService extends Service implements INotificationHandler {
         return mClient.getPaymentRequest(txHash);
     }
 
-    private void preparePrivData(final JSONMap privateData) {
-        final int subAccount = privateData.get("subaccount", 0);
-
-        // Skip fetching raw previous outputs if they are not required
-        final Coin verifiedBalance = getSPVVerifiedBalance(subAccount);
-        final boolean fetchPrev = !isSPVEnabled() ||
-                !verifiedBalance.equals(getCoinBalance(subAccount)) ||
-                mClient.getSigningWallet().requiresPrevoutRawTxs();
-
-        final boolean isRegTest = Network.NETWORK == RegTestParams.get();
-        final String fetchMode = isRegTest ? "" : "http"; // Fetch inline for regtest
-        privateData.mData.put("prevouts_mode", fetchPrev ? fetchMode : "skip");
-
-        final Object rbf_optin = getUserConfig("replace_by_fee");
-        final Boolean preSetRbf = (Boolean) privateData.mData.get("rbf_optin");
-        if (preSetRbf != null)
-            return;
-        if (rbf_optin != null)
-            privateData.mData.put("rbf_optin", rbf_optin);
-    }
-
-    public ListenableFuture<List<byte[]>> signTransaction(final PreparedTransaction ptx) {
-        return mClient.signTransaction(mClient.getSigningWallet(), ptx);
-    }
-
     public List<byte[]> signTransaction(final Transaction tx, final PreparedTransaction ptx, final List<Output> prevOuts) {
         return mClient.getSigningWallet().signTransaction(tx, ptx, prevOuts);
-    }
-
-    public ListenableFuture<Coin>
-    validateTx(final PreparedTransaction ptx, final String recipientStr, final Coin amount) {
-        return mSPV.validateTx(ptx, recipientStr, amount);
-    }
-
-    public ListenableFuture<String>
-    signAndSendTransaction(final PreparedTransaction ptx, final Object twoFacData) {
-        return Futures.transform(signTransaction(ptx),
-                                 new AsyncFunction<List<byte[]>, String>() {
-            @Override
-            public ListenableFuture<String> apply(final List<byte[]> sigs) throws Exception {
-                return sendTransaction(sigs, twoFacData);
-            }
-        }, mExecutor);
     }
 
     public ListenableFuture<String>
@@ -874,17 +928,20 @@ public class GaService extends Service implements INotificationHandler {
         }, mExecutor);
     }
 
-    public ListenableFuture<String>
+    public ListenableFuture<Pair<String, String>>
     sendRawTransaction(final Transaction tx, final Map<String, Object> twoFacData,
-                       final JSONMap privateData) {
-        return Futures.transform(mClient.sendRawTransaction(tx, twoFacData, privateData),
-                                 new Function<Map<String, Object>, String>() {
+                       final JSONMap privateData, final boolean returnTx) {
+        return Futures.transform(mClient.sendRawTransaction(tx, twoFacData, privateData, returnTx),
+                                 new Function<Map<String, Object>, Pair<String, String>>() {
                    @Override
-                   public String apply(final Map<String, Object> ret) {
+                   public Pair<String, String> apply(final Map<String, Object> ret) {
                        // FIXME: Server should return the full limits including is_fiat
-                       if (ret.get("new_limit") != null)
+                       if (ret.get("new_limit") == null)
+                           mLimitsData.mData.put("total", 0); // Limit exhausted or not set
+                       else
                            mLimitsData.mData.put("total", ret.get("new_limit"));
-                       return ret.get("txhash").toString();
+                       return new Pair<>(ret.get("txhash").toString(),
+                                         ret.get("tx").toString());
                    }
         }, mExecutor);
     }
@@ -944,16 +1001,12 @@ public class GaService extends Service implements INotificationHandler {
         return mClient.getRawUnspentOutput(txHash);
     }
 
-    public ListenableFuture<Transaction> getRawOutput(final Sha256Hash txHash) {
-        return mClient.getRawOutput(txHash);
-    }
-
     public String getRawOutputHex(final Sha256Hash txHash) throws Exception {
         return mClient.getRawOutputHex(txHash);
     }
 
-    public ListenableFuture<Boolean> changeMemo(final String txHashHex, final String memo) {
-        return mClient.changeMemo(txHashHex, memo);
+    public ListenableFuture<Boolean> changeMemo(final String txHashHex, final String memo, final String memoType) {
+        return mClient.changeMemo(txHashHex, memo, memoType);
     }
 
     // FIXME: Put this and other script stuff in wally
@@ -1020,7 +1073,7 @@ public class GaService extends Service implements INotificationHandler {
     private ListenableFuture<JSONMap> getNewAddressAsync(final int subAccount, final boolean cacheResult) {
         return mExecutor.submit(new Callable<JSONMap>() {
             @Override
-            public JSONMap call() throws Exception {
+            public JSONMap call() {
                 final JSONMap address = getNewAddress(subAccount);
                 if (cacheResult)
                     cacheAddress(subAccount, address);
@@ -1032,6 +1085,28 @@ public class GaService extends Service implements INotificationHandler {
     public ListenableFuture<QrBitmap> getNewAddressBitmap(final int subAccount,
                                                           final Callable<Void> waitFn,
                                                           final Long amount) {
+        final Function<String, QrBitmap> generateQrBitmap = new Function<String, QrBitmap>() {
+            @Override
+            public QrBitmap apply(final String address) {
+                final String uri;
+                if (amount != null)
+                    uri = "bitcoin:" + address + "?amount=" + Coin.valueOf(amount).toPlainString();
+                else
+                    uri = address;
+                return new QrBitmap(uri, Color.WHITE, getBaseContext());
+            }
+        };
+        return Futures.transform(getNewAddress(subAccount, waitFn), generateQrBitmap, mExecutor);
+    }
+
+    /**
+     * Generate new address to the selected sub account, bitcoin or elements
+     * @param subAccount sub account ID
+     * @param waitFn eventually callback to execute (e.g. waiting popup)
+     * @return the address in string format
+     */
+    public ListenableFuture<String> getNewAddress(final int subAccount,
+                                                  final Callable<Void> waitFn) {
         // Fetch any cached address
         final JSONMap cachedAddress = getCachedAddress(subAccount);
 
@@ -1041,7 +1116,8 @@ public class GaService extends Service implements INotificationHandler {
             addrFn = Futures.immediateFuture(cachedAddress);
         else {
             try {
-                waitFn.call();
+                if (waitFn != null)
+                    waitFn.call();
             } catch (final Exception e) {
             }
             addrFn = getNewAddressAsync(subAccount, false);
@@ -1052,9 +1128,9 @@ public class GaService extends Service implements INotificationHandler {
             getNewAddressAsync(subAccount, true);
 
         // Convert the address into a bitmap and return it
-        final AsyncFunction<JSONMap, QrBitmap> verifyAddress = new AsyncFunction<JSONMap, QrBitmap>() {
+        final AsyncFunction<JSONMap, String> verifyAddress = new AsyncFunction<JSONMap, String>() {
             @Override
-            public ListenableFuture<QrBitmap> apply(final JSONMap input) throws Exception {
+            public ListenableFuture<String> apply(final JSONMap input) {
                 if (input == null)
                     throw new IllegalArgumentException("Failed to generate a new address");
 
@@ -1079,9 +1155,9 @@ public class GaService extends Service implements INotificationHandler {
                 }
 
                 return Futures.transform(verify,
-                        new Function<Boolean, QrBitmap>() {
+                        new Function<Boolean, String>() {
                     @Override
-                    public QrBitmap apply(final Boolean isValid) {
+                    public String apply(final Boolean isValid) {
                         if (!isValid)
                             throw new IllegalArgumentException("Address validation failed");
 
@@ -1091,19 +1167,12 @@ public class GaService extends Service implements INotificationHandler {
                             address = ConfidentialAddress.fromP2SHHash(Network.NETWORK, scriptHash, pubKey).toString();
                         } else
                             address = Address.fromP2SHHash(Network.NETWORK, scriptHash).toString();
-
-                        final String uri;
-                        if (amount != null)
-                            uri = "bitcoin:" + address + "?amount=" + Coin.valueOf(amount).toPlainString();
-                        else
-                            uri = address;
-
-                        return new QrBitmap(uri, Color.WHITE, getBaseContext());
+                        return address;
                     }
                 });
             }
         };
-        return Futures.transform(addrFn, verifyAddress, mExecutor);
+        return Futures.transformAsync(addrFn, verifyAddress, mExecutor);
     }
 
     public byte[] getBlindingPubKey(final int subAccount, final int pointer) {
@@ -1210,8 +1279,6 @@ public class GaService extends Service implements INotificationHandler {
     }
 
     public String getFiatBalance(final int subAccount) {
-        if (!hasFiatRate())
-            return "N/A";
         return coinToFiat(getCoinBalance(subAccount));
     }
 
@@ -1344,13 +1411,19 @@ public class GaService extends Service implements INotificationHandler {
         return mClient.prepareSweepSocial(pubKey, useElectrum);
     }
 
-    public ListenableFuture<Map<?, ?>> processBip70URL(final String url) {
-        return mClient.processBip70URL(url);
+    public static byte[] serializeProtobuf(final GeneratedMessage msg) {
+        return WalletClient.serializeProtobuf(msg);
     }
 
-    public ListenableFuture<PreparedTransaction> preparePayreq(final Coin amount, final Map<?, ?> data, final JSONMap privateData) {
-        preparePrivData(privateData);
-        return mClient.preparePayreq(amount, data, privateData);
+    public ListenableFuture<PaymentSession> fetchPaymentRequest(final String url) {
+        return mClient.fetchPaymentRequest(url);
+    }
+
+    public ListenableFuture<PaymentProtocol.Ack>
+    sendPayment(final PaymentSession paymentSession, final List<Transaction> txns, final Address refundAddr, final String memo)
+        throws PaymentProtocolException.InvalidNetwork, PaymentProtocolException.InvalidPaymentURL,
+            PaymentProtocolException.Expired, IOException {
+        return mClient.sendPayment(paymentSession, txns, refundAddr, memo);
     }
 
     public Map<String, String> make2FAData(final String method, final String code) {
@@ -1460,6 +1533,35 @@ public class GaService extends Service implements INotificationHandler {
             if (((Boolean) mTwoFactorConfig.get(method)))
                 enabled.add(method);
         return enabled;
+    }
+
+    // Get the number of days before a two factor reset is completed, or null if none underway
+    public Integer getTwoFactorResetDaysRemaining() {
+        return mClient.getTwoFactorResetDaysRemaining();
+    }
+
+    public boolean isTwoFactorResetActive() {
+        return getTwoFactorResetDaysRemaining() != null;
+    }
+
+    public boolean isTwoFactorResetDisputed() {
+        return mClient.isTwoFactorResetDisputed();
+    }
+
+    public void updateTwoFactorResetStatus(final JSONMap data) {
+        mClient.updateTwoFactorResetStatus(data);
+    }
+
+    public JSONMap requestTwoFactorReset(final String email) throws Exception {
+        return mClient.requestTwoFactorReset(email);
+    }
+
+    public JSONMap confirmTwoFactorReset(final String email, final boolean isDispute, final Object twoFacData) throws Exception {
+        return mClient.confirmTwoFactorReset(email, isDispute, twoFacData);
+    }
+
+    public void cancelTwoFactorReset(final Object twoFacData) throws Exception {
+        mClient.cancelTwoFactorReset(twoFacData);
     }
 
     private static class GaObservable extends Observable {
@@ -1622,8 +1724,12 @@ public class GaService extends Service implements INotificationHandler {
         final Context ctx = getApplicationContext();
         final ConnectivityManager cm;
         cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
-        final NetworkInfo ni = cm.getActiveNetworkInfo();
-        return ni != null && ni.isConnectedOrConnecting() ? ni : null;
+        try {
+            final NetworkInfo ni = cm.getActiveNetworkInfo();
+            return ni != null && ni.isConnectedOrConnecting() ? ni : null;
+        } catch (final Exception e) {
+            return null;
+        }
     }
 
     public static Transaction buildTransaction(final String hex) {

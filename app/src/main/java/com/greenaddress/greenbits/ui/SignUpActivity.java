@@ -33,7 +33,6 @@ import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.Theme;
 import com.afollestad.materialdialogs.internal.MDButton;
-import com.dd.CircularProgressButton;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -68,7 +67,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     private Activity mActivity;
     private NfcWriteMnemonic mNfcWriteMnemonic;
     private CheckBox mAcceptCheckBox;
-    private CircularProgressButton mContinueButton;
+    private CircularButton mContinueButton;
     private TextView mQrCodeIcon;
     private ImageView mQrCodeBitmap;
 
@@ -127,10 +126,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         mQrCodeIcon.setOnClickListener(this);
         mContinueButton.setOnClickListener(this);
 
-        if (Build.VERSION.SDK_INT < 16)
-            UI.hide(mNfcSignupIcon);
-        else
-            mNfcSignupIcon.setOnClickListener(this);
+        mNfcSignupIcon.setOnClickListener(this);
 
         mNfcWriteMnemonic = new NfcWriteMnemonic(mService.getSignUpMnemonic(), this, false);
 
@@ -163,8 +159,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         if (mNfcAdapter != null)
             mNfcAdapter.disableForegroundDispatch(this);
         if (mContinueButton != null) {
-            mContinueButton.setIndeterminateProgressMode(false);
-            mContinueButton.setProgress(0);
+            mContinueButton.stopLoading();
         }
     }
 
@@ -193,7 +188,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
 
     private void onQrCodeButtonClicked() {
         if (mMnemonicDialog == null) {
-            final View v = getLayoutInflater().inflate(R.layout.dialog_qrcode, null, false);
+            final View v = UI.inflateDialog(this, R.layout.dialog_qrcode);
             mQrCodeBitmap = UI.find(v, R.id.qrInDialogImageView);
             mQrCodeBitmap.setLayoutParams(UI.getScreenLayout(SignUpActivity.this, 0.8));
             mMnemonicDialog = new Dialog(SignUpActivity.this);
@@ -220,8 +215,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
             return;
         }
 
-        mContinueButton.setIndeterminateProgressMode(true);
-        mContinueButton.setProgress(50);
+        mContinueButton.startLoading();
         //UI.hide(mMnemonicText, mQrCodeIcon);
         mMnemonicText.setVisibility(View.INVISIBLE);
 
@@ -233,7 +227,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
             mChoiceIsValid[i] = false;
 
         // Show the verification dialog
-        final View v = getLayoutInflater().inflate(R.layout.dialog_verify_words, null, false);
+        final View v = UI.inflateDialog(this, R.layout.dialog_verify_words);
         final MaterialDialog.Builder verifyDialogBuilder = new MaterialDialog.Builder(SignUpActivity.this)
                 .title(R.string.enter_matching_words)
                 .customView(v, true)
@@ -409,7 +403,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     private void setComplete(final boolean isComplete) {
         runOnUiThread(new Runnable() {
             public void run() {
-                mContinueButton.setProgress(isComplete ? 100 : 0);
+                mContinueButton.setComplete(isComplete);
             }
         });
     }
@@ -554,12 +548,10 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
     private void onVerifyDismissed() {
         if (mVerifyDialog != null) {
             UI.show(mMnemonicText, mQrCodeIcon);
+            mContinueButton.stopLoading();
             mVerifyDialog = null;
             if (areAllChoicesValid()) {
                 onMnemonicVerified();
-            } else {
-                mContinueButton.setIndeterminateProgressMode(false);
-                mContinueButton.setProgress(0);
             }
         }
     }

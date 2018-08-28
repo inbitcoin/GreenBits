@@ -27,7 +27,6 @@ import com.btchip.utils.Dump;
 import com.btchip.utils.VarintUtils;
 
 import java.io.ByteArrayOutputStream;
-import java.io.PipedInputStream;
 
 public class BTChipDongle implements BTChipConstants {
 
@@ -271,6 +270,7 @@ public class BTChipDongle implements BTChipConstants {
 	private boolean mUnderstandsMultipleOutputs;
 	
 	private static final int OK[] = { SW_OK };
+	private static final int OK_OR_NOT_SUPPORTED[] = { SW_OK, SW_INS_NOT_SUPPORTED };
 	private static final byte DUMMY[] = { 0 };
 	
 	public BTChipDongle(BTChipTransport transport) {
@@ -337,12 +337,14 @@ public class BTChipDongle implements BTChipConstants {
 	}
 	
 	private byte[] exchangeApdu(byte cla, byte ins, byte p1, byte p2, int length, int acceptedSW[]) throws BTChipException {
-		byte[] apdu = new byte[5];
+		byte[] apdu = new byte[length != 0 ? 5 : 4];
 		apdu[0] = cla;
 		apdu[1] = ins;
 		apdu[2] = p1;
 		apdu[3] = p2;
-		apdu[4] = (byte)(length);
+		if (length != 0) {
+			apdu[4] = (byte)(length);
+		}
 		return exchangeCheck(apdu, acceptedSW);
 	}
 
@@ -704,7 +706,7 @@ public class BTChipDongle implements BTChipConstants {
 	public void setKeymapEncoding(byte[] keymapEncoding) throws BTChipException {
 		ByteArrayOutputStream data = new ByteArrayOutputStream();
 		BufferUtils.writeBuffer(data, keymapEncoding);
-		exchangeApdu(BTCHIP_CLA, BTCHIP_INS_SET_KEYMAP, (byte)0x00, (byte)0x00, data.toByteArray(), OK);		
+		exchangeApdu(BTCHIP_CLA, BTCHIP_INS_SET_KEYMAP, (byte)0x00, (byte)0x00, data.toByteArray(), OK_OR_NOT_SUPPORTED);
 	}
 	
 	public boolean setup(OperationMode supportedOperationModes[], Feature features[], int keyVersion, int keyVersionP2SH, byte[] userPin, byte[] wipePin, byte[] keymapEncoding, byte[] seed, byte[] developerKey) throws BTChipException {

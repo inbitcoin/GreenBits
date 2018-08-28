@@ -4,14 +4,14 @@ set -e
 
 # The version of wally to fetch and its sha256 checksum for integrity checking
 TARBALL="wallycore-android-jni.tar.gz"
-URL="https://github.com/ElementsProject/libwally-core/releases/download/release_0.4.0/${TARBALL}"
-SHA256="b90f9895a2e5a13bbadd4d458906a7f84c140d9905765b3873275b5aa58dd67a"
+URL="https://github.com/ElementsProject/libwally-core/releases/download/release_0.6.1/${TARBALL}"
+SHA256="9edb634ba4e195495f9d4a37ad71eb68b437e83be09acf1fcf016a0610cf494d"
 
 # Pre-requisites
 function check_command() {
     command -v $1 >/dev/null 2>&1 || { echo >&2 "$1 not found, exiting."; exit 1; }
 }
-check_command wget
+check_command curl
 check_command gzip
 check_command shasum
 check_command javac
@@ -29,7 +29,7 @@ WALLY_JAVA_DIR="${APP_ROOT}/libwally-core/src/swig_java/src/com/blockstream/libw
 rm -rf wallycore-android-jni* ${APP_ROOT}/src/main/jniLibs ${WALLY_JAVA_DIR}
 
 # Fetch, validate and decompress wally
-wget -q "${URL}"
+curl -sL -o ${TARBALL} "${URL}"
 echo "${SHA256}  ${TARBALL}" | shasum -a 256 --check
 gzip -d wallycore-android-jni.tar.gz && tar xf wallycore-android-jni.tar
 

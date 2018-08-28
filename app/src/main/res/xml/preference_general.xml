@@ -10,6 +10,10 @@
         android:title="@string/mnemonic_passphrase"
         android:summary="@string/mnemonic_passphrase_not_available" />
 
+    <Preference
+        android:key="reset_pin"
+        android:title="@string/setPin" />
+
     <ListPreference
         android:key="fiat_key"
         android:title="@string/settings_currency" />
@@ -35,7 +39,7 @@
 
     <Preference
         android:key="watch_only_login"
-        android:title="@string/watchOnlyLogin"></Preference>
+        android:title="@string/watchOnlyLogin" />
 
     <ListPreference
         android:key="default_tx_priority"

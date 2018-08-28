@@ -107,6 +107,7 @@
                 android:id="@+id/emailNotices">
 
                 <TextView
+                    android:id="@+id/twofactor_setup_blurb_header"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textAppearance="?android:attr/textAppearanceMedium"
@@ -116,6 +117,7 @@
                     android:layout_margin="10sp" />
 
                 <TextView
+                    android:id="@+id/twofactor_setup_blurb"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/twoFacEmailChangeNotice"
@@ -125,6 +127,7 @@
                     android:layout_marginRight="10sp" />
 
                 <TextView
+                    android:id="@+id/twofactor_setup_confirm"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/twoFacEmailConfirmNotice"

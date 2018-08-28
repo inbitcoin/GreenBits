@@ -28,7 +28,6 @@ import android.widget.MultiAutoCompleteTextView;
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.blockstream.libwally.Wally;
-import com.dd.CircularProgressButton;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -50,7 +49,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
     private static final int CAMERA_PERMISSION = 150;
 
     private MultiAutoCompleteTextView mMnemonicText;
-    private CircularProgressButton mOkButton;
+    private CircularButton mOkButton;
     private TextView mScanButton;
 
     final private MultiAutoCompleteTextView.Tokenizer mTokenizer = new MultiAutoCompleteTextView.Tokenizer() {
@@ -103,7 +102,6 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
         mOkButton = UI.find(this,R.id.mnemonicOkButton);
         mScanButton = UI.find(this,R.id.mnemonicScanIcon);
 
-        mOkButton.setIndeterminateProgressMode(true);
         mOkButton.setOnClickListener(this);
 
         final boolean haveCamera = getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY);
@@ -180,7 +178,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
     }
 
     private void enableLogin() {
-        mOkButton.setProgress(0);
+        mOkButton.stopLoading();
         mMnemonicText.setEnabled(true);
     }
 
@@ -188,7 +186,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
         final String mnemonic = getMnemonic();
         setMnemonic(mnemonic); // Trim mnemonic when OK pressed
 
-        if (mOkButton.getProgress() != 0)
+        if (mOkButton.isLoading())
             return;
 
         if (mService.isLoggedIn()) {
@@ -224,7 +222,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
             return;
         }
 
-        mOkButton.setProgress(50);
+        mOkButton.startLoading();;
         mMnemonicText.setEnabled(false);
         hideKeyboardFrom(mMnemonicText);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
@@ -239,7 +237,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
                     return mService.login(mnemonic);
 
                 // Encrypted mnemonic
-                return Futures.transform(askForPassphrase(false), new AsyncFunction<String, LoginData>() {
+                return Futures.transformAsync(askForPassphrase(false), new AsyncFunction<String, LoginData>() {
                     @Override
                     public ListenableFuture<LoginData> apply(final String passphrase) {
                         return mService.login(CryptoHelper.decrypt_mnemonic(mnemonic, passphrase));
@@ -249,7 +247,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
         };
 
         final ListenableFuture<LoginData> loginFuture;
-        loginFuture = Futures.transform(mService.onConnected, connectToLogin, mService.getExecutor());
+        loginFuture = Futures.transformAsync(mService.onConnected, connectToLogin, mService.getExecutor());
 
         Futures.addCallback(loginFuture, new FutureCallback<LoginData>() {
             @Override
@@ -285,7 +283,7 @@ public class MnemonicActivity extends LoginActivity implements View.OnClickListe
         final SettableFuture<String> fn = SettableFuture.create();
         runOnUiThread(new Runnable() {
             public void run() {
-                final View v = getLayoutInflater().inflate(R.layout.dialog_passphrase, null, false);
+                final View v = UI.inflateDialog(MnemonicActivity.this, R.layout.dialog_passphrase);
                 final EditText passphraseValue = UI.find(v, R.id.passphraseValue);
                 passphraseValue.requestFocus();
                 final MaterialDialog dialog = UI.popup(MnemonicActivity.this, R.string.restore_backup)

@@ -21,7 +21,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.dd.CircularProgressButton;
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -58,7 +58,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
     private Menu mMenu;
     private static final String KEYSTORE_KEY = "NativeAndroidAuth";
     private static final int ACTIVITY_REQUEST_CODE = 1;
-    private CircularProgressButton mPinLoginButton;
+    private CircularButton mPinLoginButton;
     private EditText mPinText;
     private TextView mPinError;
     private TextView mPinCountdown;
@@ -74,7 +74,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
 
     private void login() {
 
-        if (mPinLoginButton.getProgress() != 0)
+        if (mPinLoginButton.isLoading())
             return;
 
         if (mPinText.length() < 4) {
@@ -99,6 +99,8 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
         setMenuItemVisible(mMenu, R.id.network_preferences, false);
         setMenuItemVisible(mMenu, R.id.watchonly_preference, false);
 
+        mPinLoginButton.startLoading();
+        mPinText.setEnabled(false);
         hideKeyboardFrom(mPinText);
         setEnableDoLogin(false);
 
@@ -113,6 +115,8 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
                  if (mService.isConnected()) {
                      setEnableDoLogin(true);
                  }
+                 mPinLoginButton.stopLoading();
+                 UI.enable(mPinText);
                  UI.show(mPinError);
                  final int counter = mService.cfg("pin").getInt("counter", 1);
                  mPinError.setText(getString(R.string.attemptsLeft, MAX_ATTEMPTS - counter));
@@ -133,7 +137,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
         };
 
         final ListenableFuture<LoginData> loginFuture;
-        loginFuture = Futures.transform(mService.onConnected, connectToLogin, mService.getExecutor());
+        loginFuture = Futures.transformAsync(mService.onConnected, connectToLogin, mService.getExecutor());
 
         Futures.addCallback(loginFuture, new FutureCallback<LoginData>() {
             @Override
@@ -224,7 +228,6 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
 
         setContentView(R.layout.activity_pin);
         mPinLoginButton = UI.find(this, R.id.pinLoginButton);
-        mPinLoginButton.setIndeterminateProgressMode(true);
         mPinText = UI.find(this, R.id.pinText);
         mPinError = UI.find(this, R.id.pinErrorText);
         mPinCountdown = UI.find(this, R.id.pinCountdownText);
@@ -246,6 +249,9 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
             getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
             setEnableDoLogin(false);
+        } else  {
+            //mPinText.setEnabled(false);
+            //mPinLoginButton.startLoading();
             tryDecrypt();
         }
 
@@ -499,6 +505,8 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
      * @param enable
      */
     private void setEnableDoLogin(final Boolean enable) {
+        // FIXME
+        /*
         if (enable) {
             mPinLoginButton.setProgress(0);
             UI.enable(mPinText);
@@ -506,5 +514,6 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
             mPinLoginButton.setProgress(50);
             UI.disable(mPinText);
         }
+        */
     }
  }

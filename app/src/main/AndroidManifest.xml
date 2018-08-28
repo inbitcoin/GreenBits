@@ -35,6 +35,9 @@
     <uses-feature
         android:name="android.hardware.nfc"
         android:required="false"/>
+    <uses-feature
+        android:name="android.hardware.usb.host"
+        android:required="false"/>
 
     <application
         android:name="com.greenaddress.greenbits.GreenAddressApplication"
@@ -158,13 +161,20 @@
             android:label="@string/action_network"/>
         <activity
             android:name=".RequestLoginActivity"
+            android:launchMode="singleTask"
             android:label="Login">
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"/>
             </intent-filter>
-
             <meta-data
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter"/>
+
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_DETACHED"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_DETACHED"
                 android:resource="@xml/device_filter"/>
 
             <intent-filter>
@@ -199,6 +209,7 @@
         <activity android:name=".FailHardActivity"/>
         <activity android:name=".AboutActivity"/>
         <activity android:name=".WatchOnlyLoginActivity"/>
+        <activity android:name=".MessagesActivity"/>
         <activity
             android:name=".VendorActivity"
             android:theme="@style/AppTheme.NoActionBar"

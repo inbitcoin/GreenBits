@@ -168,7 +168,7 @@ public class MainFragment extends SubaccountFragment {
         makeBalanceObserver(mSubaccount);
         if (isPageSelected() && service.getCoinBalance(mSubaccount) != null) {
             updateBalance();
-            reloadTransactions(false, true);
+            reloadTransactions(true);
         }
 
         if (!mIsExchanger) {
@@ -192,7 +192,7 @@ public class MainFragment extends SubaccountFragment {
     protected void onBalanceUpdated() {
         Log.d(TAG, "onBalanceUpdated -> " + TAG);
         updateBalance();
-        reloadTransactions(false, false);
+        reloadTransactions(false);
     }
 
     @Override
@@ -244,7 +244,7 @@ public class MainFragment extends SubaccountFragment {
             setIsDirty(true);
             return;
         }
-        reloadTransactions(false, false);
+        reloadTransactions(false);
     }
 
     // Called when a new verified transaction is seen
@@ -253,8 +253,10 @@ public class MainFragment extends SubaccountFragment {
           return;
 
         final GaService service = getGAService();
+        final boolean isSPVEnabled = service.isSPVEnabled();
+
         for (final TransactionItem txItem : mTxItems)
-            txItem.spvVerified = service.isSPVVerified(txItem.txHash);
+            txItem.spvVerified = isSPVEnabled ? service.isSPVVerified(txItem.txHash) : true;
 
         final RecyclerView txView = UI.find(mView, R.id.mainTransactionList);
         txView.getAdapter().notifyDataSetChanged();
@@ -269,7 +271,7 @@ public class MainFragment extends SubaccountFragment {
         }
     }
 
-    private void reloadTransactions(final boolean newAdapter, final boolean showWaitDialog) {
+    private void reloadTransactions(final boolean showWaitDialog) {
         final Activity activity = getActivity();
         final GaService service = getGAService();
         final RecyclerView txView;
@@ -289,17 +291,15 @@ public class MainFragment extends SubaccountFragment {
             popupWaitDialog(R.string.loading_transactions);
         }
 
-        if (mTxItems == null || newAdapter) {
+        if (mTxItems == null) {
             mTxItems = new ArrayList<>();
             txView.setAdapter(new ListTransactionsAdapter(activity, service, mTxItems, mIsExchanger));
             // FIXME, more efficient to use swap
             // txView.swapAdapter(lta, false);
         }
 
-        if (replacedTxs == null || newAdapter)
+        if (replacedTxs == null)
             replacedTxs = new HashMap<>();
-
-
 
         Futures.addCallback(service.getMyTransactions(mSubaccount),
             new FutureCallback<Map<String, Object>>() {
@@ -358,15 +358,14 @@ public class MainFragment extends SubaccountFragment {
                             final boolean isExchangerAddress = service.cfg().getBoolean("exchanger_address_" + txItem.receivedOn, false);
                             if (isExchangerAddress && txItem.memo == null) {
                                 txItem.memo = Exchanger.TAG_EXCHANGER_TX_MEMO;
-                                CB.after(service.changeMemo(txItem.txHash.toString(), Exchanger.TAG_EXCHANGER_TX_MEMO),
+                                CB.after(service.changeMemo(txItem.txHash.toString(), Exchanger.TAG_EXCHANGER_TX_MEMO, null),
                                          new CB.Toast<Boolean>(activity));
                             } else if (mIsExchanger && (txItem.memo == null || !txItem.memo.contains(Exchanger.TAG_EXCHANGER_TX_MEMO))) {
                                 // FIXME should be better to filter list with api query
                                 iterator.remove();
                             }
                             if (replacedTxs.containsKey(txItem.txHash))
-                                for (final Sha256Hash replaced : replacedTxs.get(txItem.txHash))
-                                    txItem.replacedHashes.add(replaced);
+                                txItem.replacedHashes.addAll(replacedTxs.get(txItem.txHash));
                         }
 
                         txView.getAdapter().notifyDataSetChanged();
@@ -408,7 +407,7 @@ public class MainFragment extends SubaccountFragment {
             setIsDirty(true);
             return;
         }
-        reloadTransactions(false, true);
+        reloadTransactions(true);
         updateBalance();
     }
 
@@ -425,7 +424,7 @@ public class MainFragment extends SubaccountFragment {
         super.setPageSelected(isSelected);
         if (needReload) {
             Log.d(TAG, "Dirty, reloading");
-            reloadTransactions(false, true);
+            reloadTransactions(true);
             updateBalance();
             if (!isZombie())
                 setIsDirty(false);

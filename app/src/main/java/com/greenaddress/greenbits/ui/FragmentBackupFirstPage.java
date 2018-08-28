@@ -12,7 +12,6 @@ import android.widget.Button;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
-import com.dd.CircularProgressButton;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -36,7 +35,7 @@ public class FragmentBackupFirstPage extends GAFragment {
     private ListenableFuture<LoginData> mOnSignUp;
     private Activity mActivity = getGaActivity();
     private Button backupButton;
-    private CircularProgressButton noBackupButton;
+    private CircularButton noBackupButton;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -61,11 +60,10 @@ public class FragmentBackupFirstPage extends GAFragment {
         });
         mActivity = getGaActivity();
         noBackupButton = UI.find(mView, R.id.noBackupButton);
-        noBackupButton.setIndeterminateProgressMode(true);
         noBackupButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (noBackupButton.getProgress() != 0)
+                if (noBackupButton.isLoading())
                     return;
                 MaterialDialog popup = UI.popup(getGaActivity(), getString(R.string.warning))
                         .content(getString(R.string.warning_skip_backup))
@@ -73,7 +71,7 @@ public class FragmentBackupFirstPage extends GAFragment {
                             @Override
                             public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
                                 backupButton.setEnabled(false);
-                                noBackupButton.setProgress(50);
+                                noBackupButton.startLoading();
                                 login();
                             }
                         }).build();
@@ -104,7 +102,7 @@ public class FragmentBackupFirstPage extends GAFragment {
                 mOnSignUp = null;
                 t.printStackTrace();
                 backupButton.setEnabled(true);
-                noBackupButton.setProgress(0);
+                noBackupButton.stopLoading();
 
             }
         }, mService.getExecutor());

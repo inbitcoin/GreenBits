@@ -94,6 +94,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
     private static final boolean IS_MAINNET = Network.NETWORK == MainNetParams.get();
     private static final int BIP32_NETWORK = IS_MAINNET ? Wally.BIP38_KEY_MAINNET : Wally.BIP38_KEY_TESTNET;
     private static final int BIP38_FLAGS = BIP32_NETWORK | Wally.BIP38_KEY_COMPRESSED;
+    private static final int REQUEST_ENABLE_2FA = 0;
 
     public static final int
             REQUEST_SEND_QR_SCAN = 0,
@@ -115,10 +116,13 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
     private Snackbar snackbar;
     private final int mSnackbarDuration = 10 * 1000;
     private Activity mActivity;
+    private Boolean mForcedLogoutFromCreate = false;
+    private Dialog mTwoFactorDialog;
+    private Dialog mTwoFactorResetDialog;
     private MaterialDialog mSegwitDialog;
     private MaterialDialog mSubaccountDialog;
     private FloatingActionButton mSubaccountButton;
-    private Boolean mForcedLogoutFromCreate = false;
+    private boolean mTwoFactorResetShowing = false;
 
     private final Runnable mSegwitCB = new Runnable() { public void run() { mSegwitDialog = null; } };
     private final Runnable mSubaccountCB = new Runnable() { public void run() { mDialogCB.run(); mSubaccountDialog = null; } };
@@ -189,30 +193,40 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         //startService(new Intent(this, ApplicationService.class));
     }
 
-    private boolean showWarningBanner(final int actionId, final int messageId, final String hideCfgName, final Intent intent, final int activityRequest) {
-        if (mService.cfg().getBoolean(hideCfgName, false))
-            return false;
+    private TextView showWarningBanner(final int messageId, final String hideCfgName) {
+        return showWarningBanner(getString(messageId), hideCfgName);
+    }
+
+    private TextView showWarningBanner(final String message, final String hideCfgName) {
+        if (hideCfgName != null && mService.cfg().getBoolean(hideCfgName, false))
+            return null;
 
         // if total amount is less then 0 BTC hide snackbar
         if (mService.getTotalBalance() == 0) {
             if (snackbar != null) {
                 snackbar.dismiss();
             }
-            return false;
+            return null;
         }
+
         snackbar = Snackbar
-                .make(findViewById(R.id.main_content), getString(messageId), mSnackbarDuration)
-                .setActionTextColor(Color.RED)
-                .setAction(getString(actionId), new View.OnClickListener() {
-                    @Override
-                    public void onClick(final View v) {
-                        startActivityForResult(intent, activityRequest);
-                    }
-                });
+                .make(findViewById(R.id.main_content), message, mSnackbarDuration);
+
+        if (hideCfgName != null) {
+            snackbar.setActionTextColor(Color.RED);
+            snackbar.setAction(getString(R.string.set2FA), new View.OnClickListener() {
+                @Override
+                public void onClick(final View v) {
+                    final Intent intent = new Intent(TabbedMainActivity.this, SettingsActivity.class);
+                    intent.putExtra(SettingsActivity.EXTRA_SHOW_FRAGMENT, TwoFactorPreferenceFragment.class.getName());
+                    startActivityForResult(intent, REQUEST_SETTINGS);
+                }
+            });
+        }
 
         if (mActivity == null) {
             Log.d(TAG, "mActivity is null");
-            return false;
+            return null;
         }
 
         final View snackbarView = snackbar.getView();
@@ -220,15 +234,16 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         final TextView textView = UI.find(snackbarView, android.support.design.R.id.snackbar_text);
         textView.setTextColor(Color.WHITE);
         snackbar.show();
-        return true;
+        return textView;
     }
 
     private void onTwoFactorConfigChange() {
-        if (mService.getTwoFactorConfig() == null)
-            return; // Not loaded
+        if (mTwoFactorResetShowing || mService.getTwoFactorConfig() == null ||
+            mService.isWatchOnly())
+            return; // Not loaded, watch only, or reset in progress
 
         final Intent toSetEmail = new Intent(TabbedMainActivity.this, SetEmailActivity.class);
-        final boolean shown = !mService.hasEmailConfirmed() && showWarningBanner(R.string.setEmail, R.string.noEmailWarning, "hideNoEmailWarning", toSetEmail, SetEmailActivity.REQUEST_ENABLE_EMAIL);
+        final boolean shown = false; // FIXME !mService.hasEmailConfirmed() && showWarningBanner(R.string.setEmail, R.string.noEmailWarning, "hideNoEmailWarning", toSetEmail, SetEmailActivity.REQUEST_ENABLE_EMAIL);
         
         if (!shown && (!mService.hasAnyTwoFactor() || mService.getEnabledTwoFactorMethods().size() == 1)) {
             final Intent toTwoFactor = new Intent(TabbedMainActivity.this, SettingsActivity.class);
@@ -242,9 +257,9 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                 mService.cfg().edit().putBoolean("hideSingleTwoFacWarning", true).apply();
 
             if (!mService.hasAnyTwoFactor())
-                showWarningBanner(R.string.set2FA, R.string.noTwoFactorWarning, "hideTwoFacWarning", toTwoFactor, REQUEST_SETTINGS);
+                showWarningBanner(R.string.noTwoFactorWarning, "hideTwoFacWarning");
             else
-                showWarningBanner(R.string.set2FA, R.string.singleTwoFactorWarning, "hideSingleTwoFacWarning", toTwoFactor, REQUEST_SETTINGS);
+                showWarningBanner(R.string.singleTwoFactorWarning, "hideSingleTwoFacWarning");
         }
     }
 
@@ -368,16 +383,42 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         // shown.
         mViewPager.setOffscreenPageLimit(3);
 
-        // Re-show our 2FA warning if config is changed to remove all methods
-        // Fake a config change to show the warning if no current 2FA method
-        mTwoFactorObserver.update(null, null);
+        TextView banner = null;
+        if (mService.isTwoFactorResetDisputed())
+            banner = showWarningBanner(R.string.twofactor_reset_disputed_banner, null);
+        else {
+            final Integer days = mService.getTwoFactorResetDaysRemaining();
+            if (days != null) {
+                final String message = getString(R.string.twofactor_reset_banner, days);
+                banner = showWarningBanner(message, null);
+            } else {
+                // Show a warning if the user has unacked messages
+                if (mService.haveUnackedMessages()) {
+                    final int msgId;
+                    if (mService.isWatchOnly())
+                       msgId = R.string.unacked_system_messages_wo;
+                    else
+                       msgId = R.string.unacked_system_messages;
+                    banner = showWarningBanner(msgId, null);
+                }
+            }
+        }
+        if (banner != null) {
+            mTwoFactorResetShowing = true;
+            banner.setTextColor(Color.RED);
+        } else {
+            // Re-show our 2FA warning if config is changed to remove all methods
+            // Fake a config change to show the warning if no current 2FA method
+            mTwoFactorObserver.update(null, null);
+        }
 
         configureSubaccountsFooter(mService.getCurrentSubAccount());
 
         // by default go to center tab
-        int goToTab = 1;
+        final boolean isResetActive = mService.isTwoFactorResetActive();
+        int goToTab = isResetActive ? 0 : 1;
 
-        if (isBitcoinUri) {
+        if (isBitcoinUri && !isResetActive) {
             // go to send page tab
             goToTab = 2;
 
@@ -386,17 +427,15 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                 mViewPager.setTag(R.id.tag_bitcoin_uri, getIntent().getData());
             } else {
                 // NdefRecord#toUri not available in API < 16
-                if (Build.VERSION.SDK_INT > 16) {
-                    final Parcelable[] rawMessages;
-                    rawMessages = getIntent().getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
-                    for (final Parcelable parcel : rawMessages) {
-                        final NdefMessage ndefMsg = (NdefMessage) parcel;
-                        for (final NdefRecord record : ndefMsg.getRecords())
-                            if (record.getTnf() == NdefRecord.TNF_WELL_KNOWN &&
-                                    Arrays.equals(record.getType(), NdefRecord.RTD_URI)) {
-                                mViewPager.setTag(R.id.tag_bitcoin_uri, record.toUri());
-                            }
-                    }
+                final Parcelable[] rawMessages;
+                rawMessages = getIntent().getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
+                for (final Parcelable parcel : rawMessages) {
+                    final NdefMessage ndefMsg = (NdefMessage) parcel;
+                    for (final NdefRecord record : ndefMsg.getRecords())
+                        if (record.getTnf() == NdefRecord.TNF_WELL_KNOWN &&
+                            Arrays.equals(record.getType(), NdefRecord.RTD_URI)) {
+                            mViewPager.setTag(R.id.tag_bitcoin_uri, record.toUri());
+                        }
                 }
             }
             // if arrives from internal QR scan
@@ -422,6 +461,10 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         tabLayout.setupWithViewPager(mViewPager);
 
         mViewPager.setCurrentItem(goToTab);
+        if (isResetActive) {
+            sectionsPagerAdapter.onViewPageSelected(0);
+            return;
+        }
 
         final Boolean isVendorMode = mService.cfg("is_vendor_mode").getBoolean("enabled", false);
         if (isVendorMode) {
@@ -504,6 +547,8 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
     public void onDestroy() {
         super.onDestroy();
         UI.unmapClick(mSubaccountButton);
+        mTwoFactorDialog = UI.dismiss(this, mTwoFactorDialog);
+        mTwoFactorResetDialog = UI.dismiss(this, mTwoFactorResetDialog);
     }
 
     @Override
@@ -593,7 +638,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                     @Override
                     public void onSuccess(final Map<?, ?> sweepResult) {
                         dialogLoading.dismiss();
-                        final View v = getLayoutInflater().inflate(R.layout.dialog_sweep_address, null, false);
+                        final View v = UI.inflateDialog(TabbedMainActivity.this, R.layout.dialog_sweep_address);
                         final TextView passwordPrompt = UI.find(v, R.id.sweepAddressPasswordPromptText);
                         final TextView mainText = UI.find(v, R.id.sweepAddressMainText);
                         final TextView addressText = UI.find(v, R.id.sweepAddressAddressText);
@@ -824,16 +869,29 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
     @Override
     public boolean onCreateOptionsMenu(final Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        final int id = mService.isWatchOnly() ? R.menu.watchonly : R.menu.main;
         getMenuInflater().inflate(R.menu.camera_menu, menu);
+        final boolean isResetActive = mService.isTwoFactorResetActive();
+        final boolean isWatchOnly = mService.isWatchOnly();
+        final int id;
+        if (isResetActive)
+            id = R.menu.reset_active;
+        else if (isWatchOnly)
+           id = R.menu.watchonly;
+        else
+            id = R.menu.main;
         getMenuInflater().inflate(id, menu);
 
-        setMenuItemVisible(menu, R.id.action_network,
-                           !GaService.IS_ELEMENTS && mService.isSPVEnabled());
-        setMenuItemVisible(menu, R.id.action_sweep, !GaService.IS_ELEMENTS);
+        if (isResetActive) {
+            setMenuItemVisible(menu, R.id.action_dispute_twofactor_reset, !isWatchOnly);
+            setMenuItemVisible(menu, R.id.action_cancel_twofactor_reset, !isWatchOnly);
+        } else {
+            setMenuItemVisible(menu, R.id.action_network,
+                               !GaService.IS_ELEMENTS && mService.isSPVEnabled());
+            setMenuItemVisible(menu, R.id.action_sweep, !GaService.IS_ELEMENTS);
 
-        final boolean isExchanger = mService.cfg().getBoolean("show_exchanger_menu", false);
-        setMenuItemVisible(menu, R.id.action_exchanger, isExchanger);
+            final boolean isExchanger = mService.cfg().getBoolean("show_exchanger_menu", false);
+            setMenuItemVisible(menu, R.id.action_exchanger, isExchanger);
+        }
 
         mMenu = menu;
 
@@ -880,12 +938,18 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             case R.id.action_about:
                 startActivity(new Intent(caller, AboutActivity.class));
                 return true;
+            case R.id.action_cancel_twofactor_reset:
+                onCancelTwoFactorResetSelected();
+                return true;
+             case R.id.action_dispute_twofactor_reset:
+                onDisputeTwoFactorResetSelected();
+                return true;
             case R.id.action_vendor:
                 Intent intent = new Intent(caller, VendorActivity.class);
                 startActivity(intent);
                 overridePendingTransition(R.anim.slide_from_right, R.anim.fade_out);
                 return true;
-        }
+         }
         return super.onOptionsItemSelected(item);
     }
 
@@ -1013,6 +1077,64 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                 }).build().show();
     }
 
+    private void onCancelTwoFactorResetSelected() {
+        mTwoFactorDialog = UI.popupTwoFactorChoice(this, mService, false, new CB.Runnable1T<String>() {
+            public void run(final String method) {
+                onCancelTwoFactorReset(method);
+            }
+        });
+        if (mTwoFactorDialog != null)
+            mTwoFactorDialog.show();
+    }
+
+    private void onDisputeTwoFactorResetSelected() {
+        final Intent intent = new Intent(this, TwoFactorActivity.class);
+        intent.putExtra("method", "reset");
+        startActivityForResult(intent, REQUEST_ENABLE_2FA);
+    }
+
+    private void onCancelTwoFactorReset(final String method) {
+        // Request a two factor code for the 2FA reset
+        if (!method.equals("gauth"))
+            mService.requestTwoFacCode(method, "cancel_reset", null);
+
+        // Prompt the user to enter the code
+        final View v = UI.inflateDialog(this, R.layout.dialog_btchip_pin);
+
+        UI.hide(UI.find(v, R.id.btchipPinPrompt));
+        final TextView codeText = UI.find(v, R.id.btchipPINValue);
+
+        mTwoFactorResetDialog = UI.popup(this, R.string.pref_header_twofactor, R.string.continueText, R.string.cancel)
+            .customView(v, true)
+            .autoDismiss(false)
+            .onNegative(new MaterialDialog.SingleButtonCallback() {
+                @Override
+                public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                    mTwoFactorResetDialog = UI.dismiss(null, mTwoFactorResetDialog);
+                }
+            })
+            .onPositive(new MaterialDialog.SingleButtonCallback() {
+                @Override
+                public void onClick(final MaterialDialog dialog, final DialogAction which) {
+                    final String enteredCode = UI.getText(codeText).trim();
+                    if (enteredCode.length() != 6)
+                        return;
+                    // Cancel the reset and exit
+                    try {
+                        mTwoFactorResetDialog = UI.dismiss(null, mTwoFactorResetDialog);
+                        mService.cancelTwoFactorReset(mService.make2FAData(method, enteredCode));
+                        UI.toast(TabbedMainActivity.this, R.string.twofactor_reset_cancelled, Toast.LENGTH_LONG);
+                        exitApp();
+                    } catch (final Exception e) {
+                        UI.toast(TabbedMainActivity.this, e.getMessage(), (Button) null);
+                        e.printStackTrace();
+                    }
+                }
+            }).build();
+        UI.mapEnterToPositive(mTwoFactorResetDialog, R.id.btchipPINValue);
+        mTwoFactorResetDialog.show();
+      }
+
     SectionsPagerAdapter getPagerAdapter() {
         if (mViewPager == null)
             return null;
@@ -1036,6 +1158,9 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         @Override
         public Fragment getItem(final int index) {
             Log.d(TAG, "SectionsPagerAdapter -> getItem " + index);
+            if (mService.isTwoFactorResetActive())
+                return new MainFragment();
+
             switch (index) {
                 case 0: return new ReceiveFragment();
                 case 1: return new MainFragment();
@@ -1076,6 +1201,9 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
         @Override
         public int getCount() {
+            // Only show the tx list when 2FA reset is active
+            if (mService.isTwoFactorResetActive())
+                return 1;
             // We don't show the send tab in watch only mode
             return mService.isWatchOnly() ? 2 : 3;
         }
@@ -1083,7 +1211,9 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         @Override
         public CharSequence getPageTitle(final int index) {
             final Locale l = Locale.getDefault();
-            switch (index) {
+            if (mService.isTwoFactorResetActive())
+                return getString(R.string.main_title).toUpperCase(l);
+             switch (index) {
                 case 0: return getString(R.string.receive_title).toUpperCase(l);
                 case 1: return getString(R.string.main_title).toUpperCase(l);
                 case 2: return getString(R.string.send_title).toUpperCase(l);

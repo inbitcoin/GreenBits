@@ -2,7 +2,7 @@
 <resources>
 
     <string name="app_name" translatable="false">Altana</string>
-    <string name="empty" translatable="false"></string>
+    <string name="empty" translatable="false" />
     <string name="action_settings">Settings</string>
     <string name="title_activity_mnemonic">Restore</string>
     <string name="sendToText">To</string>
@@ -114,7 +114,7 @@
     <string name="custom_requires_rbf">Custom fees require transaction replacement functionality to be enabled.</string>
     <string name="default_custom_feerate">Default custom feerate</string>
     <string name="enter_satoshi_per_kb">Enter Satoshi per kB</string>
-    <string name="feerate_changed">The feerate was corrected to the minimum rate of %s sat/kB</string>
+    <string name="feerate_changed">The feerate was corrected to the minimum rate of %1$d sat/kB</string>
     <string name="sat_per_kb">sat/kB</string>
     <string name="send">SEND</string>
     <string name="sweep">SWEEP</string>
@@ -162,21 +162,26 @@
     <string name="invalidAmountAndAddress">Invalid amount and address</string>
     <string name="invalidAddress">Invalid address</string>
     <string name="invalidAmount">Invalid amount</string>
+    <string name="invalidAmountTooSmall">The entered amount is too small to send</string>
     <string name="invalidPhoneNumber">Invalid phone number format</string>
     <string name="noBalanceFirstLine">Getting <a href="https://bitcoin.org/en/getting-started">started</a> with Bitcoin</string>
-    <string name="noBalanceSecondLine">Where to <a href="http://howtobuybitcoins.info/">buy</a> them</string>
+    <string name="noBalanceSecondLine">Where to <a href="https://howtobuybitcoins.info">buy</a> them</string>
     <string name="noBalanceThirdLine">Read our <a href="https://greenaddress.it/faq">FAQ</a></string>
-    <string name="trezor_headline">Please follow the instructions on your Hardware Wallet</string>
+    <string name="hw_wallet_headline">Please follow the instructions on your Hardware Wallet</string>
+    <string name="hw_wallet_reconnect">Please re-connect your hardware wallet before trying again.</string>
+    <string name="hw_wallet_registering">Cerating a new GreenAddress wallet, please wait…</string>
     <string name="trezorProvidePin">Please provide your Hardware Wallet PIN. Look at the device for number positions:</string>
     <string name="trezorProvidePassphrase">Please provide your Hardware Wallet mnemonic phrase.</string>
     <string name="main_account">Main</string>
     <string name="footerAccount">Account</string>
+    <string name="btchip" translatable="false">BTChip</string>
+    <string name="please_tap_card">Please tap card</string>
     <string name="btchipProvidePIN">Please provide your BTChip PIN:</string>
-    <string name="firstLoginRequestedInstructionsOldTrezor">Outdated Hardware Wallet firmware. Please upgrade to at least 1.5.2 at http://mytrezor.com/ from your computer.</string>
-    <string name="firstLoginRequestedPleaseOpenBitcoinApp">Ledger Dashboard detected, please open the Bitcoin app to access.</string>
-    <string name="btchipInvalidPIN">Invalid PIN. Remaining attempts: %1$d. Please reconnect your BTChip before trying again.</string>
+    <string name="ledger_firmware_outdated">Outdated Hardware Wallet firmware. Please upgrade to the latest firmware from your computer.</string>
+    <string name="trezor_firmware_outdated">Outdated Hardware Wallet firmware. Please upgrade to at least 1.6 at https:/mytrezor.com/ from your computer.</string>
+    <string name="ledger_open_bitcoin_app">Ledger Dashboard detected, please open the Bitcoin app to access.</string>
+    <string name="btchipInvalidPIN">Invalid PIN. Remaining attempts: %1$d. Please re-connect your hardware wallet before trying again.</string>
     <string name="btchipNotSetup">BTChip is not set up. Please set it up using a desktop client to be able to use it.</string>
-    <string name="instantConfirmation">Instant Confirmation</string>
     <string name="mnemonic_passphrase">Mnemonic passphrase</string>
     <string name="mnemonic_passphrase_not_available">Mnemonic phrase not available</string>
     <string name="autologout_time">Auto logout timeout</string>
@@ -188,6 +193,8 @@
     <string name="unconfirmedBalanceText">Your balance is not confirmed. Either you have some unconfirmed incoming transactions, or SPV verification has not finished.</string>
     <string name="spvNoWiFiTitle">SPV synchronization</string>
     <string name="spvSettingsWatchOnly">SPV is not used and its settings cannot be changed in watch only mode.</string>
+    <string name="spv_channel_name">SPV notifications</string>
+    <string name="spv_channel_description">Displays the progress of SPV synchronization</string>
     <string name="enableSPV">Enable SPV</string>
     <string name="enableSPVSummary">Simple Payment Verification allows trusting your transactions and balance thanks to synchronization with Bitcoin network. It adds bandwidth and processing requirements, so you may want to switch it off if on poor connections or low end phones.</string>
     <string name="syncSPVOnMobile">Synchronize SPV on mobile</string>
@@ -370,6 +377,7 @@
     <string name="nfcDialogMessage">Hold your NFC tag close to the device</string>
     <string name="securePassphraseMsg">Please secure your mnemonic phrase and confirm you agree to the Terms of Service</string>
     <string name="signupInProgress">Signup in progress</string>
+    <string name="logging_in">Logging in, please wait…</string>
     <string name="notConnected">You are not connected, please wait</string>
     <string name="pinErrorLength">PIN has to be between 4 and 15 long</string>
     <string name="problemWithKey">Problem with key %1$s</string>
@@ -399,7 +407,7 @@
     <string name="exchangerPreferenceFiatInPocketDesc">in your current currency</string>
     <string name="noEnoughMoneyInPocket">No enough money in your pocket</string>
     <string name="txExchangerMemo">Exchange Calculator transaction</string>
-    <string name="waitingTransaction">Waiting for transaction...</string>
+    <string name="waitingTransaction">Waiting for transaction…</string>
     <string name="show_exchanger_menu">Show Exchange Calculator menu</string>
     <string name="buy_commission_percentage">Buy percentage commission</string>
     <string name="buy_commission_fixed">Buy fixed commission</string>
@@ -423,6 +431,31 @@
     <string name="twoFacLimitDisabled">You must enable Two Factor Authentication before you can change the threshold.</string>
     <string name="enter_matching_words">Enter The Matching Words</string>
     <string name="hash_number"># %1$d</string>
+    <string name="bip70_session_expired">Session expired, try payment again</string>
+    <string name="bip70_invoice_not_found">Invoice not found, try payment again</string>
+    <string name="bip70_invalid_payment_url">Invalid payment URL, try payment again</string>
+    <string name="bip70_invalid_payment">Invalid payment</string>
+    <string name="bip70_payment_failure">Payment failure</string>
+    <string name="bip70_invalid_pki">Impossible to verify the service "%s". Continue anyway?</string>
+    <string name="sign_ack_hw">Please sign the message acknowledgement on your hardware wallet</string>
+    <string name="signing_ack">Signing acknowledgement reply, please wait...</string>
+    <string name="unacked_system_messages">You have unacknowledged system messages. Please log in again to view them.</string>
+    <string name="unacked_system_messages_wo">You have unacknowledged system messages. Please use a full control login to view them.</string>
+    <string name="important_message">Important Message</string>
+    <string name="i_confirm_i_have_read">I confirm I have read and understood the above message</string>
+    <string name="request_twofactor_reset">Request two factor reset</string>
+    <string name="request_twofactor_reset_summary">WARNING: Resetting two factor authentication will lock your wallet</string>
+    <string name="cancel_twofactor_reset">Cancel two factor reset</string>
+    <string name="dispute_twofactor_reset">Dispute two factor reset</string>
+    <string name="twofactor_reset_blurb_header">Two factor reset process</string>
+    <string name="twofactor_reset_blurb">After entering and confirming a new email address, the wallet will be placed into a locked down state for a period of 12 months plus any remaining nlocktime. During this time you will not be able to transact or generate new addresses. Once the lockout period expires, the email address you enter here will be enabled as your two factor email address.</string>
+    <string name="twofactor_reset_confirm">You will need to confirm your email in the next step.</string>
+    <string name="twofactor_reset_disputed">WARNING: There is already a request to reset twofactor for your wallet. If you now request with a new email address, your wallet will become disputed and likely permanently unavailable to you.</string>
+    <string name="twofactor_reset_confirm_dispute">WARNING: There is already a request to reset twofactor for your wallet. If you click OK, your wallet will become disputed and likely permanently unavailable to you.</string>
+    <string name="twofactor_reset_banner">WARNING: Wallet locked for two factor reset in %d days. Contact support for more information.</string>
+    <string name="twofactor_reset_disputed_banner">WARNING: Wallet locked by two factor dispute. Contact support for more information.</string>
+    <string name="twofactor_reset_complete">Reset successful, your wallet is now locked.</string>
+    <string name="twofactor_reset_cancelled">Reset cancelled, your wallet is now unlocked.</string>
     <string name="sweep_wait_message">This operation may take several seconds…</string>
     <string name="sweep_are_you_sure">Are you sure you want to sweep <b>all</b> funds (%s) from the address below?</string>
     <string name="sweep_bip38_are_you_sure">Are you sure you want to sweep <b>all</b> funds from the password protected BIP38 key below?</string>

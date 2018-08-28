@@ -10,6 +10,7 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.content.res.Resources;
 import android.net.Uri;
+import android.support.v4.app.Fragment;
 import android.support.v4.content.FileProvider;
 import android.text.Editable;
 import android.util.DisplayMetrics;
@@ -28,7 +29,6 @@ import android.widget.Toast;
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.Theme;
-import com.dd.CircularProgressButton;
 import com.google.common.collect.Lists;
 import com.greenaddress.greenbits.GaService;
 
@@ -109,6 +109,14 @@ public abstract class UI {
             else
                 a.runOnUiThread(new Runnable() { public void run() { d.dismiss(); } });
         return null;
+    }
+
+    public static View inflateDialog(final Fragment f, final int id) {
+        return inflateDialog(f.getActivity(), id);
+    }
+
+    public static View inflateDialog(final Activity a, final int id) {
+        return a.getLayoutInflater().inflate(id, null, false);
     }
 
     private static boolean isEnterKeyDown(final KeyEvent e) {
@@ -237,17 +245,31 @@ public abstract class UI {
         toast(activity, t.getMessage(), reenable);
     }
 
-    public static void toast(final Activity activity, final Throwable t, final CircularProgressButton reenable) {
+    public static void toast(final Activity activity, final Throwable t, final CircularButton reenable) {
         t.printStackTrace();
         toast(activity, t.getMessage(), reenable);
     }
 
-    public static void toast(final Activity activity, final String msg, final CircularProgressButton reenable) {
+    public static void toast(final Activity activity, final String msg, final CircularButton reenable) {
         activity.runOnUiThread(new Runnable() {
             public void run() {
-                if (reenable != null)
-                    reenable.setProgress(0);
+                if (reenable != null) {
+                    reenable.stopLoading();
+                    reenable.setEnabled(true);
+                }
                 Toast.makeText(activity, msg, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    public static void toast(final Activity activity, final int id, final CircularButton reenable) {
+        activity.runOnUiThread(new Runnable() {
+            public void run() {
+                if (reenable != null) {
+                    reenable.stopLoading();
+                    reenable.setEnabled(true);
+                }
+                Toast.makeText(activity, id, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -258,6 +280,16 @@ public abstract class UI {
                 if (reenable != null)
                     reenable.setEnabled(true);
                 Toast.makeText(activity, msg, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    public static void toast(final Activity activity, final int id, final Button reenable) {
+        activity.runOnUiThread(new Runnable() {
+            public void run() {
+                if (reenable != null)
+                    reenable.setEnabled(true);
+                Toast.makeText(activity, id, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -331,6 +363,15 @@ public abstract class UI {
     }
 
     public static void disable(final View... views) { enableIf(false, views); }
+
+    public static void setText(final Activity activity, final int id, final int msgId) {
+        final TextView t = find(activity, id);
+        t.setText(msgId);
+    }
+
+    public static String getText(final View v, final int id) {
+        return getText((TextView) find(v, id));
+    }
 
     public static String getText(final TextView text) {
         return text.getText().toString();

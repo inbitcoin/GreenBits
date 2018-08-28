@@ -5,9 +5,7 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
-import android.preference.EditTextPreference;
 import android.preference.Preference;
-import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -28,8 +26,6 @@ import com.greenaddress.greenbits.ui.UI;
 import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.TwoFactorActivity;
 
-import org.bitcoinj.core.Coin;
-
 import java.math.BigDecimal;
 import java.util.concurrent.Callable;
 import java.util.HashMap;
@@ -46,6 +42,7 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
     private Map<String, String> mLocalizedMap; // 2FA method to localized description
     private Preference mLimitsPref;
     private Preference mSendNLocktimePref;
+    private Preference mTwoFactorResetPref;
 
     private CheckBoxPreference getPref(final String method) {
         return find("twoFac" + method);
@@ -104,11 +101,12 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
         setupCheckbox(twoFacConfig, "Gauth");
         setupCheckbox(twoFacConfig, "SMS");
         setupCheckbox(twoFacConfig, "Phone");
+        final boolean haveAny = mService.hasAnyTwoFactor();
 
         mLimitsPref = find("twoFacLimits");
         mLimitsPref.setOnPreferenceClickListener(this);
         // Can only set limits if at least one 2FA method is available
-        setLimitsText(mService.hasAnyTwoFactor());
+        setLimitsText(haveAny);
 
         mSendNLocktimePref = find("send_nlocktime");
         if (GaService.IS_ELEMENTS) {
@@ -120,6 +118,12 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
             mSendNLocktimePref.setEnabled(emailConfirmed);
             mSendNLocktimePref.setOnPreferenceClickListener(this);
         }
+        mTwoFactorResetPref = find("reset_twofactor");
+
+        if (haveAny)
+            mTwoFactorResetPref.setOnPreferenceClickListener(this);
+        else
+            removePreference(mTwoFactorResetPref);
     }
 
     private boolean isNlocktimeConfig(final Boolean enabled) {
@@ -214,6 +218,9 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
     }
 
     private void change2FA(final String method, final Boolean checked) {
+        if (method.equals("reset"))
+            return;
+
         getPref(method).setChecked(checked);
         if (method.equals("Email") && checked) {
             // Enable nLocktime when 2fa is enabled, but do not disable it
@@ -221,7 +228,10 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
             if (!GaService.IS_ELEMENTS)
                 getPref(NLOCKTIME_EMAILS).setEnabled(true);
         }
-        setLimitsText(checked || mService.hasAnyTwoFactor());
+        final boolean haveAny = checked || mService.hasAnyTwoFactor();
+        setLimitsText(haveAny);
+        if (!haveAny)
+            removePreference(mTwoFactorResetPref);
     }
 
     private void setLimitsText(final Boolean enabled) {
@@ -245,8 +255,7 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
     }
 
     private View inflatePinDialog(final String withMethod) {
-        final View v = getActivity().getLayoutInflater().inflate(R.layout.dialog_btchip_pin
-                , null, false);
+        final View v = UI.inflateDialog(getActivity(), R.layout.dialog_btchip_pin);
 
         final TextView promptText = UI.find(v, R.id.btchipPinPrompt);
         promptText.setText(getString(R.string.twoFacProvideConfirmationCode,
@@ -260,11 +269,13 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
             return onLimitsPreferenceClicked(preference);
         if (preference == mSendNLocktimePref)
             return onSendNLocktimeClicked(preference);
+        if (preference == mTwoFactorResetPref)
+            return onTwoFactorResetClicked();
         return false;
     }
 
     private boolean onLimitsPreferenceClicked(final Preference preference) {
-        final View v = getActivity().getLayoutInflater().inflate(R.layout.dialog_set_limits, null, false);
+        final View v = UI.inflateDialog(getActivity(), R.layout.dialog_set_limits);
         final Spinner currencySpinner = UI.find(v, R.id.set_limits_currency);
         final EditText amountEdit = UI.find(v, R.id.set_limits_amount);
 
@@ -361,7 +372,11 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
         } catch (final Exception e) {
             e.printStackTrace();
             UI.toast(getActivity(), "Failed", Toast.LENGTH_SHORT);
-            return;
         }
+    }
+
+    public boolean onTwoFactorResetClicked() {
+        prompt2FAChange("reset", true);
+        return false;
     }
 }
