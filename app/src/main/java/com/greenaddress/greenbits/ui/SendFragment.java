@@ -103,6 +103,7 @@ public class SendFragment extends SubaccountFragment {
     private TextView mMaxLabel;
     private TextView mScanIcon;
     private Button mClearAllFields;
+    private String [] mMerchantInvoiceData = null;
 
     // vendor
     private FontFitEditText amountFieldFiat;
@@ -706,6 +707,7 @@ public class SendFragment extends SubaccountFragment {
         mRadioGroupFee.setVisibility(View.INVISIBLE);
         mFeeDesc.setTextColor(getResources().getColor(R.color.secondaryTextColor));
         setDefaultFee();
+        mMerchantInvoiceData = null;
     }
 
     private Coin getSendAmount() {
@@ -943,8 +945,10 @@ public class SendFragment extends SubaccountFragment {
             amount = Coin.valueOf(output.getAmount());
             recipient =  new Script(output.getScript().toByteArray()).getToAddress(Network.NETWORK).toString();
             final String bip70memo = mPayreqDetails.getMemo();
-            if (!TextUtils.isEmpty(bip70memo))
+            if (!TextUtils.isEmpty(bip70memo)) {
                 privateData.mData.put("memo", bip70memo);
+                mMerchantInvoiceData = FormatMemo.sanitizeMemo(bip70memo);
+            }
             privateData.mData.put("social_destination", ImmutableMap.of("name", editRecipient));
             privateData.mData.put("social_destination_type", 110); // 110 = PAYMENTREQUEST
         } else {
@@ -1559,6 +1563,7 @@ public class SendFragment extends SubaccountFragment {
                                             // Bitpay process RBF txs fine but for political
                                             // reasons refuse to ack them. Ignore their failure
                                             // to ack in this case since the payment is sent.
+                                            saveMerchantInvoiceData(txAndHash.first);
                                             onTransactionSent();
                                         } else
                                             UI.toast(gaActivity, R.string.bip70_payment_failure, mSendButton);
@@ -1566,6 +1571,7 @@ public class SendFragment extends SubaccountFragment {
                                     }
                                     if (TextUtils.isEmpty(ack.getMemo())) {
                                         Log.d(TAG, "BIP70 payment OK (no memo)");
+                                        saveMerchantInvoiceData(txAndHash.first);
                                         onTransactionSent();
                                     } else {
                                         Log.d(TAG, "BIP70 payment OK: " + ack.getMemo());
@@ -1573,6 +1579,7 @@ public class SendFragment extends SubaccountFragment {
                                         CB.after(service.changeMemo(txAndHash.first, ack.getMemo(), "payreq"),
                                             new CB.Toast<Boolean>(gaActivity, mSendButton) {
                                                 public void onSuccess(final Boolean unused) {
+                                                    saveMerchantInvoiceData(txAndHash.first);
                                                     onTransactionSent();
                                                 }
                                             });
@@ -1671,5 +1678,20 @@ public class SendFragment extends SubaccountFragment {
         mShowFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[3]);
         mFeeDesc.setText(mPrioritySummaries[3]);
         mRadioGroupFee.check(R.id.btnEco);
+    }
+
+    private void saveMerchantInvoiceData(final String txHash) {
+        if (mMerchantInvoiceData != null) {
+            final String invoiceInfo = mMerchantInvoiceData[0];
+            final String paymentProcessor = mMerchantInvoiceData[1];
+            final String merchantName;
+            if (mMerchantInvoiceData.length == 3)
+                merchantName = mMerchantInvoiceData[2];
+            else
+                merchantName = null;
+            final GaService service = getGAService();
+            if (txHash != null)
+                service.saveMerchantInvoiceData(txHash, merchantName, invoiceInfo, paymentProcessor);
+        }
     }
 }
