@@ -99,8 +99,6 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
         setMenuItemVisible(mMenu, R.id.network_preferences, false);
         setMenuItemVisible(mMenu, R.id.watchonly_preference, false);
 
-        mPinLoginButton.startLoading();
-        mPinText.setEnabled(false);
         hideKeyboardFrom(mPinText);
         setEnableDoLogin(false);
 
@@ -248,10 +246,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
             // force hide keyboard
             getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
-            setEnableDoLogin(false);
         } else  {
-            //mPinText.setEnabled(false);
-            //mPinLoginButton.startLoading();
             tryDecrypt();
         }
 
@@ -505,15 +500,12 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
      * @param enable
      */
     private void setEnableDoLogin(final Boolean enable) {
-        // FIXME
-        /*
         if (enable) {
-            mPinLoginButton.setProgress(0);
+            mPinLoginButton.stopLoading();
             UI.enable(mPinText);
         } else {
-            mPinLoginButton.setProgress(50);
+            mPinLoginButton.startLoading();
             UI.disable(mPinText);
         }
-        */
     }
  }
