@@ -688,8 +688,7 @@ public class SendFragment extends SubaccountFragment {
         mPayreqDetails = null;
 
 
-        // FIXME
-        //mSendButton.setText(R.string.send);
+        mSendButton.setText(R.string.send);
 
         mFeeDescHurry.setVisibility(View.INVISIBLE);
         mCheckHurryFee.setChecked(false);
@@ -747,6 +746,7 @@ public class SendFragment extends SubaccountFragment {
         final GaService service = getGAService();
         final GaActivity gaActivity = getGaActivity();
 
+        mSendButton.setText(R.string.sendPay);
         UI.show(mBip70Progress);
         UI.disable(mRecipientEdit, mSendButton);
         UI.hide(mNoteIcon);
