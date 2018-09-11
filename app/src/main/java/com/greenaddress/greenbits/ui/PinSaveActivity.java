@@ -124,9 +124,10 @@ public class PinSaveActivity extends GaActivity {
                 final SharedPreferences prefs = mService.cfg("pin");
                 final String nativePIN = prefs.getString("native", null);
                 final int nativeVersion = prefs.getInt("nativeVersion", 1);
-                if (!TextUtils.isEmpty(nativePIN) && nativeVersion < KeyStoreAES.SAVED_PIN_VERSION) {
-                    UI.show((View)UI.find(this, R.id.warningPin));
+                if (!TextUtils.isEmpty(nativePIN)) {
                     nativeAuthCB.setChecked(true);
+                    if (nativeVersion < KeyStoreAES.SAVED_PIN_VERSION)
+                        UI.show((View)UI.find(this, R.id.warningPin));
                 }
             } catch (final RuntimeException e) {
                 // lock not set, simply don't show native options
