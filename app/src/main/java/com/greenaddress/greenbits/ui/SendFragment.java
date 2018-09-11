@@ -51,7 +51,6 @@ import com.greenaddress.greenapi.ElementsTransactionOutput;
 import com.greenaddress.greenapi.GAException;
 import com.greenaddress.greenapi.GATx;
 import com.greenaddress.greenapi.JSONMap;
-import com.greenaddress.greenapi.Network;
 import com.greenaddress.greenapi.Output;
 import com.greenaddress.greenapi.PreparedTransaction;
 import com.greenaddress.greenbits.FormatMemo;
@@ -76,6 +75,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -183,8 +183,6 @@ public class SendFragment extends SubaccountFragment {
         mFeeTargetCombo = UI.find(mView, R.id.feeTargetCombo);
 
         final RadioButton customIcon = UI.find(mView, R.id.customIcon);
-        final RadioButton instantIcon = UI.find(mView, R.id.instantIcon);
-        instantIcon.setTextColor(Color.parseColor("#46d150"));
         final RadioButton btnEco = UI.find(mView, R.id.btnEco);
         final RadioButton btnSuperEco = UI.find(mView, R.id.btnSuperEco);
         final RadioButton btnNormal= UI.find(mView, R.id.btnNormal);
@@ -276,12 +274,6 @@ public class SendFragment extends SubaccountFragment {
                         mFeeDesc.setText(mPrioritySummaries[5]);
                         mFeeDesc.setTextColor(getResources().getColor(R.color.lightRed));
                         break;
-                    case R.id.instantIcon:
-                        mFeeTargetCombo.setSelection(6);
-                        onNewFeeTargetSelected(6);
-                        mShowFeeSelector.setText(getResources().getStringArray(R.array.send_fee_target_choices_instant)[6]);
-                        mFeeDesc.setText(mPrioritySummaries[6]);
-                        break;
                 }
             }
         });
@@ -334,7 +326,7 @@ public class SendFragment extends SubaccountFragment {
         mScanIcon = UI.find(mView, R.id.sendScanIcon);
         mClearAllFields = UI.find(mView, R.id.clearAllFields);
 
-        if (mIsExchanger && GaService.IS_ELEMENTS) {
+        if (mIsExchanger && service.isElements()) {
             mRecipientEdit.setHint(R.string.send_to_address);
             UI.hide(mAmountFiatEdit);
         }
@@ -348,19 +340,19 @@ public class SendFragment extends SubaccountFragment {
         if (container.getTag(R.id.tag_bitcoin_uri) != null) {
             final String uri = ((Uri) container.getTag(R.id.tag_bitcoin_uri)).toString();
             try {
-                if (!GaService.IS_ELEMENTS)
+                if (!service.isElements())
                     processBitcoinURI(new BitcoinURI(uri), null, null);
                 else {
-                    final Pair<String, Coin> res = ConfidentialAddress.parseBitcoinURI(Network.NETWORK, uri);
+                    final Pair<String, Coin> res = ConfidentialAddress.parseBitcoinURI(service.getNetworkParameters(), uri);
                     if (res.first != null)
                         processBitcoinURI(null, res.first, res.second);
                 }
             } catch (final BitcoinURIParseException e) {
                 // bitcoinj doesn't understand the address, if its valid (e.g. bech32), use it
                 int errId = R.string.err_send_invalid_bitcoin_uri;
-                if (uri.toLowerCase().startsWith("bitcoin:")) {
+                if (uri.toLowerCase(Locale.US).startsWith("bitcoin:")) {
                     final String inner = uri.substring(8);
-                    if (service.isValidAddress(inner)) {
+                    if (service.isValidAddress(inner, service.getNetwork())) {
                         processBitcoinURIDetails(inner, null, null);
                         errId = 0;
                     }
@@ -401,7 +393,7 @@ public class SendFragment extends SubaccountFragment {
             }
         });
 
-        if (GaService.IS_ELEMENTS) {
+        if (service.isElements()) {
             UI.disable(mMaxButton); // FIXME: Sweeping not available in elements
             UI.hide(mMaxButton, mMaxLabel, mFeeTargetCombo);
         } else {
@@ -598,14 +590,11 @@ public class SendFragment extends SubaccountFragment {
     }
 
     private void populateFeeCombo() {
-        if (GaService.IS_ELEMENTS)
+        final GaService service = getGAService();
+        if (service.isElements())
             return; // FIXME: No custom fees for elements
 
-        // Make the dropdown exclude instant if not available
-        final GaService service = getGAService();
-        final boolean is2of3 = service.findSubaccountByType(mSubaccount, "2of3") != null;
-        final int id = is2of3 ? R.array.send_fee_target_choices : R.array.send_fee_target_choices_instant;
-        UI.showIf(!is2of3, UI.find(mView, R.id.instantIcon));
+        final int id = R.array.send_fee_target_choices;
         final ArrayAdapter<CharSequence> a;
         a = ArrayAdapter.createFromResource(getActivity(), id, android.R.layout.simple_spinner_item);
         a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -916,10 +905,8 @@ public class SendFragment extends SubaccountFragment {
         if (mSubaccount != 0)
             privateData.mData.put("subaccount", mSubaccount);
 
-        final UI.FEE_TARGET feeTarget = UI.FEE_TARGET_VALUES[mFeeTargetCombo.getSelectedItemPosition()];
-        if (feeTarget.equals(UI.FEE_TARGET.INSTANT))
-            privateData.mData.put("instant", true);
 
+        final UI.FEE_TARGET feeTarget = UI.FEE_TARGET_VALUES[mFeeTargetCombo.getSelectedItemPosition()];
         if (feeTarget.equals(UI.FEE_TARGET.CUSTOM) || feeTarget.equals(UI.FEE_TARGET.ECONOMY) || feeTarget.equals(UI.FEE_TARGET.SUPER_ECONOMY)) {
             final Object rbf_optin = service.getUserConfig("replace_by_fee");
             if (rbf_optin == null || !((Boolean) rbf_optin)) {
@@ -943,7 +930,7 @@ public class SendFragment extends SubaccountFragment {
             }
             final Protos.Output output = mPayreqDetails.getOutputs(0);
             amount = Coin.valueOf(output.getAmount());
-            recipient =  new Script(output.getScript().toByteArray()).getToAddress(Network.NETWORK).toString();
+            recipient =  new Script(output.getScript().toByteArray()).getToAddress(service.getNetworkParameters()).toString();
             final String bip70memo = mPayreqDetails.getMemo();
             if (!TextUtils.isEmpty(bip70memo)) {
                 privateData.mData.put("memo", bip70memo);
@@ -957,7 +944,7 @@ public class SendFragment extends SubaccountFragment {
         }
 
         final boolean sendAll = mMaxButton.isChecked();
-        final boolean validAddress = GaService.isValidAddress(recipient);
+        final boolean validAddress = GaService.isValidAddress(recipient, service.getNetwork());
         final boolean validAmount = sendAll || amount.isGreaterThan(Coin.ZERO);
 
         int messageId = 0;
@@ -978,9 +965,7 @@ public class SendFragment extends SubaccountFragment {
 
         mSendButton.startLoading();
         final int numConfs;
-        if (feeTarget.equals(UI.FEE_TARGET.INSTANT))
-            numConfs = 6; // Instant requires at least 6 confs
-        else if (Network.NETWORK == MainNetParams.get())
+        if (service.isMainnet())
             numConfs = 1; // Require 1 conf before spending on mainnet
         else
             numConfs = 0; // Allow 0 conf for networks with no real-world value
@@ -1019,7 +1004,6 @@ public class SendFragment extends SubaccountFragment {
                 }
             }
         } catch (final GAException e) {
-            gaActivity.toast(R.string.instantUnavailable, mSendButton);
             return;
         }
 
@@ -1053,7 +1037,8 @@ public class SendFragment extends SubaccountFragment {
     }
 
     Coin getFeeRate(final UI.FEE_TARGET feeTarget) throws GAException {
-        if (!GaService.IS_ELEMENTS && (feeTarget.equals(UI.FEE_TARGET.CUSTOM) || feeTarget.equals(UI.FEE_TARGET.SUPER_ECONOMY))) {
+        GaService service=getGAService();
+        if (!service.isElements() && (feeTarget.equals(UI.FEE_TARGET.CUSTOM) || feeTarget.equals(UI.FEE_TARGET.SUPER_ECONOMY))) {
             // FIXME: Custom fees for elements
             final Double feeRate = Double.valueOf(UI.getText(mFeeTargetEdit));
             return Coin.valueOf(feeRate.longValue());
@@ -1062,25 +1047,26 @@ public class SendFragment extends SubaccountFragment {
         // 1 is not possible yet as we always get 2 as the fastest estimate,
         // but try it anyway in case that improves in the future.
         final int forBlock;
-        if (GaService.IS_ELEMENTS)
+        if (service.isElements())
             forBlock = 6; // FIXME: feeTarget for elements
         else
-            forBlock = feeTarget.equals(UI.FEE_TARGET.INSTANT) ? 1 : feeTarget.getBlock();
-        return GATx.getFeeEstimate(getGAService(), feeTarget.equals(UI.FEE_TARGET.INSTANT), forBlock);
+            forBlock = feeTarget.getBlock();
+        return GATx.getFeeEstimate(getGAService(), forBlock);
     }
 
     private int createRawTransaction(final List<JSONMap> utxos, final String recipient,
                                      final Coin amount, final JSONMap privateData,
                                      final boolean sendAll, final Coin feeRate) {
+        final GaService service = getGAService();
 
-        if (GaService.IS_ELEMENTS)
+        if (service.isElements())
             return createRawElementsTransaction(utxos, recipient, amount, privateData, sendAll, feeRate);
 
         final GaActivity gaActivity = getGaActivity();
-        final GaService service = getGAService();
+
         final List<JSONMap> usedUtxos = new ArrayList<>();
 
-        final Transaction tx = new Transaction(Network.NETWORK);
+        final Transaction tx = new Transaction(service.getNetworkParameters());
 
         if (!GATx.addTxOutput(service, tx, amount, recipient))
             return R.string.invalidAddress;
@@ -1179,16 +1165,16 @@ public class SendFragment extends SubaccountFragment {
 
         final List<JSONMap> usedUtxos = new ArrayList<>();
 
-        final ElementsTransaction tx = new ElementsTransaction(Network.NETWORK);
+        final ElementsTransaction tx = new ElementsTransaction(service.getNetworkParameters());
 
-        final ElementsTransactionOutput feeOutput = new ElementsTransactionOutput(Network.NETWORK, tx, Coin.ZERO);
+        final ElementsTransactionOutput feeOutput = new ElementsTransactionOutput(service.getNetworkParameters(), tx, Coin.ZERO);
 
         feeOutput.setUnblindedAssetTagFromAssetId(service.mAssetId);
         feeOutput.setValue(Coin.valueOf(1));  // updated below, necessary for serialization for fee calculation
         tx.addOutput(feeOutput);
         TransactionOutput changeOutput = null;
 
-        tx.addOutput(service.mAssetId, amount, ConfidentialAddress.fromBase58(Network.NETWORK, recipient));
+        tx.addOutput(service.mAssetId, amount, ConfidentialAddress.fromBase58(service.getNetworkParameters(), recipient));
 
         Coin total = Coin.ZERO;
         Coin fee;
@@ -1231,7 +1217,7 @@ public class SendFragment extends SubaccountFragment {
             changeOutput = tx.addOutput(
                     service.mAssetId, Coin.ZERO,
                     ConfidentialAddress.fromP2SHHash(
-                            Network.NETWORK, Wally.hash160(script),
+                            service.getNetworkParameters(), Wally.hash160(script),
                             service.getBlindingPubKey(mSubaccount, addr.getInt("pointer"))
                     )
             );
@@ -1281,8 +1267,6 @@ public class SendFragment extends SubaccountFragment {
             } else
                 arraycpy(vbfs, numInputs + i, output.getVbf());
         }
-
-        final boolean isSegwitEnabled = service.isSegwitEnabled();
 
         // fee output:
         tx.addOutWitness(new byte[0], new byte[0], new byte[0]);
@@ -1336,7 +1320,7 @@ public class SendFragment extends SubaccountFragment {
             final byte[] inscript = GATx.createInScript(userSigs, outscript, scriptType);
 
             tx.getInput(i).setScriptSig(new Script(inscript));
-            if (isSegwitEnabled && scriptType == GATx.P2SH_P2WSH_FORTIFIED_OUT) {
+            if (scriptType == GATx.P2SH_P2WSH_FORTIFIED_OUT) {
                 final TransactionWitness witness = new TransactionWitness(1);
                 witness.setPush(0, sig);
                 tx.setWitness(i, witness);
@@ -1397,7 +1381,7 @@ public class SendFragment extends SubaccountFragment {
                 if (underLimits != null)
                     for (final String key : underLimits.mData.keySet())
                         twoFacData.put("send_raw_tx_" + key, underLimits.get(key));
-                if (GaService.IS_ELEMENTS) {
+                if (service.isElements()) {
                     underLimits.mData.remove("ephemeral_privkeys");
                     underLimits.mData.remove("blinding_pubkeys");
                 }
@@ -1418,7 +1402,7 @@ public class SendFragment extends SubaccountFragment {
         mSummaryInBtc[0] = true;
         UI.setCoinText(service, v, R.id.newTxAmountUnitText, R.id.newTxAmountText, amount);
         UI.setCoinText(service, v, R.id.newTxFeeUnit, R.id.newTxFeeText, fee);
-        if (!GaService.IS_ELEMENTS) {
+        if (!service.isElements()) {
             showFiatBtcButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(final View btn) {
@@ -1533,7 +1517,7 @@ public class SendFragment extends SubaccountFragment {
                 }
 
                 final byte[] txbin = Wally.hex_to_bytes(txAndHash.second);
-                final Transaction tx = new Transaction(Network.NETWORK, txbin);
+                final Transaction tx = new Transaction(service.getNetworkParameters(), txbin);
 
                 // Generate new address to refund
                 Futures.addCallback(service.getNewAddress(service.getCurrentSubAccount(), null),
@@ -1541,7 +1525,7 @@ public class SendFragment extends SubaccountFragment {
                     @Override
                     public void onSuccess(final String refundAddr) {
                         try {
-                            final Address address = Address.fromBase58(Network.NETWORK, refundAddr);
+                            final Address address = Address.fromBase58(service.getNetworkParameters(), refundAddr);
                             final String memo = privateData.getString("memo");
                             final ListenableFuture<PaymentProtocol.Ack> sendAckFn =
                                     service.sendPayment(sendSession, ImmutableList.of(tx), address, memo);
@@ -1646,7 +1630,7 @@ public class SendFragment extends SubaccountFragment {
 
                 UI.clear(mAmountEdit, mRecipientEdit);
                 UI.enable(mAmountEdit, mRecipientEdit);
-                if (!GaService.IS_ELEMENTS) {
+                if (!getGAService().isElements()) {
                     mMaxButton.setChecked(false);
                     UI.show(mMaxButton, mMaxLabel);
                 }

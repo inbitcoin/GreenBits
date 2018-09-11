@@ -35,6 +35,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.greenaddress.greenapi.LoginData;
 import com.greenaddress.greenapi.LoginFailed;
+import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.wallets.BTChipHWWallet;
 import com.greenaddress.greenbits.wallets.TrezorHWWallet;
 import com.satoshilabs.trezor.Trezor;
@@ -43,6 +44,7 @@ import com.satoshilabs.trezor.TrezorGUICallback;
 import org.bitcoinj.crypto.DeterministicKey;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
@@ -55,9 +57,10 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
     private static final String TAG = RequestLoginActivity.class.getSimpleName();
     private static final byte DUMMY_COMMAND[] = { (byte)0xE0, (byte)0xC4, (byte)0x00, (byte)0x00, (byte)0x00 };
 
-    private static final int VENDOR_BTCHIP = 0x2581;
-    private static final int VENDOR_LEDGER = 0x2c97;
-    private static final int VENDOR_TREZOR = 0x534c;
+    private static final int VENDOR_BTCHIP    = 0x2581;
+    private static final int VENDOR_LEDGER    = 0x2c97;
+    private static final int VENDOR_TREZOR    = 0x534c;
+    private static final int VENDOR_TREZOR_V2 = 0x1209;
 
     private UsbManager mUsbManager;
     private UsbDevice mUsb;
@@ -87,7 +90,11 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
 
         final Intent intent = getIntent();
         if (intent != null && ACTION_USB_ATTACHED.equalsIgnoreCase(intent.getAction())) {
-            // A new USB device was plugged in and the app wasn't running
+            // A new USB device was plugged in
+            if (!mService.isConnected()) {
+                // The user previously manually logged out, connect again
+                mService.onConnectionClosed(GaService.LOGOFF_BY_USER_RECONNECT);
+            }
             onUsbAttach((UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE));
         }
     }
@@ -111,7 +118,7 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
         mVendorId = usb.getVendorId();
         Log.d(TAG, "Vendor: " + mVendorId + " Product: " + usb.getProductId());
 
-        if (mVendorId == VENDOR_TREZOR) {
+        if (mVendorId == VENDOR_TREZOR || mVendorId == VENDOR_TREZOR_V2) {
             onTrezor();
         } else if (mVendorId == VENDOR_BTCHIP || mVendorId == VENDOR_LEDGER) {
             if (BTChipTransportAndroid.isLedgerWithScreen(usb)) {
@@ -151,7 +158,7 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
                             buttons[i].setOnClickListener(new View.OnClickListener() {
                                 @Override
                                 public void onClick(final View v) {
-                                    pinValue.setText(UI.getText(pinValue) + (ii + 1));
+                                    pinValue.setText(String.format(Locale.US, "%s%d", UI.getText(pinValue), (ii + 1)));
                                     pinValue.setSelection(UI.getText(pinValue).length());
                                 }
                             });
@@ -198,17 +205,22 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
                     return "";
                 }
             }
-        });
+        }, mService.getNetwork());
 
         if (t == null)
             return false;
 
         final List<Integer> version = t.getFirmwareVersion();
         boolean isFirmwareOutdated = false;
-        if (t.getVendorId() == VENDOR_TREZOR) {
+        final int vendorId = t.getVendorId();
+        if (vendorId == VENDOR_TREZOR) {
             isFirmwareOutdated = version.get(0) < 1 ||
                                  (version.get(0) == 1 && version.get(1) < 6) ||
                                  (version.get(0) == 1 && version.get(1) == 6 && version.get(2) < 0);
+        } else if (vendorId == VENDOR_TREZOR_V2) {
+            isFirmwareOutdated = version.get(0) < 2 ||
+                                 (version.get(0) == 2 && version.get(1) < 0) ||
+                                 (version.get(0) == 2 && version.get(1) == 0 && version.get(2) < 7);
         }
 
         if (!isFirmwareOutdated) {
@@ -222,7 +234,7 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
     }
 
     private void onTrezorConnected(final Trezor t) {
-        final TrezorHWWallet trezor = new TrezorHWWallet(t);
+        final TrezorHWWallet trezor = new TrezorHWWallet(t, mService.getNetwork());
 
         Futures.addCallback(Futures.transformAsync(mService.onConnected, new AsyncFunction<Void, LoginData>() {
             @Override
@@ -364,9 +376,9 @@ public class RequestLoginActivity extends LoginActivity implements OnDiscoveredT
         final boolean havePin = !TextUtils.isEmpty(pin);
         Log.d(TAG, "Creating HW wallet" + (havePin ? " with PIN" : ""));
         if (havePin)
-            mHwWallet = new BTChipHWWallet(transport, pin, pinCB);
+            mHwWallet = new BTChipHWWallet(transport, pin, pinCB, mService.getNetwork());
         else
-            mHwWallet = new BTChipHWWallet(transport);
+            mHwWallet = new BTChipHWWallet(transport, mService.getNetwork());
 
         // Try to log in once we are connected
         Futures.addCallback(Futures.transformAsync(mService.onConnected, new AsyncFunction<Void, LoginData>() {

@@ -20,53 +20,53 @@
 
         <Button
             android:id="@+id/trezorPinButton1"
-            android:text="\?" />
+            android:text="@string/questionMark" />
 
         <Button
             android:id="@+id/trezorPinButton2"
-            android:text="\?" />
+            android:text="@string/questionMark" />
 
         <Button
             android:id="@+id/trezorPinButton3"
-            android:text="\?" />
+            android:text="@string/questionMark" />
 
         <Button
             android:id="@+id/trezorPinButton4"
-            android:text="\?" />
+            android:text="@string/questionMark" />
 
         <Button
             android:id="@+id/trezorPinButton5"
-            android:text="\?" />
+            android:text="@string/questionMark" />
 
         <Button
             android:id="@+id/trezorPinButton6"
-            android:text="\?" />
+            android:text="@string/questionMark" />
 
         <Button
             android:id="@+id/trezorPinButton7"
-            android:text="\?" />
+            android:text="@string/questionMark" />
 
         <Button
             android:id="@+id/trezorPinButton8"
-            android:text="\?" />
+            android:text="@string/questionMark" />
 
         <Button
             android:id="@+id/trezorPinButton9"
-            android:text="\?" />
+            android:text="@string/questionMark" />
 
     </GridLayout>
 
     <android.support.design.widget.TextInputLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:passwordToggleEnabled="true">
+        app:passwordToggleEnabled="false">
 
         <android.support.design.widget.TextInputEditText
             android:id="@+id/trezorPinValue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:inputType="numberPassword"
-            android:editable="false"  />
+            android:importantForAccessibility="no" />
     </android.support.design.widget.TextInputLayout>
 
 </LinearLayout>

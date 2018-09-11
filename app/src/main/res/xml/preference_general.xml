@@ -53,9 +53,4 @@
         android:inputType="numberDecimal"
         android:hint="@string/enter_satoshi_per_kb" />
 
-    <Preference
-        android:key="toggle_segwit"
-        android:title="@string/segwit_disable"
-        android:enabled="false" />
-
 </PreferenceScreen>

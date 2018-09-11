@@ -82,8 +82,8 @@ public class CircularButton extends CardView {
         });
 
         // set background color animations
-        mBackgroundColor = typedArray.getColor(R.styleable.CardView_cardBackgroundColor,
-                Color.WHITE);
+        mBackgroundColor = typedArray.getColorStateList(R.styleable.CardView_cardBackgroundColor)
+                .getDefaultColor();
         mLinearLayout.setBackgroundColor(mBackgroundColor);
         final ColorDrawable[] color1 = {new ColorDrawable(mBackgroundColor),
                 new ColorDrawable(Color.WHITE)};
@@ -99,6 +99,7 @@ public class CircularButton extends CardView {
                     mBackgroundColor, PorterDuff.Mode.SRC_IN);
         }
 
+        typedArray.recycle();
         mLinearLayout.addView(mButton);
         mLinearLayout.addView(mProgressBar);
         addView(mLinearLayout);

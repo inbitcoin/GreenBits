@@ -67,6 +67,7 @@ import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.WrongNetworkException;
 import org.bitcoinj.crypto.DeterministicKey;
+import org.bitcoinj.script.Script;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -79,27 +80,35 @@ import java.util.List;
 public class Trezor {
 
     private static final String TAG = Trezor.class.getSimpleName();
-    private static final NetworkParameters NETWORK = Network.NETWORK;
 
     private final int mVendorId;
     private final UsbDeviceConnection mConn;
     private final String mSerial;
     private final UsbEndpoint mReadEndpoint, mWriteEndpoint;
     private final TrezorGUICallback mGuiFn;
+    private final Network mNetwork;
+    private final NetworkParameters mNetworkParameters;
 
     private PreparedTransaction mTx;
     private org.bitcoinj.core.Address mChangeAddress;
     private HDNodeType mGAKey, mUserKey, mBackupKey;
     private final ArrayList<String> mSignatures = new ArrayList<>();
 
-    public static Trezor getDevice(final Context context, final TrezorGUICallback guiFn) {
+
+    public static Trezor getDevice(final Context context, final TrezorGUICallback guiFn,
+                                   final Network network) {
         final UsbManager manager = (UsbManager)context.getSystemService(Context.USB_SERVICE);
 
         for (final UsbDevice device: manager.getDeviceList().values()) {
             // Check if the device is TREZOR (or AvalonWallet or BWALLET)
 
-            if ((device.getVendorId() != 0x534c || device.getProductId() != 0x0001) &&
-                    (device.getVendorId() != 0x10c4 || device.getProductId() != 0xea80)) {
+            final int vendorId = device.getVendorId();
+            final int productId = device.getProductId();
+
+            if ((vendorId != 0x534c || productId != 0x0001) &&
+                (vendorId != 0x1209 || productId != 0x53c0) &&
+                (vendorId != 0x1209 || productId != 0x53c1) &&
+                (vendorId != 0x10c4 || productId != 0xea80)) {
                 continue;
             }
 
@@ -145,7 +154,7 @@ public class Trezor {
             }
 
             // All OK - return the class
-            return new Trezor(guiFn, device, conn, readEndpoint, writeEndpoint);
+            return new Trezor(guiFn, device, conn, readEndpoint, writeEndpoint, network);
         }
         return null;
     }
@@ -159,13 +168,16 @@ public class Trezor {
 
     private Trezor(final TrezorGUICallback guiFn, final UsbDevice device,
                    final UsbDeviceConnection conn,
-                   final UsbEndpoint readEndpoint, final UsbEndpoint writeEndpoint) {
+                   final UsbEndpoint readEndpoint, final UsbEndpoint writeEndpoint,
+                   final Network network) {
         mGuiFn = guiFn;
         mVendorId = device.getVendorId();
         mConn = conn;
         mReadEndpoint = readEndpoint;
         mWriteEndpoint = writeEndpoint;
         mSerial = mConn.getSerial();
+        mNetwork = network;
+        mNetworkParameters = network.getNetworkParameters();
     }
 
     @Override
@@ -347,8 +359,8 @@ public class Trezor {
         case "Success":
             return ((Success) resp).hasMessage() ? ((Success) resp).getMessage() : "";
         case "Failure":
-            Log.e(TAG, "Failure response");
-            throw new IllegalStateException();
+            Log.e(TAG, "Failure response: " + ((Failure) resp).getCode().toString());
+            throw new IllegalStateException(((Failure) resp).getCode().toString());
         /* User can catch ButtonRequest to Cancel by not calling _get */
         case "ButtonRequest":
             return io(ButtonAck.newBuilder());
@@ -429,21 +441,31 @@ public class Trezor {
         final TxOutputType.Builder txout;
         txout = TxOutputType.newBuilder().setAmount(txOut.getValue().longValue());
 
-        if (!txOut.getScriptPubKey().isPayToScriptHash()) {
+        final Script.ScriptType scriptType = txOut.getScriptPubKey().getScriptType();
+        if (scriptType == Script.ScriptType.P2PKH) {
             // p2pkh output
-            return txout.setAddress(txOut.getAddressFromP2PKHScript(NETWORK).toString())
+            return txout.setAddress(txOut.getAddressFromP2PKHScript(mNetworkParameters).toString())
                         .setScriptType(OutputScriptType.PAYTOADDRESS);
         }
 
-        // p2sh
-        if (getChangePointer() == null ||
-                !txOut.getAddressFromP2SH(NETWORK).equals(mChangeAddress)) {
-            // p2sh non-change output
-            return txout.setScriptType(OutputScriptType.PAYTOSCRIPTHASH)
-                        .setAddress(txOut.getAddressFromP2SH(NETWORK).toString());
+        if (scriptType == Script.ScriptType.P2WPKH || scriptType == Script.ScriptType.P2WSH) {
+            // Native segwit (bech32) p2wpkh or p2wsh non-change output
+            final byte[] script = txOut.getScriptPubKey().getProgram();
+            final String bech32Prefix = GaService.getBech32Prefix(mNetworkParameters);
+            // Trezor does not recognise the regtest prefix, use testnet instead
+            final String prefix = bech32Prefix.equals("brct") ? "tb" : bech32Prefix;
+            return txout.setScriptType(OutputScriptType.PAYTOWITNESS)
+                        .setAddress(Wally.addr_segwit_from_bytes(script, prefix, 0));
         }
 
-        Log.d(TAG, "Matched change address: " + txOut.getAddressFromP2SH(NETWORK).toString());
+        if (getChangePointer() == null ||
+            !txOut.getAddressFromP2SH(mNetworkParameters).equals(mChangeAddress)) {
+            // p2sh non-change output
+            return txout.setScriptType(OutputScriptType.PAYTOSCRIPTHASH)
+                        .setAddress(txOut.getAddressFromP2SH(mNetworkParameters).toString());
+        }
+
+        Log.d(TAG, "Matched change address: " + txOut.getAddressFromP2SH(mNetworkParameters).toString());
         if (mTx.mChangeOutput.mIsSegwit) {
             // p2sh-p2wsh change output
             txout.setScriptType(OutputScriptType.PAYTOP2SHWITNESS);
@@ -514,8 +536,7 @@ public class Trezor {
 
     public List<byte[]> signTransaction(final PreparedTransaction ptx, final String coinName) {
         mTx = ptx;
-
-        mGAKey = makeHDKey(HDKey.getGAPublicKeys(ptx.mSubAccount, null)[0]);
+        mGAKey = makeHDKey(HDKey.getGAPublicKeys(ptx.mSubAccount, null, mNetwork)[0]);
 
         mBackupKey = null;
         if (ptx.mTwoOfThreeBackupChaincode != null)
@@ -526,11 +547,11 @@ public class Trezor {
         if (getChangePointer() != null) {
             byte[] script = GaService.createOutScript(ptx.mSubAccount, getChangePointer(),
                                                       ptx.mTwoOfThreeBackupPubkey,
-                                                      ptx.mTwoOfThreeBackupChaincode);
+                                                      ptx.mTwoOfThreeBackupChaincode, mNetwork);
             try {
                 if (mTx.mChangeOutput.mIsSegwit)
                     script = GaService.getSegWitScript(script);
-                mChangeAddress = new org.bitcoinj.core.Address(NETWORK, NETWORK.getP2SHHeader(),
+                mChangeAddress = new org.bitcoinj.core.Address(mNetworkParameters, mNetworkParameters.getP2SHHeader(),
                                                                Wally.hash160(script));
                 Log.d(TAG, "Change address: " + mChangeAddress.toString());
             } catch (final WrongNetworkException e) {

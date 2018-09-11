@@ -9,6 +9,7 @@ import com.greenaddress.greenbits.ui.BuildConfig;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
@@ -30,17 +31,19 @@ public class SWWallet extends ISigningWallet {
 
     private final DeterministicKey mRootKey;
 
-    public SWWallet(final String mnemonic) {
+    public SWWallet(final String mnemonic, final Network network) {
         final byte[] seed = CryptoHelper.mnemonic_to_seed(mnemonic);
         mRootKey = HDKey.createMasterKeyFromSeed(seed);
+        mNetwork = network;
     }
 
-    public SWWallet(final DeterministicKey key) {
+    public SWWallet(final DeterministicKey key, final Network network) {
         mRootKey = key;
+        mNetwork = network;
     }
 
     protected SWWallet derive(final Integer childNumber) {
-        return new SWWallet(HDKey.deriveChildKey(mRootKey, childNumber));
+        return new SWWallet(HDKey.deriveChildKey(mRootKey, childNumber), mNetwork);
     }
 
     public DeterministicKey getSubAccountPublicKey(final int subAccount) {
@@ -76,7 +79,11 @@ public class SWWallet extends ISigningWallet {
 
     @Override
     public Object[] getChallengeArguments() {
-        final Address addr = new Address(Network.NETWORK, mRootKey.getIdentifier());
+        return getChallengeArguments(mNetwork.getNetworkParameters());
+    }
+
+    public Object[] getChallengeArguments(final NetworkParameters params) {
+        final Address addr = new Address(params, mRootKey.getIdentifier());
         return new Object[]{ "login.get_challenge", addr.toString() };
     }
 

@@ -115,6 +115,7 @@ public class PinSaveActivity extends GaActivity {
     @Override
     protected void onCreateWithService(final Bundle savedInstanceState) {
 
+        setAppNameTitle();
         mPinText = UI.find(this, R.id.pinSaveText);
         nativeAuthCB = UI.find(this, R.id.useNativeAuthentication);
 

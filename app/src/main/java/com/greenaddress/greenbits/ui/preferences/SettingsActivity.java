@@ -1,11 +1,10 @@
 package com.greenaddress.greenbits.ui.preferences;
 import com.greenaddress.greenapi.CryptoHelper;
-import com.greenaddress.greenbits.GaService;
+import com.greenaddress.greenbits.GreenAddressApplication;
 import com.greenaddress.greenbits.NfcWriteMnemonic;
 import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.SignUpActivity;
 import com.greenaddress.greenbits.ui.UI;
-
 import android.annotation.TargetApi;
 import android.app.PendingIntent;
 import android.content.Intent;
@@ -27,7 +26,7 @@ public class SettingsActivity extends GaPreferenceActivity {
     @Override
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public void onBuildHeaders(final List<Header> target) {
-        if (GaService.IS_ELEMENTS)
+        if (getGAApp().mService.isElements())
             loadHeadersFromResource(R.xml.pref_headers_elements, target);
         else
             loadHeadersFromResource(R.xml.pref_headers, target);

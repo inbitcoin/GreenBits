@@ -14,6 +14,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.content.FileProvider;
 import android.text.Editable;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Surface;
 import android.view.View;
@@ -52,6 +53,8 @@ import java.util.Locale;
 import java.util.Map;
 
 public abstract class UI {
+    private static final String TAG = UI.class.getSimpleName();
+
     public static final int INVALID_RESOURCE_ID = 0;
     public static final ArrayList<String> UNITS = Lists.newArrayList("BTC", "mBTC", "\u00B5BTC", "bits");
     public enum FEE_TARGET {
@@ -60,8 +63,7 @@ public abstract class UI {
         LOW(12),
         ECONOMY(24),
         CUSTOM(-1),
-        SUPER_ECONOMY(-3),
-        INSTANT(-2);
+        SUPER_ECONOMY(-3);
         private final int mBlock;
         FEE_TARGET(int block) { mBlock = block; }
         public int getBlock() { return mBlock; }
@@ -224,25 +226,32 @@ public abstract class UI {
         return popup(a, title, id).progress(true, 0);
     }
 
-    public static void toast(final Activity activity, final int id, final int len) {
+    public static void toast(final Activity activity, final String msg, final Button reenable, final int len) {
         activity.runOnUiThread(new Runnable() {
             public void run() {
-                Toast.makeText(activity, id, len).show();
+                if (reenable != null)
+                    reenable.setEnabled(true);
+                Log.d(TAG, "Toast: " + msg);
+                Toast.makeText(activity, msg, len).show();
             }
         });
     }
 
-    public static void toast(final Activity activity, final String s, final int len) {
-        activity.runOnUiThread(new Runnable() {
-            public void run() {
-                Toast.makeText(activity, s, len).show();
-            }
-        });
+    public static void toast(final Activity activity, final int id, final Button reenable) {
+        toast(activity, activity.getString(id), reenable);
+    }
+
+    public static void toast(final Activity activity, final String msg, final Button reenable) {
+        toast(activity, msg, reenable, Toast.LENGTH_LONG);
     }
 
     public static void toast(final Activity activity, final Throwable t, final Button reenable) {
         t.printStackTrace();
-        toast(activity, t.getMessage(), reenable);
+        toast(activity, t.getMessage(), reenable, Toast.LENGTH_LONG);
+    }
+
+    public static void toast(final Activity activity, final int id, final int len) {
+        toast(activity, activity.getString(id), null, len);
     }
 
     public static void toast(final Activity activity, final Throwable t, final CircularButton reenable) {
@@ -274,24 +283,8 @@ public abstract class UI {
         });
     }
 
-    public static void toast(final Activity activity, final String msg, final Button reenable) {
-        activity.runOnUiThread(new Runnable() {
-            public void run() {
-                if (reenable != null)
-                    reenable.setEnabled(true);
-                Toast.makeText(activity, msg, Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-
-    public static void toast(final Activity activity, final int id, final Button reenable) {
-        activity.runOnUiThread(new Runnable() {
-            public void run() {
-                if (reenable != null)
-                    reenable.setEnabled(true);
-                Toast.makeText(activity, id, Toast.LENGTH_LONG).show();
-            }
-        });
+    public static void toast(final Activity activity, final String s, final int len) {
+        toast(activity, s, null, len);
     }
 
     // Dummy TextWatcher for simple overrides
@@ -452,7 +445,7 @@ public abstract class UI {
                                      final TextView amount, final Coin value) {
         if (symbol != null) {
             symbol.setAwesomeTypeface();
-            if (GaService.IS_ELEMENTS)
+            if (service.isElements())
                 symbol.setText(service.getAssetSymbol());
             else
                 symbol.setText(getUnitSymbol(service));

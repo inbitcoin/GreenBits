@@ -27,7 +27,7 @@
             <android.support.v7.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
+                android:layout_height="?android:attr/actionBarSize"
                 app:popupTheme="@style/AppTheme.PopupOverlay">
 
             </android.support.v7.widget.Toolbar>
@@ -82,10 +82,10 @@
                     android:gravity="bottom"
 
                     android:hint="@string/mnemonicHint"
-                    android:imeActionId="2"
-                    android:imeActionLabel="Login"
+                    android:imeActionLabel="@android:string/ok"
                     android:imeOptions="actionGo"
                     android:inputType="textMultiLine|textVisiblePassword"
+                    android:importantForAccessibility="no"
                     android:minLines="2"
                     android:digits="abcdefghijklmnopqrstuvwxyz "
                     android:text=""

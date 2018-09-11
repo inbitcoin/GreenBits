@@ -37,6 +37,7 @@
         android:layout_marginTop="4dp"
         android:inputType="textPassword"
         android:textColor="@color/secondaryTextColor" />
+        android:importantForAccessibility="no"
 
 
 </LinearLayout>

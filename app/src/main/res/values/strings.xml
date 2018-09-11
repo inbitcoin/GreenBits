@@ -110,6 +110,11 @@
         <item>I want to believe</item>
         <item>GreenAddress Instant</item>
     </string-array>
+    <string-array name="available_networks">
+        <item>Bitcoin</item>
+        <item>Testnet</item>
+        <item>GreenAddress Instant</item>
+    </string-array>
 
     <string name="custom_requires_rbf">Custom fees require transaction replacement functionality to be enabled.</string>
     <string name="default_custom_feerate">Default custom feerate</string>
@@ -144,6 +149,7 @@
     <string name="txTypeOut">Sent</string>
     <string name="txTypeRedeposit">Redeposited</string>
     <string name="mnemonicHint">Type your mnemonic phrase or scan its QR Code</string>
+    <string name="mnemonicQrCode">GreenAddress Mnemonics QrCode</string>
     <string name="title_activity_settings">Settings</string>
     <string name="ago">%1$d %2$s ago</string>
     <string name="txSubTitle">Transaction details</string>
@@ -238,6 +244,7 @@
     <string name="newAddress">New</string>
     <string name="copyAddress">Copy</string>
     <string name="txReceivedOn">Received on</string>
+    <string name="twoFacGauthQrCode">Google Authenticator QrCode</string>
     <string name="twoFacGauthTextCode">Or you can use the following code (touch to copy) : %1$s. Remember to back it up!</string>
     <string name="trustedspv">Only connect to trusted node[s] for SPV</string>
     <string name="trustedspvExample">Example: 8.90.14.2:8333,40.116.12.85:8333</string>
@@ -269,7 +276,6 @@
     <string name="oldFeeText">Old Fee:</string>
     <string name="feeIncreaseTitle">Fee increase</string>
     <string name="insufficientFundsText">Insufficient funds</string>
-    <string name="instantUnavailable">Instant transactions are not available at this time. Please try again later.</string>
     <string name="app_version">Version %1$s %2$s</string>
     <string name="invalidWord">\'%1$s\' is an invalid word, do you want it corrected to %2$s?</string>
     <string name="app_description">GreenAddress Logo</string>
@@ -393,10 +399,6 @@
     <string name="commissionOnTheSale">Commission on the sale</string>
     <string name="total">Total</string>
     <string name="sellBitcoin">Sell bitcoin</string>
-    <string name="segwit_dialog_title">Account updated</string>
-    <string name="segwit_dialog_content">Your account has been automatically updated to enable segregated witness. You can disable this upgrade in settings only until you generate the next address to receive funds.</string>
-    <string name="segwit_disable">Disable Segwit</string>
-    <string name="segwit_enable">Enable Segwit</string>
     <string name="sellTo">Sell to</string>
     <string name="exchanger">Exchange Calculator</string>
     <string name="exchangerSellTitle">Sell</string>
@@ -438,7 +440,7 @@
     <string name="bip70_payment_failure">Payment failure</string>
     <string name="bip70_invalid_pki">Impossible to verify the service "%s". Continue anyway?</string>
     <string name="sign_ack_hw">Please sign the message acknowledgement on your hardware wallet</string>
-    <string name="signing_ack">Signing acknowledgement reply, please wait...</string>
+    <string name="signing_ack">Signing acknowledgement reply, please wait&#8230;</string>
     <string name="unacked_system_messages">You have unacknowledged system messages. Please log in again to view them.</string>
     <string name="unacked_system_messages_wo">You have unacknowledged system messages. Please use a full control login to view them.</string>
     <string name="important_message">Important Message</string>
@@ -456,6 +458,34 @@
     <string name="twofactor_reset_disputed_banner">WARNING: Wallet locked by two factor dispute. Contact support for more information.</string>
     <string name="twofactor_reset_complete">Reset successful, your wallet is now locked.</string>
     <string name="twofactor_reset_cancelled">Reset cancelled, your wallet is now unlocked.</string>
+    <string name="select_network">Select network</string>
+    <string name="choose_and_default">Choose and don\'t ask me again</string>
+    <string name="network_cant_connect">Can\'t connect to this URL</string>
+    <string name="network_config_invalid">Invalid network configuration</string>
+    <string name="network_invalid_url">Invalid URL</string>
+    <string name="network_select_bitcoin_by_def">One network must be selected. Selecting Bitcoin by default</string>
+    <string name="network_already_present">Custom network with this name already present</string>
+    <string name="network_added">Custom network added, enable it in the network selector chooser</string>
+    <string name="network_cant_remove">Custom network not found</string>
+    <string name="network_disable_before_remove">Cannot remove enabled network, please disable first</string>
+    <string name="network_customs_enable">Enable custom networks debug options</string>
+    <string name="network_by_url">Add custom network by URL</string>
+    <string name="network_by_qr">Add custom network by QR code</string>
+    <string name="network_remove">Remove custom network</string>
+    <string name="nfcTagsWritten">NFC TAGs Written:</string>
+    <string name="nfcTagOptionalPassword">Optional password</string>
+    <string name="nfcLogo">NFC Logo</string>
+    <string name="amount">amount</string>
+    <string name="bitcoinAddressQrcode">Bitcoin address QrCode</string>
+    <string name="share">Share</string>
+
+    <string name="zero" translatable="false">0</string>
+    <string name="zeroDecimal" translatable="false">0.00</string>
+    <string name="questionMark" translatable="false">\?</string>
+    <string name="nfcTagDefault" translatable="false">0</string>
+    <string name="one" translatable="false">1</string>
+    <string name="doubleNewLine" translatable="false">\\n\\n</string>
+    <string name="default123" translatable="false">123</string>
     <string name="sweep_wait_message">This operation may take several seconds…</string>
     <string name="sweep_are_you_sure">Are you sure you want to sweep <b>all</b> funds (%s) from the address below?</string>
     <string name="sweep_bip38_are_you_sure">Are you sure you want to sweep <b>all</b> funds from the password protected BIP38 key below?</string>

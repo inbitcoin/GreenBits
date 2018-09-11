@@ -212,6 +212,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
     protected void onCreateWithService(final Bundle savedInstanceState) {
 
         final SharedPreferences prefs = mService.cfg("pin");
+
         final String ident = prefs.getString("ident", null);
 
         if (ident == null) {
@@ -306,14 +307,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
             Futures.addCallback(mService.onConnected, new FutureCallback<Void>() {
                 @Override
                 public void onSuccess(final Void result) {
-
-                    if (mService.isConnected()) {
-                        setUpLogin(pin, null);
-                        return;
-                    }
-
-                    // try again
-                    tryDecrypt();
+                    setUpLogin(pin, null);
                 }
 
                 @Override
@@ -371,6 +365,10 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
     @Override
     public void onResumeWithService() {
         mService.addConnectionObserver(this);
+        setAppNameTitle();
+        if (!checkPinExist(true))
+            chooseNetworkIfMany(true);
+
         // if is already connected, show the login button
         if ((TextUtils.isEmpty(nativePIN) || mErrorAuthScreen) && mPinLoginButton != null) {
             if (mService.isLoggedOrLoggingIn()) {

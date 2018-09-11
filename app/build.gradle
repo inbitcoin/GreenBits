@@ -69,18 +69,15 @@ android {
     }
     splits {
         abi {
-            enable true
+            enable false
             reset()
             include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
             universalApk true
         }
     }
-    project.ext.versionCodes = ['armeabi-v7a': 2, 'arm64-v8a': 3, 'x86': 8, 'x86_64': 9]
     applicationVariants.all { variant ->
         variant.outputs.each { output ->
-            output.versionCodeOverride =
-                    variant.mergedFlavor.minSdkVersion.apiLevel * 1000000 + project.ext.versionCodes.get(output.getFilter(
-                            com.android.build.OutputFile.ABI), 0) * 10000 + android.defaultConfig.versionCode
+            output.versionCodeOverride = 22000000 + android.defaultConfig.versionCode
         }
     }
     productFlavors {
@@ -88,42 +85,6 @@ android {
         }
         production_21 {
             minSdkVersion 21
-        }
-        btctestnet {
-            applicationId 'it.inbitcoin.altana.test.testnet'
-            versionName String.format("%s_testnet", defaultConfig.getProperty("versionName"))
-        }
-        btctestnet_21 {
-            minSdkVersion 21
-            applicationId 'it.inbitcoin.altana.test.testnet'
-            versionName String.format("%s_testnet", defaultConfig.getProperty("versionName"))
-        }
-        publicregtest {
-            applicationId "it.inbitcoin.altana.publicregtest"
-            versionName String.format("%s_publicregtest", defaultConfig.getProperty("versionName"))
-        }
-        publicregtest_21 {
-            minSdkVersion 21
-            applicationId "it.inbitcoin.altana.publicregtest"
-            versionName String.format("%s_publicregtest", defaultConfig.getProperty("versionName"))
-        }
-        regtest {
-            applicationId 'it.inbitcoin.altana.regtest'
-            versionName String.format("%s_regtest", defaultConfig.getProperty("versionName"))
-        }
-        regtest_21 {
-            minSdkVersion 21
-            applicationId 'it.inbitcoin.altana.regtest'
-            versionName String.format("%s_regtest", defaultConfig.getProperty("versionName"))
-        }
-        elementsregtest {
-            applicationId 'it.inbitcoin.altana.elementsregtest'
-            versionName String.format("%s_elementsregtest", defaultConfig.getProperty("versionName"))
-        }
-        elementsregtest_21 {
-            minSdkVersion 21
-            applicationId 'it.inbitcoin.altana.elementsregtest'
-            versionName String.format("%s_elementsregtest", defaultConfig.getProperty("versionName"))
         }
     }
 
@@ -133,39 +94,10 @@ android {
             assets { srcDir 'src/production/assets' }
             res { srcDir 'altana-android-res/production/res' }
         }
-        btctestnet_21 {
-            java { srcDir 'src/btctestnet/java' }
-            assets { srcDir 'src/btctestnet/assets' }
-            res { srcDirs = [ 'src/btctestnet/res', 'altana-android-res/btctestnet/res' ]}
-        }
-        publicregtest_21 {
-            java { srcDir 'src/publicregtest/java' }
-            assets { srcDir 'src/publicregtest/assets' }
-            res { srcDir 'src/publicregtest/res' }
-        }
-        regtest_21 {
-            java { srcDir 'src/regtest/java' }
-            assets { srcDir 'src/regtest/assets' }
-            res { srcDir 'src/regtest/res' }
-        }
-        elementsregtest_21 {
-            java { srcDir 'src/elementsregtest/java' }
-            assets { srcDir 'src/elementsregtest/assets' }
-            res { srcDirs = [ 'src/elementsregtest/res', 'altana-android-res/alpha/res' ]}
-        }
         production {
             res { srcDir 'altana-android-res/production/res' }
         }
-        btctestnet {
-            res { srcDirs = [ 'src/btctestnet/res', 'altana-android-res/btctestnet/res' ]}
-        }
-        publicregtest {
-            res { srcDir 'src/publicregtest/res' }
-        }
-        regtest {
-            res { srcDir 'src/regtest/res' }
-        }
-    }
+     }
 
     dexOptions {
         maxProcessCount 2
@@ -176,6 +108,8 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
     lintOptions {
+        abortOnError true
+        ignoreWarnings false
         disable 'MissingTranslation'
         abortOnError false
     }

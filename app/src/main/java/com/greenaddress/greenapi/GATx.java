@@ -6,6 +6,7 @@ import com.greenaddress.greenbits.GaService;
 
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOptions;
@@ -29,9 +30,10 @@ import java.util.TreeSet;
 
 import android.util.Log;
 
+
 public class GATx {
 
-    private static final String TAG = GaService.class.getSimpleName();
+    private static final String TAG = GATx.class.getSimpleName();
     private static final int SIG_LEN = 73; // Average signature length
     private static final List<byte[]> EMPTY_SIGS = ImmutableList.of(new byte[SIG_LEN], new byte[SIG_LEN]);
     private static final byte[] EMPTY_WITNESS_DATA = new byte[0];
@@ -103,8 +105,8 @@ public class GATx {
         final byte[] outscript = createOutScript(service, ep);
         final byte[] inscript = createInScript(EMPTY_SIGS, outscript, scriptType);
         final TransactionOutPoint op;
-        op = new TransactionOutPoint(Network.NETWORK, ep.getInt("pt_idx"), ep.getHash("txhash"));
-        final TransactionInput in = new TransactionInput(Network.NETWORK, null, inscript, op, ep.getCoin("value"));
+        op = new TransactionOutPoint(service.getNetworkParameters(), ep.getInt("pt_idx"), ep.getHash("txhash"));
+        final TransactionInput in = new TransactionInput(service.getNetworkParameters(), null, inscript, op, ep.getCoin("value"));
         TransactionWitness witness = null;
         if (getOutScriptType(scriptType) == P2SH_P2WSH_FORTIFIED_OUT) {
            // To calculate the tx weight correctly, we must set the witness data
@@ -129,23 +131,23 @@ public class GATx {
 
     public static boolean addTxOutput(final GaService service, final Transaction tx,
                                       final Coin amount, final String recipient) {
-        if (GaService.IS_ELEMENTS)
+        if (service.isElements())
             return false; // Only base58 supported for elements currently
         try {
-            tx.addOutput(amount, Address.fromBase58(Network.NETWORK, recipient));
+            tx.addOutput(amount, Address.fromBase58(service.getNetworkParameters(), recipient));
             return true;
         } catch (final Exception e) {
             try {
-                final byte[] decoded = GaService.decodeBech32Address(recipient);
+                final byte[] decoded = GaService.decodeBech32Address(recipient, service.getNetworkParameters());
                 if (decoded == null || decoded[0] != 0)
                     return false; // Only v0 segwit scripts are supported
 
                 final byte[] scriptHash = Arrays.copyOfRange(decoded, 2, decoded.length);
                 if (decoded.length == Wally.WALLY_SCRIPTPUBKEY_P2WPKH_LEN) {
-                    tx.addOutput(amount, Address.fromP2WPKHHash(Network.NETWORK, scriptHash));
+                    tx.addOutput(amount, Address.fromP2WPKHHash(service.getNetworkParameters(), scriptHash));
                     return true;
                 } else if (decoded.length == Wally.WALLY_SCRIPTPUBKEY_P2WSH_LEN) {
-                    tx.addOutput(amount, Address.fromP2WSHHash(Network.NETWORK, scriptHash));
+                    tx.addOutput(amount, Address.fromP2WSHHash(service.getNetworkParameters(), scriptHash));
                     return true;
                 }
             } catch (final Exception e2) {
@@ -155,11 +157,11 @@ public class GATx {
         return false;
     }
 
-    private static Address createChangeAddress(final JSONMap addrInfo) {
+    private static Address createChangeAddress(final JSONMap addrInfo, final NetworkParameters params) {
         byte[] script = addrInfo.getBytes("script");
         if (addrInfo.getString("addr_type").equals("p2wsh"))
             script = ScriptBuilder.createP2WSHOutputScript(Wally.sha256(script)).getProgram();
-        return Address.fromP2SHHash(Network.NETWORK, Wally.hash160(script));
+        return Address.fromP2SHHash(params, Wally.hash160(script));
     }
 
     /* Add a new change output to a tx */
@@ -168,7 +170,7 @@ public class GATx {
         final JSONMap addrInfo = service.getNewAddress(subaccount);
         if (addrInfo == null)
             return null;
-        return new ChangeOutput(tx.addOutput(Coin.ZERO, createChangeAddress(addrInfo)),
+        return new ChangeOutput(tx.addOutput(Coin.ZERO, createChangeAddress(addrInfo, service.getNetworkParameters())),
                                 addrInfo.getInt("pointer"),
                                 addrInfo.getString("addr_type").equals("p2wsh"));
     }
@@ -240,7 +242,7 @@ public class GATx {
         try {
             for (final TransactionInput in : tx.getInputs()) {
                 final String txhex = service.getRawOutputHex(in.getOutpoint().getHash());
-                previousTxs.add(GaService.buildTransaction(txhex));
+                previousTxs.add(GaService.buildTransaction(txhex, service.getNetworkParameters()));
             }
         } catch (final Exception e) {
             e.printStackTrace();
@@ -250,8 +252,8 @@ public class GATx {
     }
 
     // Estimate the size of Elements specific parts of a tx
-    private static int estimateElementsSize(final Transaction tx) {
-        if (!GaService.IS_ELEMENTS)
+    private static int estimateElementsSize(final Transaction tx, final Network network) {
+        if (!network.isElements())
             return 0;
 
         final int sjSize = Wally.asset_surjectionproof_size(tx.getInputs().size());
@@ -267,12 +269,12 @@ public class GATx {
         return singleOutputSize * tx.getOutputs().size();
     }
 
-    public static Coin getFeeEstimateForRBF(final GaService service, final boolean isInstant) throws GAException {
-        return getFeeEstimate(service, isInstant, 1); // Fee rate for 1 conf if not instant
+    public static Coin getFeeEstimateForRBF(final GaService service) throws GAException {
+        return getFeeEstimate(service, 1);
     }
 
     // Return the best estimate of the fee rate in satoshi/1000 bytes
-    public static Coin getFeeEstimate(final GaService service, final boolean isInstant, final int forBlock) throws GAException {
+    public static Coin getFeeEstimate(final GaService service, final int forBlock) throws GAException {
         // Iterate the estimates from shortest to longest confirmation time
         final SortedSet<Integer> keys = new TreeSet<>();
         for (final String block : service.getFeeEstimates().mData.keySet())
@@ -284,30 +286,19 @@ public class GATx {
                 continue; // No estimate available: Try next confirmation rate
 
             final int actualBlock = service.getFeeBlocks(blockNum);
-            if (isInstant) {
-                // For instant use 1.1 the 1st or 2nd block fee rate
-                if (actualBlock <= 2)
-                    return Coin.valueOf((long) (feeRate * 1.1 * 1000 * 1000 * 100));
-                // Failed to find a rate for instant
-                break;
-            } else if (actualBlock < forBlock)
-                continue; // Non-instant: Use forBlock confirmation rate and later only
+            if (actualBlock < forBlock)
+                continue; // Use forBlock confirmation rate and later only
 
-            // Found a non-instant rate at or later than our target confirmation time
+            // Found rate at or later than our target confirmation time
             return Coin.valueOf((long) (feeRate * 1000 * 1000 * 100));
         }
 
         // At this point, we don't have a usable fee rate estimate
 
-        if (GaService.IS_ELEMENTS)
-            return Coin.valueOf(1); // FIXME: Instant for elements?
+        if (service.isElements())
+            return Coin.valueOf(1);
 
-        if (Network.NETWORK == MainNetParams.get() && isInstant) {
-            // On mainnet disallow instant until a rate is available
-            throw new GAException("Instant transactions are not available at this time. Please try again later.");
-        }
-        // Return the minimum fee rate, x3 if testing instant on testnet
-        return service.getMinFeeRate().multiply(isInstant ? 3 : 1);
+        return service.getMinFeeRate();
     }
 
     public static JSONMap makeLimitsData(final Coin limitDelta, final Coin fee,
@@ -343,10 +334,10 @@ public class GATx {
         return utxo.getCoin("value");
     }
 
-    public static int getTxVSize(final Transaction tx) {
+    public static int getTxVSize(final Transaction tx, final Network network) {
         final int vSize;
 
-        if (!(GaService.IS_ELEMENTS || tx.hasWitness())) {
+        if (!(network.isElements() || tx.hasWitness())) {
             vSize = tx.unsafeBitcoinSerialize().length;
             Log.d(TAG, "getTxVSize(non-sw): " + vSize);
         } else {
@@ -355,7 +346,7 @@ public class GATx {
             final int nonSwSize = tx.unsafeBitcoinSerialize().length;
             tx.transactionOptions = TransactionOptions.ALL;
             final int swSize = tx.unsafeBitcoinSerialize().length;
-            final int fullSize = swSize + estimateElementsSize(tx);
+            final int fullSize = swSize + estimateElementsSize(tx, network);
             vSize = (int) Math.ceil((nonSwSize * 3 + fullSize) / 4.0);
             Log.d(TAG, "getTxVSize(sw): " + nonSwSize + '/' + swSize + '/' + vSize);
         }
@@ -368,7 +359,7 @@ public class GATx {
         final Coin rate = feeRate.isLessThan(minRate) ? minRate : feeRate;
         Log.d(TAG, "getTxFee(rates): " + rate.value + '/' + feeRate.value + '/' + minRate.value);
 
-        final int vSize = getTxVSize(tx);
+        final int vSize = getTxVSize(tx, service.getNetwork());
         final double fee = (double) vSize * rate.value / 1000.0;
         final long roundedFee = (long) Math.ceil(fee); // Round up
         Log.d(TAG, "getTxFee: fee is " + roundedFee);
@@ -392,8 +383,6 @@ public class GATx {
             ptx.mPrevoutRawTxs.put(Wally.hex_from_bytes(prevTx.getHash().getBytes()), prevTx);
         }
 
-        final boolean isSegwitEnabled = service.isSegwitEnabled();
-
         // Sign the tx
         final List<byte[]> signatures = service.signTransaction(tx, ptx, prevOuts);
         for (int i = 0; i < signatures.size(); ++i) {
@@ -405,7 +394,7 @@ public class GATx {
             final byte[] inscript = createInScript(userSigs, outscript, scriptType);
 
             tx.getInput(i).setScriptSig(new Script(inscript));
-            if (isSegwitEnabled && getOutScriptType(scriptType) == P2SH_P2WSH_FORTIFIED_OUT) {
+            if (getOutScriptType(scriptType) == P2SH_P2WSH_FORTIFIED_OUT) {
                 // Replace the witness data with just the user signature:
                 // the server will recreate the witness data to include the
                 // dummy OP_CHECKMULTISIG push, user + server sigs and script.

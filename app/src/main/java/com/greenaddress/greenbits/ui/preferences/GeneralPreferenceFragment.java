@@ -15,7 +15,6 @@ import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.ui.CB;
 import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.UI;
@@ -27,7 +26,6 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
     implements Preference.OnPreferenceClickListener {
     private static final String TAG = GeneralPreferenceFragment.class.getSimpleName();
 
-    private Preference mToggleSW;
     private Preference mFeeRate;
     private boolean mPassphraseVisible = false;
 
@@ -92,7 +90,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
         // Currency and bitcoin denomination
         final ListPreference bitcoinDenomination = find("denomination_key");
-        if (GaService.IS_ELEMENTS)
+        if (mService.isElements())
             removePreference(bitcoinDenomination);
         else {
             bitcoinDenomination.setEntries(UI.UNITS.toArray(new String[4]));
@@ -109,7 +107,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         }
 
         final ListPreference fiatCurrency = find("fiat_key");
-        if (GaService.IS_ELEMENTS)
+        if (mService.isElements())
             removePreference(fiatCurrency);
         else
             fiatCurrency.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
@@ -179,7 +177,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         final ListPreference defaultTxPriority = find("default_tx_priority");
         // disabled, unuseful in altana
         removePreference(defaultTxPriority);
-        if (GaService.IS_ELEMENTS)
+        if (mService.isElements())
             removePreference(defaultTxPriority);
         else {
             final String[] prioritySummaries = getResources().getStringArray(R.array.fee_target_summaries);
@@ -204,8 +202,6 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         // Default custom feerate
         mFeeRate = find("default_feerate");
         if (!isDev)
-            removePreference(mFeeRate);
-        if (GaService.IS_ELEMENTS)
             removePreference(mFeeRate);
         else {
             setFeeRateSummary(mService.cfg().getString("default_feerate", ""));
@@ -253,7 +249,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
 
         // Opt-in RBF
         final CheckBoxPreference optInRbf = find("optin_rbf");
-        if (GaService.IS_ELEMENTS || !(boolean) mService.getLoginData().get("rbf"))
+        if (mService.isElements() || !(boolean) mService.getLoginData().get("rbf"))
             removePreference(optInRbf);
         else {
             optInRbf.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
@@ -291,15 +287,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
             optInRbf.setChecked(replace_by_fee);
         }
 
-        mToggleSW = find("toggle_segwit");
-        if (GaService.IS_ELEMENTS)
-            removePreference(mToggleSW);
-        else {
-            mToggleSW.setOnPreferenceClickListener(this);
-            setupSWToggle();
-        }
-
-        if (GaService.IS_ELEMENTS)
+        if (mService.isElements())
             removePreference("settings_currency");
 
         final CheckBoxPreference advancedOptions = find("advanced_options");
@@ -319,58 +307,13 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
         getActivity().setResult(Activity.RESULT_OK, null);
     }
 
-    private void setupSWToggle() {
-        final boolean segwit = mService.getLoginData().get("segwit_server");
-        final boolean userSegwit = mService.isSegwitEnabled();
-
-        mToggleSW.setTitle(userSegwit ? R.string.segwit_disable : R.string.segwit_enable);
-
-        if (!segwit) {
-            // Server does not support segwit: Do not show the pref
-            getPreferenceScreen().removePreference(mToggleSW);
-        } else if (!userSegwit || mService.isSegwitUnlocked()) {
-            // User hasn't enabled segwit, or they have but we haven't
-            // generated a segwit address yet (that we know of).
-            mToggleSW.setEnabled(true);
-        } else {
-            mToggleSW.setEnabled(false);
-        }
-    }
-
     private void setFeeRateSummary(final String feeRate) {
         mFeeRate.setSummary(feeRate.isEmpty() ? "" : feeRate + " sat/kB");
     }
 
     @Override
     public boolean onPreferenceClick(final Preference preference) {
-        if (preference == mToggleSW)
-            return onToggleSWClicked();
         return false;
     }
 
-    private boolean onToggleSWClicked() {
-        getActivity().runOnUiThread(new Runnable() {
-            public void run() { mToggleSW.setEnabled(false); }
-        });
-        final boolean immediate = true;
-        CB.after(mService.setUserConfig("use_segwit", !mService.isSegwitEnabled(), immediate),
-                 new CB.Op<Boolean>() {
-            @Override
-            public void onSuccess(final Boolean result) {
-                toggle();
-            }
-            @Override
-            public void onFailure(final Throwable t) {
-                super.onFailure(t);
-                toggle();
-            }
-            private void toggle() {
-                getActivity().runOnUiThread(new Runnable() {
-                    public void run() { setupSWToggle(); }
-                });
-            }
-
-        });
-        return false;
-    }
 }

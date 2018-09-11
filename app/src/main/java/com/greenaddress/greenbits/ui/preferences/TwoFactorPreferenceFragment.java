@@ -20,13 +20,13 @@ import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.greenaddress.greenapi.JSONMap;
-import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.ui.CB;
 import com.greenaddress.greenbits.ui.UI;
 import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.TwoFactorActivity;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,7 +38,6 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
     private static final int REQUEST_ENABLE_2FA = 0;
     private static final String NLOCKTIME_EMAILS = "NLocktimeEmails";
 
-    private String mMethod; // Current 2FA Method
     private Map<String, String> mLocalizedMap; // 2FA method to localized description
     private Preference mLimitsPref;
     private Preference mSendNLocktimePref;
@@ -49,7 +48,7 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
     }
 
     private static boolean isEnabled(final Map<?, ?> twoFacConfig, final String method) {
-        return twoFacConfig.get(method.toLowerCase()).equals(true);
+        return twoFacConfig.get(method.toLowerCase(Locale.US)).equals(true);
     }
 
     private CheckBoxPreference setupCheckbox(final Map<?, ?> twoFacConfig, final String method) {
@@ -109,7 +108,7 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
         setLimitsText(haveAny);
 
         mSendNLocktimePref = find("send_nlocktime");
-        if (GaService.IS_ELEMENTS) {
+        if (mService.isElements()) {
             removePreference(getPref(NLOCKTIME_EMAILS));
             removePreference(mSendNLocktimePref);
         } else {
@@ -137,7 +136,7 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
     }
 
     private void setNlocktimeConfig(final Boolean enabled) {
-        if (GaService.IS_ELEMENTS || isNlocktimeConfig(enabled))
+        if (mService.isElements() || isNlocktimeConfig(enabled))
             return; // Nothing to do
         final Map<String, Object> inner, outer;
         inner = ImmutableMap.of("email_incoming", (Object) enabled,
@@ -150,8 +149,7 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
     private void prompt2FAChange(final String method, final Boolean newValue) {
         if (newValue) {
             final Intent intent = new Intent(getActivity(), TwoFactorActivity.class);
-            intent.putExtra("method", method.toLowerCase());
-            mMethod = method;
+            intent.putExtra("method", method);
             startActivityForResult(intent, REQUEST_ENABLE_2FA);
             return;
         }
@@ -170,7 +168,7 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
     private void disable2FA(final String method, final String withMethod) {
         if (!withMethod.equals("gauth")) {
             final Map<String, String> data = new HashMap<>();
-            data.put("method", method.toLowerCase());
+            data.put("method", method.toLowerCase(Locale.US));
             mService.requestTwoFacCode(withMethod, "disable_2fa", data);
         }
 
@@ -195,7 +193,7 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
 
     private void disable2FAImpl(final String method, final String withMethod, final String code) {
         try {
-            if (mService.disableTwoFactor(method.toLowerCase(), mService.make2FAData(withMethod, code))) {
+            if (mService.disableTwoFactor(method.toLowerCase(Locale.US), mService.make2FAData(withMethod, code))) {
                 getActivity().runOnUiThread(new Runnable() {
                     public void run() {
                         change2FA(method, false);
@@ -211,10 +209,9 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
 
     @Override
     public void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
-        if (resultCode == Activity.RESULT_OK)
-            change2FA(mMethod, true);
-        else
-            super.onActivityResult(requestCode, resultCode, data);
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_ENABLE_2FA && resultCode == Activity.RESULT_OK && data != null)
+            change2FA(data.getStringExtra("method"), true);
     }
 
     private void change2FA(final String method, final Boolean checked) {
@@ -225,7 +222,7 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
         if (method.equals("Email") && checked) {
             // Enable nLocktime when 2fa is enabled, but do not disable it
             setNlocktimeConfig(true);
-            if (!GaService.IS_ELEMENTS)
+            if (!mService.isElements())
                 getPref(NLOCKTIME_EMAILS).setEnabled(true);
         }
         final boolean haveAny = checked || mService.hasAnyTwoFactor();
@@ -246,7 +243,7 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
         String trimmed = unscaled.movePointLeft(isFiat ? 2 : 8).toPlainString();
         trimmed = trimmed.indexOf('.') < 0 ? trimmed : trimmed.replaceAll("0*$", "").replaceAll("\\.$", "");
         final String limitText;
-        if (GaService.IS_ELEMENTS)
+        if (mService.isElements())
             limitText = mService.getAssetSymbol() + ' ' + trimmed;
         else
             limitText = trimmed + ' ' + (isFiat ? mService.getFiatCurrency() : "BTC");
@@ -280,7 +277,7 @@ public class TwoFactorPreferenceFragment extends GAPreferenceFragment
         final EditText amountEdit = UI.find(v, R.id.set_limits_amount);
 
         final String[] currencies;
-        if (GaService.IS_ELEMENTS)
+        if (mService.isElements())
             currencies = new String[]{mService.getAssetSymbol()};
         else if (!mService.hasFiatRate())
             currencies = new String[]{"BTC"};

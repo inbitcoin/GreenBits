@@ -85,7 +85,7 @@ public class WalletClient {
 
     private final Scheduler mScheduler = Schedulers.newThread();
     private final ListeningExecutorService mExecutor;
-    private final INotificationHandler mNotificationHandler;
+    private final GaService mService;
     private SocketAddress mProxyAddress;
     private final OkHttpClient mHttpClient = new OkHttpClient();
     private final OkHttpClient mHttpClientBIP70 = new OkHttpClient();
@@ -100,9 +100,9 @@ public class WalletClient {
 
     private String h(final byte[] data) { return Wally.hex_from_bytes(data); }
 
-    public WalletClient(final INotificationHandler notificationHandler,
+    public WalletClient(final GaService service,
                         final ListeningExecutorService es) {
-        mNotificationHandler = notificationHandler;
+        mService = service;
         mExecutor = es;
     }
 
@@ -444,7 +444,7 @@ public class WalletClient {
                         }
                     }
                 }
-                mNotificationHandler.onNewTransaction(affectedSubAccounts);
+                mService.onNewTransaction(affectedSubAccounts);
             }
         });
     }
@@ -456,9 +456,9 @@ public class WalletClient {
         configBuilder = new NettyWampConnectionConfig.Builder()
                                                      .withMaxFramePayloadLength(TWO_MB);
 
-        if (Network.GAIT_WAMP_CERT_PINS != null && !isTorEnabled()) {
+        if (mService.getNetwork().getWampCertPins() != null && !isTorEnabled()) {
             final TrustManagerFactory tmf;
-            tmf = new FingerprintTrustManagerFactorySHA256(Network.GAIT_WAMP_CERT_PINS);
+            tmf = new FingerprintTrustManagerFactorySHA256(mService.getNetwork().getWampCertPins());
             final SslContext ctx = SslContextBuilder.forClient().trustManager(tmf).build();
             configBuilder.withSslContext(ctx);
         }
@@ -468,8 +468,8 @@ public class WalletClient {
 
     private String getUri() {
         if (isTorEnabled())
-            return String.format("ws://%s/v2/ws/", Network.GAIT_ONION);
-        return Network.GAIT_WAMP_URL;
+            return mService.getNetwork().getOnion();
+        return mService.getNetwork().getWampUrl();
     }
 
     private boolean isTorEnabled() {
@@ -481,6 +481,8 @@ public class WalletClient {
         mScheduler.createWorker().schedule(new Action0() {
             @Override
             public void call() {
+                setProxy(mService.getProxyHost(), mService.getProxyPort());
+                setTorEnabled(mService.getTorEnabled());
                 final String wsuri = getUri();
                 Log.i(TAG, "Proxy is configured " + mProxyAddress);
                 Log.i(TAG, "Connecting to " + wsuri);
@@ -532,7 +534,7 @@ public class WalletClient {
                                 else
                                     if (connected)
                                         // Client got disconnected from the remote router
-                                        mNotificationHandler.onConnectionClosed(0);
+                                        mService.onConnectionClosed(GaService.LOGOFF_NO_CONNECTION);
                                     else {
                                         // or the last possible connect attempt failed
                                         final Throwable t = ((WampClient.DisconnectedState) newStatus).disconnectReason();
@@ -565,7 +567,7 @@ public class WalletClient {
                     @Override
                     public void onEvent(final String topicUri, final Object event) {
                         Log.i(TAG, "BLOCKS IS " + event.toString());
-                        mNotificationHandler.onNewBlock(Integer.parseInt(((Map) event).get("count").toString()));
+                        mService.onNewBlock(Integer.parseInt(((Map) event).get("count").toString()));
                     }
                 });
                 clientSubscribe("fee_estimates", Map.class, new EventHandler() {
@@ -776,16 +778,6 @@ public class WalletClient {
         return null;
     }
 
-    // Returns True if the user hasn't elected to use segwit yet
-    public boolean isSegwitUnconfirmed() {
-        return getUserConfig("use_segwit") == null;
-    }
-
-    // Returns True iff the user has elected to use segwit
-    public boolean isSegwitEnabled() {
-        return !isSegwitUnconfirmed() && (Boolean) getUserConfig("use_segwit");
-    }
-
     private static <T> ByteArrayOutputStream serializeJSON(final T src) throws GAException {
         final ByteArrayOutputStream b = new ByteArrayOutputStream();
         try {
@@ -865,7 +857,7 @@ public class WalletClient {
         final SettableFuture<Transaction> rpc = SettableFuture.create();
         final CallHandler handler = new CallHandler() {
             public void onResult(final Object tx) {
-                rpc.set(GaService.buildTransaction((String) tx));
+                rpc.set(GaService.buildTransaction((String) tx, mService.getNetworkParameters()));
             }
         };
         return clientCall(rpc, procedure, String.class, handler, args);

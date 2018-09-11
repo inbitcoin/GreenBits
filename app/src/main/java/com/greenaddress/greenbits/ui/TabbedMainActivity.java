@@ -1,6 +1,5 @@
 package com.greenaddress.greenbits.ui;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Intent;
@@ -46,7 +45,6 @@ import com.greenaddress.bitid.BitID;
 import com.greenaddress.bitid.BitidSignIn;
 import com.greenaddress.bitid.SignInResponse;
 import com.greenaddress.greenapi.ISigningWallet;
-import com.greenaddress.greenapi.Network;
 import com.greenaddress.greenbits.ApplicationService;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.ui.monitor.NetworkMonitorActivity;
@@ -64,7 +62,6 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.crypto.TransactionSignature;
 import org.json.JSONException;
-import org.bitcoinj.params.MainNetParams;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
@@ -91,9 +88,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
     private static final String TAG = TabbedMainActivity.class.getSimpleName();
 
-    private static final boolean IS_MAINNET = Network.NETWORK == MainNetParams.get();
-    private static final int BIP32_NETWORK = IS_MAINNET ? Wally.BIP38_KEY_MAINNET : Wally.BIP38_KEY_TESTNET;
-    private static final int BIP38_FLAGS = BIP32_NETWORK | Wally.BIP38_KEY_COMPRESSED;
+
     private static final int REQUEST_ENABLE_2FA = 0;
 
     public static final int
@@ -119,12 +114,12 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
     private Boolean mForcedLogoutFromCreate = false;
     private Dialog mTwoFactorDialog;
     private Dialog mTwoFactorResetDialog;
-    private MaterialDialog mSegwitDialog;
     private MaterialDialog mSubaccountDialog;
     private FloatingActionButton mSubaccountButton;
     private boolean mTwoFactorResetShowing = false;
+    private boolean mIsBitcoinUri = false;
+    private boolean mIsBitidUri = false;
 
-    private final Runnable mSegwitCB = new Runnable() { public void run() { mSegwitDialog = null; } };
     private final Runnable mSubaccountCB = new Runnable() { public void run() { mDialogCB.run(); mSubaccountDialog = null; } };
     private final Runnable mDialogCB = new Runnable() { public void run() { setBlockWaitDialog(false); } };
 
@@ -166,10 +161,10 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             intent.removeCategory(Intent.CATEGORY_BROWSABLE);
         }
 
-        final boolean isBitidUri = isBitidcheme(intent);
-        final boolean isBitcoinUri = (isBitcoinScheme(intent) ||
+        mIsBitidUri = isBitidcheme(intent);
+        mIsBitcoinUri = (isBitcoinScheme(intent) ||
                 intent.hasCategory(Intent.CATEGORY_BROWSABLE) ||
-                NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) && !isBitidUri;
+                NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) && !mIsBitidUri;
 
         if (!mService.isLoggedOrLoggingIn()) {
             // Not logged in, force the user to login
@@ -177,9 +172,9 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             Log.d(TAG, "onCreateWithService - forced logout, nothing to do onResumeWithService");
             mService.disconnect(false);
             final Intent login = new Intent(this, RequestLoginActivity.class);
-            if (isBitcoinUri)
+            if (mIsBitcoinUri)
                 startActivityForResult(login, REQUEST_BITCOIN_URL_LOGIN);
-            else if (isBitidUri)
+            else if (mIsBitidUri)
                 startActivityForResult(login, REQUEST_BITID_URL_LOGIN);
             else
                 startActivityForResult(login, REQUEST_CLEAR_ACTIVITY);
@@ -187,7 +182,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         }
         firstRun = false;
 
-        launch(isBitcoinUri, isBitidUri);
+        launch();
 
         // TODO disabled, should be unuseful
         //startService(new Intent(this, ApplicationService.class));
@@ -378,8 +373,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         mTwoFactorObserver.update(null, null);
     }
 
-    @SuppressLint("NewApi") // NdefRecord#toUri disabled for API < 16
-    private void launch(final boolean isBitcoinUri, final boolean isBitidUri) {
+    private void launch() {
 
         setContentView(R.layout.activity_tabbed_main);
         final Toolbar toolbar = UI.find(this, R.id.toolbar);
@@ -431,7 +425,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         final boolean isResetActive = mService.isTwoFactorResetActive();
         int goToTab = isResetActive ? 0 : 1;
 
-        if (isBitcoinUri && !isResetActive) {
+        if (mIsBitcoinUri && !isResetActive) {
             // go to send page tab
             goToTab = 2;
 
@@ -439,7 +433,6 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             if (!NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction())) {
                 mViewPager.setTag(R.id.tag_bitcoin_uri, getIntent().getData());
             } else {
-                // NdefRecord#toUri not available in API < 16
                 final Parcelable[] rawMessages;
                 rawMessages = getIntent().getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
                 for (final Parcelable parcel : rawMessages) {
@@ -479,33 +472,19 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             return;
         }
 
+        if (!Boolean.TRUE.equals(mService.getUserConfig("use_segwit"))) {
+            // Set SegWit to true if it's false or not set
+            mService.setUserConfig("use_segwit", true, false);
+        }
+
         final Boolean isVendorMode = mService.cfg("is_vendor_mode").getBoolean("enabled", false);
         if (isVendorMode) {
             Intent intent = new Intent(this, VendorActivity.class);
             startActivity(intent);
             overridePendingTransition(R.anim.slide_from_right, R.anim.fade_out);
         }
-        final boolean segwit = mService.getLoginData().get("segwit_server");
-        if (segwit && mService.isSegwitUnconfirmed()) {
-            // The user has not yet enabled segwit. Opt them in and display
-            // a dialog explaining how to opt-out.
-            CB.after(mService.setUserConfig("use_segwit", true, false),
-                     new CB.Toast<Boolean>(this) {
-                @Override
-                public void onSuccess(final Boolean result) {
-                    TabbedMainActivity.this.runOnUiThread(new Runnable() {
-                        public void run() {
-                            mSegwitDialog = UI.popup(TabbedMainActivity.this, R.string.segwit_dialog_title, 0)
-                                              .content(R.string.segwit_dialog_content).build();
-                            UI.setDialogCloseHandler(mSegwitDialog, mSegwitCB);
-                            mSegwitDialog.show();
-                        }
-                    });
-                }
-            });
-        }
 
-        if (isBitidUri) {
+        if (mIsBitidUri) {
             final Intent intent = getIntent();
             final Uri uri = intent.getData();
             bitidAuth(uri.toString());
@@ -529,7 +508,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
         final SectionsPagerAdapter adapter = getPagerAdapter();
 
-        if (adapter == null || mService.isForcedOff()) {
+        if ((adapter == null || mService.isForcedOff()) && !mIsBitcoinUri) {
             // FIXME: Should pass flag to activity so it shows it was forced logged out
             startActivity(new Intent(this, FirstScreenActivity.class));
             finish();
@@ -553,7 +532,6 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         mService.deleteTwoFactorObserver(mTwoFactorObserver);
         mService.deleteConnectionObserver(this);
         mSubaccountDialog = UI.dismiss(this, mSubaccountDialog);
-        mSegwitDialog = UI.dismiss(this, mSegwitDialog);
     }
 
     @Override
@@ -590,7 +568,9 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                     finish();
                     return;
                 }
-                launch(false, true);
+                mIsBitcoinUri = false;
+                mIsBitidUri = true;
+                launch();
                 break;
             case REQUEST_BITCOIN_URL_LOGIN:
                 if (resultCode != RESULT_OK) {
@@ -598,8 +578,9 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                     finish();
                     return;
                 }
-                final boolean isBitcoinUri = true;
-                launch(isBitcoinUri, false);
+                mIsBitcoinUri = true;
+                mIsBitidUri = false;
+                launch();
                 break;
             case REQUEST_CLEAR_ACTIVITY:
                 recreate();
@@ -618,7 +599,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
                 ECKey keyNonFinal = null;
                 try {
-                    keyNonFinal = DumpedPrivateKey.fromBase58(Network.NETWORK,
+                    keyNonFinal = DumpedPrivateKey.fromBase58(mService.getNetworkParameters(),
                             qrText).getKey();
                 } catch (final AddressFormatException e) {
                     try {
@@ -669,8 +650,8 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                             final String areYouSureText = String.format(
                                     getResources().getText(R.string.sweep_are_you_sure).toString(),
                                     valueStr);
+                            address = keyNonBip38.toAddress(mService.getNetworkParameters()).toString();
                             mainText.setText(Html.fromHtml(areYouSureText));
-                            address = keyNonBip38.toAddress(Network.NETWORK).toString();
                         } else {
                             passwordPrompt.setText(R.string.sweep_bip38_passphrase_prompt);
                             txNonBip38 = null;
@@ -723,7 +704,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                                     try {
                                         final String password = UI.getText(passwordEdit);
                                         final byte[] passbytes = password.getBytes();
-                                        final byte[] decryptedPKey = Wally.bip38_to_private_key(qrText, passbytes, BIP38_FLAGS);
+                                        final byte[] decryptedPKey = Wally.bip38_to_private_key(qrText, passbytes, mService.getNetwork().getBip38Flags());
                                         key = ECKey.fromPrivate(decryptedPKey);
 
                                         CB.after(mService.prepareSweepSocial(key.getPubKey(), true),
@@ -764,7 +745,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                             pubKey = strings[0];
                             final String apikey = "9e3043e0226a7f5e94f881c4bc37340efb265f1e";
                             final String apiurl = "http://api.blocktrail.com/v1/" +
-                                    (Network.NETWORK.getId().equals(NetworkParameters.ID_MAINNET)? "BTC" : "tBTC") +
+                                    (mService.getNetworkParameters().getId().equals(NetworkParameters.ID_MAINNET)? "BTC" : "tBTC") +
                                     "/address/";
                             URL url = new URL(apiurl + pubKey + "?api_key=" + apikey);
                             HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
@@ -855,8 +836,8 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         byte [] pubKeyBytes2 = new byte [pubKeyBytes.length + 1];
         byte [] pubKeyBytes3 = new byte [pubKeyBytes2.length + 4];
 
-        if (Network.NETWORK != null) {
-            if (Network.NETWORK.getId().equals(NetworkParameters.ID_MAINNET)) {
+        if (mService.getNetwork() != null) {
+            if (mService.getNetworkParameters().getId().equals(NetworkParameters.ID_MAINNET)) {
                 pubKeyBytes2[0] = 0;
             } else {
                 pubKeyBytes2[0] = 0x6F;
@@ -876,7 +857,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
     }
 
     private Transaction getSweepTx(final Map<?, ?> sweepResult) {
-        return GaService.buildTransaction((String) sweepResult.get("tx"));
+        return GaService.buildTransaction((String) sweepResult.get("tx"), mService.getNetworkParameters());
     }
 
     @Override
@@ -899,8 +880,8 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             setMenuItemVisible(menu, R.id.action_cancel_twofactor_reset, !isWatchOnly);
         } else {
             setMenuItemVisible(menu, R.id.action_network,
-                               !GaService.IS_ELEMENTS && mService.isSPVEnabled());
-            setMenuItemVisible(menu, R.id.action_sweep, !GaService.IS_ELEMENTS);
+                               !mService.isElements() && mService.isSPVEnabled());
+            setMenuItemVisible(menu, R.id.action_sweep, !mService.isElements());
 
             final boolean isExchanger = mService.cfg().getBoolean("show_exchanger_menu", false);
             setMenuItemVisible(menu, R.id.action_exchanger, isExchanger);

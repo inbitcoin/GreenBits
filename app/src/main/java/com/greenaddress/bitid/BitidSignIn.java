@@ -152,9 +152,9 @@ public class BitidSignIn extends AsyncTask<Object, Object, SignInResponse> {
 
     private String buildBidRequest() throws JSONException, UnsupportedEncodingException {
         final NetworkParameters netParams;
-        if (Network.NETWORK == NetworkParameters.fromID(NetworkParameters.ID_MAINNET)) {
+        if (mService.getNetworkParameters().getId().equals(NetworkParameters.ID_MAINNET)) {
             netParams = MainNetParams.get();
-        } else if (Network.NETWORK == NetworkParameters.fromID(NetworkParameters.ID_REGTEST)) {
+        } else if (mService.getNetworkParameters().getId().equals(NetworkParameters.ID_REGTEST)) {
             netParams = RegTestParams.get();
         } else {
             netParams = TestNet3Params.get();

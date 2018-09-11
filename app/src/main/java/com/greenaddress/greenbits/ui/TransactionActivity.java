@@ -36,7 +36,6 @@ import com.google.common.util.concurrent.Futures;
 import com.greenaddress.greenapi.ConfidentialAddress;
 import com.greenaddress.greenapi.GAException;
 import com.greenaddress.greenapi.GATx;
-import com.greenaddress.greenapi.Network;
 import com.greenaddress.greenapi.JSONMap;
 import com.greenaddress.greenapi.PreparedTransaction;
 import com.greenaddress.greenbits.GaService;
@@ -44,7 +43,6 @@ import com.greenaddress.greenbits.QrBitmap;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
-import org.bitcoinj.params.RegTestParams;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -65,10 +63,6 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
 
     private static final String TAG = TransactionActivity.class.getSimpleName();
     private static final int FEE_BLOCK_NUMBERS[] = {1, 3, 6};
-
-    // For debug regtest builds, always allow RBF (Useful for development/testing)
-    private static final boolean ALWAYS_ALLOW_RBF = BuildConfig.DEBUG &&
-        Network.NETWORK == RegTestParams.get();
 
     private Menu mMenu;
     private TextView mUnconfirmedText;
@@ -143,7 +137,8 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
         mTxItem = (TransactionItem) getIntent().getSerializableExtra("TRANSACTION");
 
         final TextView hashText = UI.find(this, R.id.txHashText);
-        openInBrowser(hashText, mTxItem.txHash.toString(), Network.BLOCKEXPLORER_TX, null);
+        final String blockExplorerTx = mService.getNetwork().getFirstBlockExplorer().getTx();
+        openInBrowser(hashText, mTxItem.txHash.toString(), blockExplorerTx, null);
 
         showFeeInfo(mTxItem.fee, mTxItem.size, mTxItem.getFeePerKilobyte());
         mBitmapWorkerTask = new BitmapWorkerTask();
@@ -159,7 +154,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
 
         final boolean isWatchOnly = mService.isWatchOnly();
 
-        if (GaService.IS_ELEMENTS) {
+        if (mService.isElements()) {
             UI.hide(UI.find(this, R.id.txUnconfirmed));
         } else if (mTxItem.type == TransactionItem.TYPE.OUT || mTxItem.type == TransactionItem.TYPE.REDEPOSIT || mTxItem.isSpent) {
             if (mTxItem.getConfirmations() > 0)
@@ -197,7 +192,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
                 if (mTxItem.doubleSpentBy.equals("malleability") || mTxItem.doubleSpentBy.equals("update"))
                     res = mTxItem.doubleSpentBy;
                 else
-                    res = Html.fromHtml("<a href=\"" + Network.BLOCKEXPLORER_TX + mTxItem.doubleSpentBy + "\">" + mTxItem.doubleSpentBy + "</a>");
+                    res = Html.fromHtml("<a href=\"" + blockExplorerTx + mTxItem.doubleSpentBy + "\">" + mTxItem.doubleSpentBy + "</a>");
                 if (!mTxItem.replacedHashes.isEmpty())
                     res = TextUtils.concat(res, "; ");
             }
@@ -207,7 +202,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
                     if (i > 0)
                         res = TextUtils.concat(res, Html.fromHtml("<br/>"));
                     final String txHashHex = mTxItem.replacedHashes.get(i).toString();
-                    final String link = "<a href=\"" + Network.BLOCKEXPLORER_TX + txHashHex + "\">" + txHashHex + "</a>";
+                    final String link = "<a href=\"" + blockExplorerTx + txHashHex + "\">" + txHashHex + "</a>";
                     res = TextUtils.concat(res, Html.fromHtml(link));
                 }
             }
@@ -224,7 +219,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
 
         final TextView receivedOnText = UI.find(this, R.id.txReceivedOnText);
         if (!TextUtils.isEmpty(mTxItem.receivedOn))
-            openInBrowser(receivedOnText, mTxItem.receivedOn, Network.BLOCKEXPLORER_ADDRESS,
+            openInBrowser(receivedOnText, mTxItem.receivedOn, mService.getNetwork().getFirstBlockExplorer().getAddress(),
                           mTxItem.receivedOnEp);
         else {
             final View receivedOnTitle = UI.find(this, R.id.txReceivedOnTitle);
@@ -268,9 +263,8 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
     private void showFeeInfo(final long fee, final long vSize, final Coin feeRate) {
         final FontAwesomeTextView feeUnit = UI.find(this, R.id.txFeeUnit);
         final TextView feeText = UI.find(this, R.id.txFeeInfoText);
-        feeText.setText(UI.setCoinText(mService, feeUnit, null, Coin.valueOf(fee)) +
-                        " / " + String.valueOf(vSize) + " / " +
-                        UI.setCoinText(mService, feeUnit, null, feeRate));
+        feeText.setText(String.format("%s / %s / %s", UI.setCoinText(mService, feeUnit, null, Coin.valueOf(fee)),
+                String.valueOf(vSize), UI.setCoinText(mService, feeUnit, null, feeRate)));
     }
 
     private void showUnconfirmed() {
@@ -282,10 +276,10 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
         final double satoshiPerKb;
         final int vSize;
 
-        if (mTxItem.data != null && mService.isSegwitEnabled()) {
+        if (mTxItem.data != null) {
             // Compute the correct fee rate as we have tx data available
-            final Transaction tx = GaService.buildTransaction(mTxItem.data);
-            vSize = GATx.getTxVSize(tx);
+            final Transaction tx = GaService.buildTransaction(mTxItem.data, mService.getNetworkParameters());
+            vSize = GATx.getTxVSize(tx, mService.getNetwork());
             satoshiPerKb = Math.ceil(mTxItem.fee * 1000.0 / vSize);
             // Update displayed fee info: its incorrect due to the FIXME above
             showFeeInfo(mTxItem.fee, vSize, Coin.valueOf((long) satoshiPerKb));
@@ -306,7 +300,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
         }
 
         mEstimatedBlocks.setText(getString(R.string.willConfirmAfter, estimatedBlocks));
-        if (mService.isWatchOnly() || GaService.IS_ELEMENTS || !mTxItem.replaceable)
+        if (mService.isWatchOnly() || mService.isElements() || !mTxItem.replaceable)
             return; // FIXME: Implement RBF for elements
 
         // If the fastest number of blocks is less than the expected number,
@@ -322,9 +316,8 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
             // No fastest fee rate is available: allow the user to RBF to the
             // current new transaction rate for 1 block confirmation if it is
             // higher than the current rate
-            final boolean isInstant = false; // FIXME: Support instant RBF
             try {
-                mChosenFeeRate = GATx.getFeeEstimateForRBF(mService, isInstant);
+                mChosenFeeRate = GATx.getFeeEstimateForRBF(mService);
             } catch (final Throwable e) {
                 toast(e);
                 return;
@@ -334,7 +327,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
         }
 
         if (!allowRbf) {
-            if (!ALWAYS_ALLOW_RBF)
+            if (!mService.getNetwork().alwaysAllowRBF())
                 return;
             // Core rejects a bumped fee rate that is not higher than the old
             // one. On regtest the rates are usually unavailable and so the
@@ -412,7 +405,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
         switch(item.getItemId()) {
             case R.id.action_share:
                 final Intent sendIntent = new Intent(Intent.ACTION_SEND);
-                sendIntent.putExtra(Intent.EXTRA_TEXT, Network.BLOCKEXPLORER_TX + mTxItem.txHash.toString());
+                sendIntent.putExtra(Intent.EXTRA_TEXT,  mService.getNetwork().getFirstBlockExplorer().getTx() + mTxItem.txHash.toString());
                 sendIntent.setType("text/plain");
                 startActivity(sendIntent);
                 return true;
@@ -461,7 +454,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
             final int subaccount = confidentialData.getInt("subaccount", 0);
             final int pointer = confidentialData.getInt("pubkey_pointer");
             textView.setText(ConfidentialAddress.fromP2SHHash(
-                    Network.NETWORK,
+                    mService.getNetworkParameters(),
                     Wally.hash160(mService.createOutScript(subaccount, pointer)),
                     mService.getBlindingPubKey(subaccount, pointer)
             ).toString());
@@ -658,7 +651,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
         // For RBF we must ensure that the fee is incremented by at least the
         // minimum relay fee of the original transaction (per BIP 125), i.e.
         // the new fee must be higher than the old fee plus the bandwidth fee.
-        final Transaction tx = GaService.buildTransaction(mTxItem.data);
+        final Transaction tx = GaService.buildTransaction(mTxItem.data, mService.getNetworkParameters());
         final Coin oldFee = Coin.valueOf(mTxItem.fee);
         Coin amount = tx.getOutputSum();
 
@@ -701,7 +694,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
 
         // We can't shrink the change output; add new inputs (and possibly
         // a new change output) in order to increase the fee.
-        final int numConfs = 1; // FIXME: 6 if instant
+        final int numConfs = 1;
         final boolean is2Of3 = mService.findSubaccountByType(subAccount, "2of3") != null;
         final boolean minimizeInputs = is2Of3;
         final boolean filterAsset = true;
@@ -885,7 +878,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
         UI.setCoinText(mService, v, R.id.newTxAmountUnitText, R.id.newTxAmountText, newFee);
         UI.setCoinText(mService, v, R.id.newTxFeeUnit, R.id.newTxFeeText, oldFee);
 
-        if (!GaService.IS_ELEMENTS) {
+        if (!mService.isElements()) {
             showFiatBtcButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(final View btn) {

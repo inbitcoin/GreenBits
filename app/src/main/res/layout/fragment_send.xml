@@ -162,7 +162,7 @@
                                 android:textColor="@color/textColor"
                                 android:gravity="end|center_vertical"
                                 android:paddingLeft="14dp"
-                                android:hint="0.00"
+                                android:hint="@string/zeroDecimal"
                                 android:inputType="numberDecimal"
                                 android:textSize="24sp" />
 
@@ -209,7 +209,7 @@
                             android:layout_toEndOf="@id/sendFiatGroup"
                             android:gravity="end"
                             android:textColor="@color/textColor"
-                            android:hint="0.00"
+                            android:hint="@string/zeroDecimal"
                             android:inputType="numberDecimal"
                             android:textSize="24sp" />
                     </RelativeLayout>
@@ -451,28 +451,7 @@
                             android:padding="5dp"
                             android:singleLine="true"
                             android:text="@string/fa_bolt" />
-
-                        <View
-                            android:layout_width="1dp"
-                            android:layout_height="match_parent"
-                            android:background="@color/colorAccent"
-                            android:visibility="visible" />
-
-                        <RadioButton
-                            android:visibility="gone"
-                            android:id="@+id/instantIcon"
-                            android:layout_width="50dp"
-                            android:layout_height="40dp"
-                            android:layout_weight="1"
-                            android:textColor="@color/textColor"
-                            android:background="@drawable/custom_radio"
-                            android:button="@android:color/transparent"
-                            android:gravity="center"
-                            android:padding="5dp"
-                            android:textStyle="bold"
-                            android:singleLine="true"
-                            android:text="G" />
-                    </RadioGroup>
+a                   </RadioGroup>
 
                     <EditText
                         android:visibility="invisible"

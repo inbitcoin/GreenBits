@@ -19,6 +19,7 @@ import java.util.List;
 
 public abstract class ISigningWallet {
     private static final String TAG = ISigningWallet.class.getSimpleName();
+    protected Network mNetwork;
 
     protected static final int HARDENED = 0x80000000;
     protected static final int PASSWORD_PATH = 0x70617373 | HARDENED; // 'pass'

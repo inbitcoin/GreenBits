@@ -94,6 +94,8 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
 
         mService.setFlagSecure(this, true);
 
+        setTitleWithNetwork(R.string.title_activity_sign_up);
+
         mFromSettingsPage = getIntent().getBooleanExtra(GaPreferenceActivity.FROM_PREFERENCE_ACTIVITY, false);
 
         mActivity = this;
@@ -241,7 +243,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
 
         final MDButton positiveButton = mVerifyDialog.getActionButton(DialogAction.POSITIVE);
         // on debug and !mainnet add skip button
-        if (BuildConfig.DEBUG || !Network.NETWORK.getId().equals(NetworkParameters.ID_MAINNET)) {
+        if (BuildConfig.DEBUG || !mService.getNetworkParameters().getId().equals(NetworkParameters.ID_MAINNET)) {
             positiveButton.setText(R.string.pinSkipText);
             positiveButton.setOnClickListener(new View.OnClickListener() {
                 @Override

@@ -26,6 +26,7 @@ import com.greenaddress.greenapi.JSONMap;
 import com.greenaddress.greenbits.QrBitmap;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.Formatter;
 import java.util.List;
@@ -80,7 +81,7 @@ public class TwoFactorActivity extends GaActivity {
 
         mLocalizedMap = UI.getTwoFactorLookup(getResources());
 
-        mMethod = getIntent().getStringExtra("method");
+        mMethod = getIntent().getStringExtra("method").toLowerCase(Locale.US);
         mIsReset = mMethod.equals("reset");
 
         if (mIsReset) {
@@ -270,7 +271,7 @@ public class TwoFactorActivity extends GaActivity {
                          new CB.Toast<Boolean>(TwoFactorActivity.this, mContinueButton) {
                     @Override
                     public void onSuccess(final Boolean result) {
-                        setResult(RESULT_OK);
+                        setResult(RESULT_OK, getIntent());
                         finishOnUiThread();
                     }
                 });
@@ -304,7 +305,7 @@ public class TwoFactorActivity extends GaActivity {
                          new CB.Toast<Boolean>(TwoFactorActivity.this, mContinueButton) {
                     @Override
                     public void onSuccess(final Boolean result) {
-                        setResult(RESULT_OK);
+                        setResult(RESULT_OK, getIntent());
                         finishOnUiThread();
                     }
                 });
@@ -388,7 +389,7 @@ public class TwoFactorActivity extends GaActivity {
         try {
             final JSONMap m = mService.confirmTwoFactorReset(mResetEmail, isDispute, twoFacData);
             mService.updateTwoFactorResetStatus(m);
-            setResult(RESULT_OK);
+            setResult(RESULT_OK, getIntent());
             UI.toast(TwoFactorActivity.this, R.string.twofactor_reset_complete, Toast.LENGTH_LONG);
             exitApp();
         } catch (final Exception e) {

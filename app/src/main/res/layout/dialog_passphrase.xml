@@ -16,6 +16,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/textColor"
             android:inputType="textPassword"
+            android:importantForAccessibility="no"
             />
         <requestFocus />
     </android.support.design.widget.TextInputLayout>

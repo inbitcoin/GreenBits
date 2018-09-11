@@ -17,7 +17,7 @@ class AmountFields {
     private final EditText mAmountFiatEdit;
     private final FontAwesomeTextView mFiatView;
     private boolean mConverting;
-    private final GaService mGaService;
+    private final GaService mService;
     private final Context mContext;
     private Boolean mIsPausing = false;
 
@@ -32,7 +32,7 @@ class AmountFields {
     private final OnConversionFinishListener mOnConversionFinishListener;
 
     AmountFields(final GaService gaService, final Context context, final View view, final OnConversionFinishListener onConversionFinishListener) {
-        mGaService = gaService;
+        mService = gaService;
         mContext = context;
         mOnConversionFinishListener = onConversionFinishListener;
 
@@ -41,14 +41,14 @@ class AmountFields {
         mFiatView = UI.find(view, R.id.sendFiatIcon);
 
         final FontAwesomeTextView bitcoinUnitText = UI.find(view, R.id.sendBitcoinUnitText);
+        UI.setCoinText(mService, bitcoinUnitText, null, null);
         // FIXME useful???
-        if (!mGaService.isLoggedOrLoggingIn()) {
+        if (!mService.isLoggedOrLoggingIn()) {
             Log.d(TAG, "not logged in, return");
             return;
         }
 
 
-        UI.setCoinText(mGaService, bitcoinUnitText, null, null);
 
         mAmountFiatEdit.addTextChangedListener(new UI.TextWatcher() {
             @Override
@@ -60,7 +60,7 @@ class AmountFields {
         mAmountEdit.addTextChangedListener(new UI.TextWatcher() {
             @Override
             public void onTextChanged(final CharSequence s, final int start, final int before, final int count) {
-                if (mGaService.hasFiatRate())
+                if (mService.hasFiatRate())
                     convertBtcToFiat();
             }
         });
@@ -69,14 +69,14 @@ class AmountFields {
     }
 
     private void updateFiatFields() {
-        if (GaService.IS_ELEMENTS) {
+        if (mService.isElements()) {
             UI.hide(mAmountFiatEdit, mFiatView);
             return;
         }
 
-        changeFiatIcon(mFiatView, mGaService.getFiatCurrency(), true);
+        changeFiatIcon(mFiatView, mService.getFiatCurrency(), true);
 
-        if (!mGaService.hasFiatRate()) {
+        if (!mService.hasFiatRate()) {
             // Disable fiat editing
             mAmountFiatEdit.setText("N/A");
             UI.disable(mAmountFiatEdit);
@@ -128,7 +128,7 @@ class AmountFields {
 
         mConverting = true;
 
-        if (GaService.IS_ELEMENTS) {
+        if (mService.isElements()) {
             // limit decimal places (TODO should work for BTC, but needs testing)
             try {
                 final int selectionStart = mAmountEdit.getSelectionStart();
@@ -137,7 +137,7 @@ class AmountFields {
                 if (!old.isEmpty() && Character.isDigit(old.charAt(selectionStart-1))) {
                     // don't adjust if the added char is not a digit,
                     // to still allow inserting commas/dots
-                    adjusted = UI.formatCoinValue(mGaService, UI.parseCoinValue(mGaService, old));
+                    adjusted = UI.formatCoinValue(mService, UI.parseCoinValue(mService, old));
                 }
                 if (old.length() > adjusted.length() &&
                         Double.parseDouble(old) != Double.parseDouble(adjusted)) {
@@ -155,7 +155,7 @@ class AmountFields {
             }
         }
 
-        if (GaService.IS_ELEMENTS) {
+        if (mService.isElements()) {
             // fiat == btc in elements
             mAmountFiatEdit.setText(UI.getText(mAmountEdit));
             finishConversion();
@@ -163,8 +163,8 @@ class AmountFields {
         }
 
         try {
-            final Coin btcValue = UI.parseCoinValue(mGaService, UI.getText(mAmountEdit));
-            mAmountFiatEdit.setText(mGaService.coinToFiat(btcValue));
+            final Coin btcValue = UI.parseCoinValue(mService, UI.getText(mAmountEdit));
+            mAmountFiatEdit.setText(mService.coinToFiat(btcValue));
         } catch (final ArithmeticException | IllegalArgumentException e) {
             final String maxAmount = mContext.getString(R.string.all);
             if (UI.getText(mAmountEdit).equals(maxAmount))
@@ -181,7 +181,7 @@ class AmountFields {
 
         mConverting = true;
 
-        if (GaService.IS_ELEMENTS) {
+        if (mService.isElements()) {
             // fiat == btc in elements
             mAmountEdit.setText(UI.getText(mAmountFiatEdit));
             finishConversion();
@@ -190,7 +190,7 @@ class AmountFields {
 
         try {
             final Fiat fiatValue = Fiat.parseFiat("???", UI.getText(mAmountFiatEdit));
-            mAmountEdit.setText(UI.formatCoinValue(mGaService, mGaService.getFiatRate().fiatToCoin(fiatValue)));
+            mAmountEdit.setText(UI.formatCoinValue(mService, mService.getFiatRate().fiatToCoin(fiatValue)));
         } catch (final ArithmeticException | IllegalArgumentException e) {
             UI.clear(mAmountEdit);
         }

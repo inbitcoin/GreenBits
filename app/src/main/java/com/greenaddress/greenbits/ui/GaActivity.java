@@ -242,7 +242,7 @@ public abstract class GaActivity extends AppCompatActivity {
 
                                 // if is not bitcoin address, show dialog with text to share
                                 // if text == "" -> bip72b url bitcoin:?r=.+
-                                if (!GaService.isValidAddress(text) && !text.equals("")) {
+                                if (!GaService.isValidAddress(text, mService.getNetwork()) && !text.equals("")) {
                                     if (text.toLowerCase().startsWith("begin:vcard")) {
                                         UI.shareVcard(this, text);
                                     } else {
@@ -290,4 +290,21 @@ public abstract class GaActivity extends AppCompatActivity {
         startActivity(intent);
         finishOnUiThread();
     }
+
+    protected void setAppNameTitle() {
+        setTitleWithNetwork(R.string.app_name);
+    }
+
+    protected void setTitleWithNetwork(final int resource) {
+        if (mService == null || mService.getNetwork() == null)
+            return;
+        final String netname = mService.getNetwork().getName();
+        if (!"Bitcoin".equals(netname))
+            setTitle(String.format("%s (%s)",
+                    getString(resource),
+                    netname));
+        else
+            setTitle(resource);
+    }
+
  }

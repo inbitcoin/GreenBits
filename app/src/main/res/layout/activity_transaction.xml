@@ -26,7 +26,7 @@
             <android.support.v7.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
+                android:layout_height="?android:attr/actionBarSize"
                 app:popupTheme="@style/AppTheme.PopupOverlay">
 
             </android.support.v7.widget.Toolbar>
@@ -55,9 +55,10 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="\? "
+                    android:text="@string/questionMark"
                     android:textColor="@color/accent"
-                    android:textSize="18sp" />
+                    android:textSize="18sp"
+                    android:layout_marginRight="4dp"/>
 
                 <TextView
                     android:id="@+id/txUnconfirmedText"
@@ -252,8 +253,7 @@
                         android:id="@+id/txAmountText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-
-                        android:text="amount"
+                        android:text="@string/amount"
                         android:textColor="@color/accent"
                         android:textIsSelectable="true"
                         android:textSize="18sp" />
