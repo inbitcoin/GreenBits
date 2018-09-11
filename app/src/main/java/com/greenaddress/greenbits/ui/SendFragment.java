@@ -452,7 +452,7 @@ public class SendFragment extends SubaccountFragment {
                 @Override
                 public void onClick(View view) {
                 // do nothing during loading
-                if (mSendButton.isLoading())
+                if (!mSendButton.isLoading())
                     resetAllFields();
                 }
             });
