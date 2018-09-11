@@ -242,7 +242,7 @@ public abstract class GaActivity extends AppCompatActivity {
 
                                 // if is not bitcoin address, show dialog with text to share
                                 // if text == "" -> bip72b url bitcoin:?r=.+
-                                if (!isPublicKey(text) && !text.equals("")) {
+                                if (!GaService.isValidAddress(text) && !text.equals("")) {
                                     if (text.toLowerCase().startsWith("begin:vcard")) {
                                         UI.shareVcard(this, text);
                                     } else {
