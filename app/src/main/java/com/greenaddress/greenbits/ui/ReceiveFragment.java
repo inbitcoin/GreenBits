@@ -252,7 +252,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
             // Preserve current address after flipping orientation
             super.setPageSelected(true);
             final int TRANSPARENT = 0; // Transparent background
-            onNewAddressGenerated(new QrBitmap(mCurrentAddress, TRANSPARENT));
+            onNewAddressGenerated(new QrBitmap(mCurrentAddress, TRANSPARENT, getContext(), getGAService()));
         }
 
         registerReceiver();
