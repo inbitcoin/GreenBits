@@ -92,6 +92,9 @@ public abstract class LoginActivity extends GaActivity {
                 .cancelable(false)
                 .build();
 
+        // select the current network
+        materialDialog.setSelectedIndex(networkSelectorList.indexOf(mService.getNetwork().getName()));
+
         materialDialog.show();
     }
 
