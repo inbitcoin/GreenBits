@@ -242,14 +242,6 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
                 }));
 
             mPinLoginButton.setOnClickListener(this);
-        setEnableDoLogin(false);
-        if (!TextUtils.isEmpty(nativePIN)) {
-            // force hide keyboard
-            getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
-
-        } else  {
-            tryDecrypt();
-        }
 
         final Long timestamp = System.currentTimeMillis()/1000;
         final Long lastFailTimestamp = mService.cfg("pin").getLong("last_fail_timestamp", 0L);
@@ -267,6 +259,15 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
 
         final Toolbar toolbar = UI.find(this, R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        if (!TextUtils.isEmpty(nativePIN)) {
+            if (checkShowChooseNetworkIfMany())
+                return;
+            // force hide keyboard
+            getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+            setEnableDoLogin(false);
+            tryDecrypt();
+        }
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -366,7 +367,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
     public void onResumeWithService() {
         mService.addConnectionObserver(this);
         setAppNameTitle();
-        if (!checkPinExist(true))
+        if (!checkPinExist(true) && checkShowChooseNetworkIfMany())
             chooseNetworkIfMany(true);
 
         // if is already connected, show the login button

@@ -57,6 +57,17 @@ public abstract class LoginActivity extends GaActivity {
         return false;
     }
 
+    // FIXME manage better multiple wallet case
+    protected boolean checkShowChooseNetworkIfMany() {
+        final boolean asked = mService.cfgGlobal("network").getBoolean("network_asked", false);
+        final boolean redirect = mService.cfgGlobal("network").getBoolean("network_redirect", false);
+        if(asked && redirect)
+            return false;
+
+        final Set<String> networkSelector = mService.cfgGlobal("network").getStringSet("network_enabled", new HashSet<>());
+        return networkSelector.size() != 1;
+    }
+
     protected void chooseNetworkIfMany(final boolean fromPinActivity) {
         final boolean asked = mService.cfgGlobal("network").getBoolean("network_asked", false);
         final boolean redirect = mService.cfgGlobal("network").getBoolean("network_redirect", false);
