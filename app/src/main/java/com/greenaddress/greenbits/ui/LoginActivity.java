@@ -35,15 +35,20 @@ public abstract class LoginActivity extends GaActivity {
     }
 
     protected boolean checkPinExist(final boolean fromPinActivity) {
+        return checkPinExist(fromPinActivity, false);
+    }
+
+    // FIXME added forceReload to workaround reload some data in PinActivity
+    protected boolean checkPinExist(final boolean fromPinActivity, final boolean forceReload) {
         final String ident = mService.cfg("pin").getString("ident", null);
 
-        if (fromPinActivity && ident == null) {
+        if ((fromPinActivity && ident == null) || (forceReload && fromPinActivity)){
             mService.cfgGlobalEdit("network").putBoolean("network_redirect", true).apply();
             startActivity(new Intent(this, FirstScreenActivity.class));
             finish();
             return true;
         }
-        if (!fromPinActivity && ident != null) {
+        if ((!fromPinActivity && ident != null) || (forceReload)) {
             mService.cfgGlobalEdit("network").putBoolean("network_redirect", true).apply();
             startActivity(new Intent(this, PinActivity.class));
             finish();
@@ -74,14 +79,14 @@ public abstract class LoginActivity extends GaActivity {
                 .itemsCallbackSingleChoice(0, (dialog, v, which, text) -> {
                     selectedNetwork(text.toString(), false);
                     mService.cfgGlobalEdit("network").putBoolean("network_asked", true).apply();
-                    checkPinExist(fromPinActivity);
+                    checkPinExist(fromPinActivity, true);
                     setAppNameTitle();
                     return true;
                 })
                 .onNegative((dialog, which) -> {
                     selectedNetwork(networkSelectorList.get(dialog.getSelectedIndex()), true);
                     mService.cfgGlobalEdit("network").putBoolean("network_asked", true).apply();
-                    checkPinExist(fromPinActivity);
+                    checkPinExist(fromPinActivity, true);
                     setAppNameTitle();
                 })
                 .cancelable(false)
