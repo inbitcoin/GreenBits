@@ -242,7 +242,7 @@ public class TwoFactorActivity extends GaActivity {
         mProgressBar.setMax(numSteps);
 
         final String gauth_url = (String) mService.getTwoFactorConfig().get("gauth_url");
-        final BitmapDrawable bd = new BitmapDrawable(getResources(), new QrBitmap(gauth_url, 0, this).getQRCode());
+        final BitmapDrawable bd = new BitmapDrawable(getResources(), new QrBitmap(gauth_url, 0, this, mService).getQRCode());
         bd.setFilterBitmap(false);
         imageView.setImageDrawable(bd);
 

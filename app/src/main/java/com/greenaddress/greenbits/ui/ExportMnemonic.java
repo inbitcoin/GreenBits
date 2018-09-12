@@ -197,7 +197,7 @@ public class ExportMnemonic {
             @Override
             protected Pair<Bitmap, String> doInBackground(Object... params) {
                 final String encrypted = CryptoHelper.mnemonic_to_encrypted_mnemonic(mnemonic, password);
-                final QrBitmap qrBitmap = new QrBitmap(encrypted, Color.WHITE, activity);
+                final QrBitmap qrBitmap = new QrBitmap(encrypted, Color.WHITE, activity, service);
                 return Pair.create(qrBitmap.getQRCode(), encrypted);
             }
 

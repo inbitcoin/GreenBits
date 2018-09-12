@@ -17,6 +17,8 @@ import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.UI;
 import com.greenaddress.greenbits.ui.FirstScreenActivity;
 
+import org.bitcoinj.core.NetworkParameters;
+
 
 // Our GaPreferenceActivity derived classes aren't exported publicly, so the
 // only way they can be created is from internal GaActivity derived activities.
@@ -118,6 +120,12 @@ public abstract class GaPreferenceActivity extends AppCompatPreferenceActivity {
         // workaround for bad background: force transparent background to see window background
         final LinearLayout linearLayout = (LinearLayout) listView.getParent();
         linearLayout.setBackgroundColor(getResources().getColor(android.R.color.transparent));
+
+        // workaround to set runtime the testnet background
+        final GaService service = getGAApp().mService;
+        if (service != null && service.getNetworkParameters().getId().equals(NetworkParameters.ID_TESTNET)) {
+            getWindow().setBackgroundDrawableResource(R.drawable.background_activity_testnet);
+        }
     }
 
 }

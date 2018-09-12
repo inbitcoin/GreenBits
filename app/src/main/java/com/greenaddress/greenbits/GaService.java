@@ -1227,6 +1227,7 @@ public class GaService extends Service implements INotificationHandler {
     public ListenableFuture<QrBitmap> getNewAddressBitmap(final int subAccount,
                                                           final Callable<Void> waitFn,
                                                           final Long amount) {
+        final GaService service = this;
         final Function<String, QrBitmap> generateQrBitmap = new Function<String, QrBitmap>() {
             @Override
             public QrBitmap apply(final String address) {
@@ -1235,7 +1236,7 @@ public class GaService extends Service implements INotificationHandler {
                     uri = "bitcoin:" + address + "?amount=" + Coin.valueOf(amount).toPlainString();
                 else
                     uri = address;
-                return new QrBitmap(uri, Color.WHITE, getBaseContext());
+                return new QrBitmap(uri, Color.WHITE, getBaseContext(), service);
             }
         };
         return Futures.transform(getNewAddress(subAccount, waitFn), generateQrBitmap, mExecutor);
@@ -1374,7 +1375,7 @@ public class GaService extends Service implements INotificationHandler {
 
     public Bitmap getSignUpQRCode() {
         if (mSignUpQRCode == null)
-            mSignUpQRCode = new QrBitmap(getSignUpMnemonic(), Color.WHITE, this).getQRCode();
+            mSignUpQRCode = new QrBitmap(getSignUpMnemonic(), Color.WHITE, this, this).getQRCode();
        return mSignUpQRCode;
     }
 

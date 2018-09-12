@@ -1,6 +1,5 @@
 package com.greenaddress.greenbits.ui;
 
-
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.ClipData;
@@ -257,7 +256,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         } else {
             if (mBitmapWorkerTask != null)
                 mBitmapWorkerTask.cancel(true);
-            mBitmapWorkerTask = new BitmapWorkerTask(this);
+            mBitmapWorkerTask = new BitmapWorkerTask(this, getGAService());
             mBitmapWorkerTask.execute();
         }
     }
@@ -266,16 +265,18 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
     public void calculateCommissionFinish() {
         if (mBitmapWorkerTask != null)
             mBitmapWorkerTask.cancel(true);
-        mBitmapWorkerTask = new BitmapWorkerTask(this);
+        mBitmapWorkerTask = new BitmapWorkerTask(this, getGAService());
         mBitmapWorkerTask.execute();
     }
 
     static class BitmapWorkerTask extends AsyncTask<Object, Object, Bitmap> {
 
         private WeakReference<ReceiveFragment> mFragment;
+        private WeakReference<GaService> mService;
 
-        BitmapWorkerTask(final ReceiveFragment fragment) {
+        BitmapWorkerTask(final ReceiveFragment fragment, final GaService gaService) {
             mFragment = new WeakReference<>(fragment);
+            mService = new WeakReference<>(gaService);
         }
 
         @Override
@@ -324,7 +325,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
 
         private Bitmap resetBitmap(final ReceiveFragment fragment, final String address) {
             //mQrCodeBitmap = new QrBitmap(address, Color.WHITE, getContext());
-            fragment.mQrCodeBitmap = new QrBitmap(address, Color.WHITE, fragment.getContext());
+            fragment.mQrCodeBitmap = new QrBitmap(address, Color.WHITE, fragment.getContext(), mService.get());
             return fragment.mQrCodeBitmap.getQRCode();
         }
     }
@@ -558,7 +559,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
 
             // restore address and reset qr code bitmap
             mCurrentAddress = savedInstanceState.getString("currentAddress");
-            mQrCodeBitmap = new QrBitmap(mCurrentAddress, Color.WHITE, getContext());
+            mQrCodeBitmap = new QrBitmap(mCurrentAddress, Color.WHITE, getContext(), getGAService());
             conversionFinish();
         }
         if (mAmountFields != null)

@@ -15,6 +15,8 @@ import com.google.zxing.qrcode.encoder.ByteMatrix;
 import com.google.zxing.qrcode.encoder.Encoder;
 import com.greenaddress.greenbits.ui.R;
 
+import org.bitcoinj.core.NetworkParameters;
+
 public class QrBitmap implements Parcelable {
     private static final int SCALE = 4;
 
@@ -24,10 +26,14 @@ public class QrBitmap implements Parcelable {
     private Bitmap mLogo;
     private static int BORDER = 10;
 
-    public QrBitmap(final String data, final int backgroundColor, Context context) {
+    public QrBitmap(final String data, final int backgroundColor, Context context, final GaService service) {
         mData = data;
         mBackgroundColor = backgroundColor;
-        Bitmap logo = BitmapFactory.decodeResource(context.getResources(), R.drawable.logo_qrcode);
+        final Bitmap logo;
+        if (service != null && service.getNetworkParameters().getId().equals(NetworkParameters.ID_TESTNET))
+            logo = BitmapFactory.decodeResource(context.getResources(), R.drawable.logo_qrcode_testnet);
+        else
+            logo = BitmapFactory.decodeResource(context.getResources(), R.drawable.logo_qrcode);
         mLogo = logo;
     }
 

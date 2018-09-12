@@ -1,5 +1,6 @@
 package com.greenaddress.greenbits.ui;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
@@ -11,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -22,6 +24,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.zxing.integration.android.IntentResult;
 import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.GreenAddressApplication;
+
+import org.bitcoinj.core.NetworkParameters;
 
 import java.util.regex.Pattern;
 
@@ -58,6 +62,8 @@ public abstract class GaActivity extends AppCompatActivity {
         if (viewId != UI.INVALID_RESOURCE_ID)
             setContentView(viewId);
 
+        final Activity activity = this;
+
         // Call onCreateWithService() on the GUI thread once our service
         // becomes available. In most cases this will execute immediately.
         Futures.addCallback(getGAApp().onServiceAttached, new CB.Op<Void>() {
@@ -69,6 +75,14 @@ public abstract class GaActivity extends AppCompatActivity {
                         Log.d(TAG, "onCreateWithService -> " + self.getClass().getSimpleName());
                         self.mService = getGAApp().mService;
                         self.onCreateWithService(savedInstanceState);
+
+                        // workaround to set runtime the testnet background
+                        if (mService != null && mService.getNetworkParameters().getId().equals(NetworkParameters.ID_TESTNET)) {
+                            final ViewGroup viewGroup = (ViewGroup) ((ViewGroup) activity.findViewById(android.R.id.content)).getChildAt(0);
+                            if (viewGroup != null)
+                                viewGroup.setBackgroundResource(R.drawable.background_activity_testnet);
+                        }
+
                         if (self.mResumed) {
                             // We resumed before the service became available, and so
                             // did not call onResumeWithService() then - call it now.
