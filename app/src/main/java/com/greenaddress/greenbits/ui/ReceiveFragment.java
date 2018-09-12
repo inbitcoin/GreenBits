@@ -83,6 +83,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
     private boolean mIsExchanger;
     private Button mShowQrCode;
     private Observer mNewTxObserver;
+    private Observer mNewBlockObserver;
 
     @Override
     public void onResume() {
@@ -201,6 +202,10 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
             }
         });
 
+        mCurrentAddress = "";
+        if (savedInstanceState != null)
+            mCurrentAddress = savedInstanceState.getString("mCurrentAddress", "");
+
         if (mIsExchanger) {
             setPageSelected(true);
             mAmountFiatWithCommission = UI.find(mView, R.id.amountFiatWithCommission);
@@ -243,6 +248,11 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
                     });
                 }
             });
+        } else if (!mCurrentAddress.isEmpty()) {
+            // Preserve current address after flipping orientation
+            super.setPageSelected(true);
+            final int TRANSPARENT = 0; // Transparent background
+            onNewAddressGenerated(new QrBitmap(mCurrentAddress, TRANSPARENT));
         }
 
         registerReceiver();
@@ -531,7 +541,8 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
 
     @Override
     public void onShareClicked() {
-        if (mQrCodeBitmap == null || mQrCodeBitmap.getData().isEmpty())
+        if (mQrCodeBitmap == null || mQrCodeBitmap.getData().isEmpty() ||
+                mCurrentAddress.isEmpty() || !mQrCodeBitmap.getData().equals(mCurrentAddress))
             return;
 
         UI.shareQrcodeAddress(getGaActivity(), mQrCodeBitmap.getQRCode(), getAddressUri());
@@ -577,6 +588,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         if (mAmountFields != null)
             outState.putBoolean("pausing", mAmountFields.isPausing());
         outState.putBoolean("isExchanger", mIsExchanger);
+        outState.putString("mCurrentAddress", mCurrentAddress);
     }
 
     public void setIsExchanger(final boolean isExchanger) {
@@ -586,8 +598,12 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
     @Override
     public void attachObservers() {
         if (mNewTxObserver == null) {
-            mNewTxObserver = makeUiObserver(new Runnable() { public void run() { onNewTx(); } });
+            mNewTxObserver = makeUiObserver(new Runnable() { public void run() { onNewTxBlock(false); } });
             getGAService().addNewTxObserver(mNewTxObserver);
+        }
+        if (mNewBlockObserver == null) {
+            mNewBlockObserver = makeUiObserver(new Runnable() { public void run() { onNewTxBlock(true); } });
+            getGAService().addNewBlockObserver(mNewBlockObserver);
         }
         super.attachObservers();
     }
@@ -599,9 +615,13 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
             getGAService().deleteNewTxObserver(mNewTxObserver);
             mNewTxObserver = null;
         }
+        if (mNewBlockObserver!= null) {
+            getGAService().deleteNewBlockObserver(mNewBlockObserver);
+            mNewBlockObserver = null;
+        }
     }
 
-    private void onNewTx() {
+    private void onNewTxBlock(final boolean isBlock) {
         if (mCurrentAddress.isEmpty() || !isPageSelected())
             return;
 
@@ -654,7 +674,7 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
                                 e.printStackTrace();
                             }
                         }
-                        if (!matched)
+                        if (!isBlock && !matched)
                             getGaActivity().toast(R.string.new_incoming_transaction);
                     }
 

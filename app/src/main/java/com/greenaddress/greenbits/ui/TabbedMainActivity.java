@@ -47,6 +47,7 @@ import com.greenaddress.bitid.SignInResponse;
 import com.greenaddress.greenapi.ISigningWallet;
 import com.greenaddress.greenbits.ApplicationService;
 import com.greenaddress.greenbits.GaService;
+import com.greenaddress.greenbits.GreenAddressApplication;
 import com.greenaddress.greenbits.ui.monitor.NetworkMonitorActivity;
 import com.greenaddress.greenbits.ui.preferences.GaPreferenceActivity;
 import com.greenaddress.greenbits.ui.preferences.SettingsActivity;
@@ -105,7 +106,6 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             REQUEST_BITID_URL_LOGIN = 10;
     public static final String REQUEST_RELOAD = "request_reload";
     private ViewPager mViewPager;
-    private Menu mMenu;
     private Boolean mInternalQr = false;
     private String mSendAmount;
     private Snackbar snackbar;
@@ -525,6 +525,8 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
         mService.addConnectionObserver(this);
         mService.addTwoFactorObserver(mTwoFactorObserver);
+
+        invalidateOptionsMenu();
      }
 
     @Override
@@ -886,14 +888,18 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             final boolean isExchanger = mService.cfg().getBoolean("show_exchanger_menu", false);
             setMenuItemVisible(menu, R.id.action_exchanger, isExchanger);
         }
+        return true;
+    }
 
-        mMenu = menu;
+    @Override
+    public boolean onPrepareOptionsMenu(final Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        final SectionsPagerAdapter adapter = getPagerAdapter();
+        setMenuItemVisible(menu, R.id.network_unavailable, !mService.isLoggedIn());
+        setMenuItemVisible(menu, R.id.action_share, adapter != null && adapter.mSelectedPage == 0);
 
         // get advanced_options flag and show/hide menu items
-        MenuItem actionNetwork = menu.findItem(R.id.action_network);
-        if (!mService.isWatchOnly() && !mService.hasAdvancedOption()) {
-            actionNetwork.setVisible(false);
-        }
+        setMenuItemVisible(menu, R.id.action_network, !mService.isWatchOnly() && !mService.hasAdvancedOption());
         return true;
     }
 
@@ -963,7 +969,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             startActivity(new Intent(this, FirstScreenActivity.class));
             finish();
         }
-        setMenuItemVisible(mMenu, R.id.network_unavailable, !state.isLoggedIn());
+        invalidateOptionsMenu();
     }
 
     @Override
@@ -1233,6 +1239,8 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             mSelectedPage = index;
             if (mFragments[mSelectedPage] != null)
                 mFragments[mSelectedPage].setPageSelected(true);
+
+            invalidateOptionsMenu();
         }
 
         public void setBlockWaitDialog(final boolean doBlock) {

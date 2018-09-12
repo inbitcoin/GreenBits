@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.blockstream.libwally.Wally;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.MappingJsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.base.Function;
@@ -36,7 +37,6 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.protocols.payments.PaymentProtocol;
 import org.bitcoinj.protocols.payments.PaymentProtocolException;
 import org.bitcoinj.protocols.payments.PaymentSession;
-import org.codehaus.jackson.map.MappingJsonFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -285,6 +285,12 @@ public class WalletClient {
 
     private void clientSubscribe(final String s, final Class mapClass, final EventHandler eventHandler) {
         final String topic = "com.greenaddress." + s;
+
+        if (mConnection == null) {
+            Log.i(TAG, "not connected");
+            return;
+        }
+
         mConnection.makeSubscription(topic)
                    .observeOn(mScheduler)
                    .subscribe(new Action1<PubSubData>() {

@@ -213,9 +213,10 @@ public class MainFragment extends SubaccountFragment {
 
     @Override
     public void attachObservers() {
-        if (mVerifiedTxObserver == null) {
+        if (mNewTxObserver == null) {
             mNewTxObserver = makeUiObserver(new Runnable() { public void run() { onNewTx(); } });
             getGAService().addNewTxObserver(mNewTxObserver);
+            getGAService().addNewBlockObserver(mNewTxObserver);
         }
         if (mVerifiedTxObserver == null) {
             mVerifiedTxObserver = makeUiObserver(new Runnable() { public void run() { onVerifiedTx(); } });
@@ -227,8 +228,9 @@ public class MainFragment extends SubaccountFragment {
     @Override
     public void detachObservers() {
         super.detachObservers();
-        if (mVerifiedTxObserver != null) {
+        if (mNewTxObserver != null) {
             getGAService().deleteNewTxObserver(mNewTxObserver);
+            getGAService().deleteNewBlockObserver(mNewTxObserver);
             mNewTxObserver = null;
         }
         if (mVerifiedTxObserver != null) {
