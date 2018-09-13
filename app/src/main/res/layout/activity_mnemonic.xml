@@ -5,6 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/background_activity"
+    android:importantForAutofill="noExcludeDescendants"
     tools:context="com.greenaddress.greenbits.ui.MnemonicActivity">
 
     <android.support.design.widget.CoordinatorLayout

@@ -5,6 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context="com.greenaddress.greenbits.ui.PinActivity"
+    android:importantForAutofill="noExcludeDescendants"
     android:background="@drawable/background_activity">
 
     <android.support.design.widget.CoordinatorLayout

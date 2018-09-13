@@ -6,6 +6,7 @@
     android:descendantFocusability="beforeDescendants"
     android:focusableInTouchMode="true"
     android:padding="@dimen/activity_content_margin"
+    android:importantForAutofill="noExcludeDescendants"
     tools:context="com.greenaddress.greenbits.ui.SendFragment"
     >
 
