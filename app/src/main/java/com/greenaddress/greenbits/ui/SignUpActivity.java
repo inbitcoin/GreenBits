@@ -11,6 +11,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.v13.view.inputmethod.EditorInfoCompat;
 import android.support.v7.widget.Toolbar;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
@@ -474,6 +475,7 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         //final GridLayout.Spec spec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
         //final GridLayout.LayoutParams param = new GridLayout.LayoutParams(spec, spec);
         //text.setLayoutParams(param);
+        text.setImeOptions(EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING);
         text.setGravity(Gravity.CENTER);
         text.setSingleLine();
         float density = getResources().getDisplayMetrics().density;
