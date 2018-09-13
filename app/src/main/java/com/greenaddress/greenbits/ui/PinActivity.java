@@ -17,6 +17,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -71,6 +72,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
     private int AUTH_SCREEN_ATTEMPT = 0;
     private Activity mActivity;
     private static String SERVER_REPLY_NO_PASSWORD = "No password available for this device";
+    private boolean mKeyboardToShow = true;
 
     private void login() {
 
@@ -261,6 +263,7 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
         setSupportActionBar(toolbar);
 
         if (!TextUtils.isEmpty(nativePIN)) {
+            mKeyboardToShow = false;
             if (checkShowChooseNetworkIfMany())
                 return;
             // force hide keyboard
@@ -367,8 +370,10 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
     public void onResumeWithService() {
         mService.addConnectionObserver(this);
         setAppNameTitle();
-        if (!checkPinExist(true) && checkShowChooseNetworkIfMany())
+        if (!checkPinExist(true) && checkShowChooseNetworkIfMany()) {
+            mKeyboardToShow = false;
             chooseNetworkIfMany(true);
+        }
 
         // if is already connected, show the login button
         if ((TextUtils.isEmpty(nativePIN) || mErrorAuthScreen) && mPinLoginButton != null) {
@@ -502,6 +507,12 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
         if (enable) {
             mPinLoginButton.stopLoading();
             UI.enable(mPinText);
+            if (mKeyboardToShow) {
+                final InputMethodManager inputMethodManager =  (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+                inputMethodManager.toggleSoftInputFromWindow(mPinText.getApplicationWindowToken(), InputMethodManager.SHOW_IMPLICIT, 0);
+                mPinText.requestFocus();
+                mKeyboardToShow = false;
+            }
         } else {
             mPinLoginButton.startLoading();
             UI.disable(mPinText);
