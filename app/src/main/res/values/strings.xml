@@ -492,7 +492,7 @@
     <string name="doubleTilde" translatable="false">≈</string>
     <string name="sharedVia">Shared via</string>
     <string name="shareAddress">Share</string>
-    <string name="warningSweepPrivKey">This paperwallet contains %s BTC. Are you sure to continue to sweep the wallet?</string>
+    <string name="warningSweepPrivKey">The funds within the paperwallet have not yet been confirmed.\nPlease confirm and try again later></string>
     <string name="ok" translatable="false">OK</string>
     <string name="descriptionAltana" translatable="false">ALTANA bitcoin wallet</string>
     <string name="qrcodeContentDialogTitle">QR code content</string>

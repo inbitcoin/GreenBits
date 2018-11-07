@@ -2,6 +2,7 @@ package com.greenaddress.greenbits.ui;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -10,7 +11,6 @@ import android.net.Uri;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -40,6 +40,8 @@ import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.internal.MDButton;
 import com.blockstream.libwally.Wally;
 import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.zxing.integration.android.IntentResult;
 import com.greenaddress.bitid.BitID;
 import com.greenaddress.bitid.BitidSignIn;
@@ -65,14 +67,8 @@ import org.bitcoinj.crypto.TransactionSignature;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -726,87 +722,51 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                     }
                 };
 
-
-                // FIXME workaround to get info about paperwallet before call WAMP GA server because is too slow the GA server to reply
-                @Deprecated
-                class GetPublicKeyBalance extends AsyncTask<String, Void, String> {
-
-                    private String pubKey;
-
-                    @Override
-                    protected String doInBackground(String... strings) {
-                        String balance = "";
-                        try {
-                            pubKey = strings[0];
-                            final String apikey = "9e3043e0226a7f5e94f881c4bc37340efb265f1e";
-                            final String apiurl = "http://api.blocktrail.com/v1/" +
-                                    (mService.getNetworkParameters().getId().equals(NetworkParameters.ID_MAINNET)? "BTC" : "tBTC") +
-                                    "/address/";
-                            URL url = new URL(apiurl + pubKey + "?api_key=" + apikey);
-                            HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-
-                            InputStream stream = new BufferedInputStream(urlConnection.getInputStream());
-                            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(stream));
-                            StringBuilder builder = new StringBuilder();
-
-                            String inputString;
-                            while ((inputString = bufferedReader.readLine()) != null) {
-                                builder.append(inputString);
-                            }
-
-                            JSONObject topLevel = new JSONObject(builder.toString());
-                            balance = topLevel.getString("balance");
-                            urlConnection.disconnect();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        return balance;
-                    }
-
-                    @Override
-                    protected void onPostExecute(String result) {
-                        if (result.isEmpty()) {
-                            toast(R.string.invalid_paperwallet);
-                            return;
-                        }
-                        final Float balanceBtc = Float.valueOf(result)/100000000;
-                        if (balanceBtc == 0) {
-                            // open webview to verify the wallet content
-                            Intent intent = new Intent(caller, VisiuWebview.class);
-                            intent.putExtra("public_address", pubKey);
-                            startActivity(intent);
-                            overridePendingTransition(R.anim.slide_from_right, R.anim.fade_out);
-                            return;
-                        }
-                        final String warningSweepPrivKey = String.format(mActivity.getResources().getString(R.string.warningSweepPrivKey), balanceBtc.toString());
-                        final Dialog confirmDialog = UI.popup(mActivity, R.string.warning)
-                                .content(warningSweepPrivKey)
-                                .onPositive(new MaterialDialog.SingleButtonCallback() {
-                                    @Override
-                                    public void onClick(final MaterialDialog dialog, final DialogAction which) {
-                                        dialogLoading.show();
-                                        if (keyNonBip38 != null)
-                                            CB.after(mService.prepareSweepSocial(keyNonBip38.getPubKey(), true), callback);
-                                        else
-                                            callback.onSuccess(null);
-                                    }
-                                })
-                                .onNegative(new MaterialDialog.SingleButtonCallback() {
-                                    @Override
-                                    public void onClick(final MaterialDialog dialog, final DialogAction which) {
-                                        dialog.cancel();
-                                    }
-                                }).build();
-
-                        confirmDialog.show();
-                    }
-                }
                 final String pubKey = getPublicKeyStringFromHash(keyNonBip38.getPubKeyHash());
-                new GetPublicKeyBalance().execute(pubKey);
 
+                final ListenableFuture<Float> getAddressContent = mService.getAddressContent(pubKey);
+                dialogLoading.show();
+                Futures.addCallback(getAddressContent, new CB.Toast<Float>(this) {
+                    @Override
+                    public void onSuccess(final Float result) {
+                        if (result == null || result > 0) {
+                            // continue sweep
+                            if (keyNonBip38 != null)
+                                CB.after(mService.prepareSweepSocial(keyNonBip38.getPubKey(), true), callback);
+                            else
+                                callback.onSuccess(null);
+                        } else if (result == -1) {
+                            // unconfirmed balance, show message and open visiu
+                            final String warningSweepPrivKey = mActivity.getResources().getString(R.string.warningSweepPrivKey);
+                            mActivity.runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    final Dialog unconfirmedAmount = UI.popup(mActivity, R.string.warning, android.R.string.ok)
+                                            .cancelable(false)
+                                            .onPositive(new MaterialDialog.SingleButtonCallback() {
+                                                @Override
+                                                public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                                                    openVisiu(caller, pubKey);
+                                                }
+                                            })
+                                            .content(warningSweepPrivKey).build();
+                                    unconfirmedAmount.show();
+                                }
+                            });
+                        } else if (result == 0) {
+                            openVisiu(caller, pubKey);
+                        }
+                        dialogLoading.dismiss();
+                    }
+
+                    @Override
+                    public void onFailure(final Throwable t) {
+                        toast(R.string.invalid_paperwallet);
+                        dialogLoading.dismiss();
+                    }
+                }, mService.getExecutor());
                 break;
+
             case REQUEST_VISIU:
                 if (data != null && isBitcoinScheme(data)) {
                     final Intent browsable = new Intent(this, TabbedMainActivity.class);
@@ -819,6 +779,19 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                 }
                 break;
         }
+    }
+
+    /**
+     * Open visiu activity
+     * @param context context to attach the intent
+     * @param pubAddress the public address to check
+     */
+    private void openVisiu(final Context context, final String pubAddress) {
+        // open webview to verify the wallet content
+        Intent intent = new Intent(context, VisiuWebview.class);
+        intent.putExtra("public_address", pubAddress);
+        startActivity(intent);
+        overridePendingTransition(R.anim.slide_from_right, R.anim.fade_out);
     }
 
     /**

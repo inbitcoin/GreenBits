@@ -1676,6 +1676,11 @@ public class GaService extends Service implements INotificationHandler {
         });
     }
 
+    public ListenableFuture<Float> getAddressContent(final String address) {
+        return mClient.getAddressContent(address);
+    }
+
+
     public List<String> getEnabledTwoFactorMethods() {
         if (mTwoFactorConfig == null)
             return null;

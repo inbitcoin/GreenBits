@@ -32,11 +32,14 @@ import com.squareup.okhttp.Response;
 
 import org.bitcoin.protocols.payments.Protos;
 import org.bitcoinj.core.Address;
+import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.protocols.payments.PaymentProtocol;
 import org.bitcoinj.protocols.payments.PaymentProtocolException;
 import org.bitcoinj.protocols.payments.PaymentSession;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -89,6 +92,7 @@ public class WalletClient {
     private SocketAddress mProxyAddress;
     private final OkHttpClient mHttpClient = new OkHttpClient();
     private final OkHttpClient mHttpClientBIP70 = new OkHttpClient();
+    private final OkHttpClient mHttpClientSmartbit = new OkHttpClient();
     private boolean mTorEnabled;
     private WampClient mConnection;
     private LoginData mLoginData;
@@ -317,12 +321,14 @@ public class WalletClient {
             mProxyAddress = null;
             mHttpClient.setSocketFactory(null);
             mHttpClientBIP70.setSocketFactory(null);
+            mHttpClientSmartbit.setSocketFactory(null);
             return;
         }
         try {
             mProxyAddress = new InetSocketAddress(host, Integer.parseInt(port));
             mHttpClient.setSocketFactory(new Socks5SocketFactory(host, port));
             mHttpClientBIP70.setSocketFactory(new Socks5SocketFactory(host, port));
+            mHttpClientSmartbit.setSocketFactory(new Socks5SocketFactory(host, port));
         } catch (final UnknownHostException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -1040,5 +1046,73 @@ public class WalletClient {
     public ListenableFuture<String> create2to2subaccount(final int pointer, final String name,
                                                          final String user_public, final String user_chaincode) {
         return simpleCall("txs.create_subaccount", String.class, pointer, name, user_public, user_chaincode);
+    }
+
+    /**
+     * Call smartbit to fetch the address content
+     * @param address the pubblic address to check
+     * @return a SettableFuture:
+     *  null: no data available
+     *  -1: unconfirmed balance
+     *  other: the balance
+     */
+    public ListenableFuture<Float> getAddressContent(final String address) {
+        final SettableFuture<Float> settableFuture = SettableFuture.create();
+
+        final String testnet = mService.getNetworkParameters().getId().equals(NetworkParameters.ID_TESTNET) ? "testnet-" : "";
+        final String url = String.format("https://%sapi.smartbit.com.au/v1/blockchain/address/%s", testnet, address);
+
+        final Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .build();
+
+        mHttpClientSmartbit.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Request request, IOException e) {
+                settableFuture.set(null);
+            }
+
+            @Override
+            public void onResponse(final Response response) {
+                final String totalBalance;
+                try {
+                    final String result = response.body().string();
+                    if (result.isEmpty()) {
+                        Log.d(TAG, "the response is empty");
+                        settableFuture.set(null);
+                        return;
+                    }
+                    try {
+                        final JSONObject json = new JSONObject(result);
+                        if (!json.getBoolean("success")) {
+                            Log.d(TAG, "'success' field is false");
+                            settableFuture.set(null);
+                            return;
+                        }
+                        final JSONObject address = json.getJSONObject("address");
+                        totalBalance = address.getJSONObject("total").getString("balance");
+                        final String unconfirmedBalance = address.getJSONObject("unconfirmed").getString("balance");
+                        if (Float.valueOf(unconfirmedBalance) != 0) {
+                            Log.d(TAG, "unconfirmed balance is not empty");
+                            settableFuture.set((float)-1);
+                            return;
+                        }
+
+                    } catch (JSONException e) {
+                        Log.d(TAG, e.getMessage());
+                        settableFuture.set(null);
+                        return;
+                    }
+                    final Float balanceBtc = Float.valueOf(totalBalance);
+                    settableFuture.set(balanceBtc);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    settableFuture.set(null);
+                }
+            }
+        });
+
+        return settableFuture;
     }
 }

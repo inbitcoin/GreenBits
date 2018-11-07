@@ -237,7 +237,7 @@
     <string name="sharedVia">Condiviso via</string>
     <string name="shareAddress">Condividi</string>
     <string name="action_sweep">Leggi paperwallet</string>
-    <string name="warningSweepPrivKey">Il paperwallet contiene %s BTC. Vuoi continuare prelevandone tutto il contenuto?</string>
+    <string name="warningSweepPrivKey">I fondi all\'interno del paperwallet non sono ancora stati confermati.\nAspetta una conferma e riprova più tardi</string>
     <string name="qrcodeContentDialogTitle">Contenuto QR code</string>
     <string name="vendorMessage">Puoi vendere i tuoi bitcoin tramite l\'apposita pagina di vendita nel menù a tendina</string>
     <string name="tryAgainInSeconds">Riprova fra %1$d secondi</string>
