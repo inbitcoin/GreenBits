@@ -1308,7 +1308,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         // positive button, to show only for !dev_mode && mainnet and !debug
         final MDButton positiveButton = warningDialog.getActionButton(DialogAction.POSITIVE);
 
-        final boolean isDev = mService.cfg("dev_mode").getBoolean("enabled", false);
+        final boolean isDev = mService.cfg("dev_mode", "Bitcoin").getBoolean("enabled", false);
         if (!BuildConfig.DEBUG && !isDev)
             positiveButton.setEnabled(false);
 

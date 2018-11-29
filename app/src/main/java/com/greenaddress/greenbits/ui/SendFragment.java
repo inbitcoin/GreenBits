@@ -194,7 +194,7 @@ public class SendFragment extends SubaccountFragment {
         btnNormal.setTypeface(typeface);
         btnHi.setTypeface(typeface);
 
-        final boolean isDev = service.cfg("dev_mode").getBoolean("enabled", false);
+        final boolean isDev = service.cfg("dev_mode", "Bitcoin").getBoolean("enabled", false);
         UI.showIf(isDev, customIcon);
 
         mPrioritySummaries = getResources().getStringArray(R.array.fee_target_summaries);

@@ -86,7 +86,7 @@ public class NetworkPreferenceFragment extends GAPreferenceFragment {
 
         final Set<String> customNetworks = mService.cfgGlobal("network").getStringSet("network_customs", new HashSet<>());
 
-        final boolean isDev = mService.cfg("dev_mode").getBoolean("enabled", false);
+        final boolean isDev = mService.cfg("dev_mode", "Bitcoin").getBoolean("enabled", false);
 
         // Network selector
         mNetworkSelector = find("network_enabled");

@@ -171,7 +171,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment
             }
         });
 
-        final boolean isDev = mService.cfg("dev_mode").getBoolean("enabled", false);
+        final boolean isDev = mService.cfg("dev_mode", "Bitcoin").getBoolean("enabled", false);
 
         // Transaction priority, i.e. default fees
         final ListPreference defaultTxPriority = find("default_tx_priority");
