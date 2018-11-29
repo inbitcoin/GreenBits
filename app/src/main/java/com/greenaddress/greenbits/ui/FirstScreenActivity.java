@@ -267,6 +267,9 @@ public class FirstScreenActivity extends LoginActivity {
                 return true;
             case R.id.action_settings:
                 return true;
+            case R.id.action_about:
+                startActivity(new Intent(FirstScreenActivity.this, AboutActivity.class));
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }

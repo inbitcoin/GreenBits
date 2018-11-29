@@ -86,8 +86,12 @@ public class NetworkPreferenceFragment extends GAPreferenceFragment {
 
         final Set<String> customNetworks = mService.cfgGlobal("network").getStringSet("network_customs", new HashSet<>());
 
+        final boolean isDev = mService.cfg("dev_mode").getBoolean("enabled", false);
+
         // Network selector
         mNetworkSelector = find("network_enabled");
+        if (!isDev)
+            getPreferenceScreen().removePreference(mNetworkSelector);
         mNetworkSelector.setOnPreferenceChangeListener((preference, selectedPreferencesObject) -> {
             final Set<String> selectedPreferences = (Set<String>) selectedPreferencesObject;
             if (selectedPreferences.isEmpty()) {
@@ -129,6 +133,10 @@ public class NetworkPreferenceFragment extends GAPreferenceFragment {
 
         mCustomNetworksEnabled = find("custom_networks_enabled");
         mCustomNetworksCategory = find("custom_networks_category");
+        if (!isDev) {
+            getPreferenceScreen().removePreference(mCustomNetworksEnabled);
+            getPreferenceScreen().removePreference(mCustomNetworksCategory);
+        }
         if (!mCustomNetworksEnabled.isChecked())
             getPreferenceScreen().removePreference(mCustomNetworksCategory);
 

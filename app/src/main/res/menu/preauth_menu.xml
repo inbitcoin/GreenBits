@@ -6,4 +6,8 @@
     <item
         android:id="@+id/watchonly_preference"
         android:title="@string/watchOnlyLogin" />
+    <item
+        android:id="@+id/action_about"
+        android:orderInCategory="55"
+        android:title="@string/action_about" />
 </menu>

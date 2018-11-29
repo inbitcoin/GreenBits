@@ -426,6 +426,9 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
             case R.id.watchonly_preference:
                 startActivity(new Intent(PinActivity.this, WatchOnlyLoginActivity.class));
                 return true;
+            case R.id.action_about:
+                startActivity(new Intent(PinActivity.this, AboutActivity.class));
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }
