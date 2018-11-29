@@ -896,7 +896,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
         super.onPrepareOptionsMenu(menu);
         final SectionsPagerAdapter adapter = getPagerAdapter();
         setMenuItemVisible(menu, R.id.network_unavailable, !mService.isLoggedIn());
-        setMenuItemVisible(menu, R.id.action_share, adapter != null && adapter.mSelectedPage == 0);
+        //setMenuItemVisible(menu, R.id.action_share, adapter != null && adapter.mSelectedPage == 0);
 
         // get advanced_options flag and show/hide menu items
         setMenuItemVisible(menu, R.id.action_network, !mService.isWatchOnly() && !mService.hasAdvancedOption());
