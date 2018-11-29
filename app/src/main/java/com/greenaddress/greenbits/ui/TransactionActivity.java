@@ -604,7 +604,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
             identicon.setOnClickListener(new View.OnClickListener() {
                                      @Override
                                      public void onClick(View view) {
-                    onImageClicked(bitmap, "txid: " + txItem);
+                    onImageClicked(bitmap, txItem);
             }
         });
         }
@@ -618,7 +618,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
         @Override
         protected Bitmap doInBackground(String... strings) {
             mTxHash = strings[0];
-            return new QrBitmap("txid:" + mTxHash, Color.WHITE, mActivity, mService).getQRCode();
+            return new QrBitmap(mTxHash, Color.WHITE, mActivity, mService).getQRCode();
         }
 
         @Override
@@ -632,7 +632,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
             qrcode.setOnClickListener(new View.OnClickListener() {
                                   @Override
                                   public void onClick(View view) {
-                    onImageClicked(qrcodeBitmap, "txid: " + mTxHash);
+                    onImageClicked(qrcodeBitmap, mTxHash);
             }
         });
         }
