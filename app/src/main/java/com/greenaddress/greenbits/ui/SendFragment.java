@@ -569,12 +569,14 @@ public class SendFragment extends SubaccountFragment {
             if (!isZombie())
                 setIsDirty(false);
         } else if (!isZombie() && isSelected && getGAService().getTotalBalance() > 0) {
+            /* disabled vendor page
             // show vendor snackbar on top only for 5 times
             final Integer vendorMessageCount = getGAService().cfg("vendor_message").getInt("count", 0);
             if (vendorMessageCount < VENDOR_MESSAGE_MAX) {
                 showVendorSnackbar();
                 getGAService().cfgEdit("vendor_message").putInt("count", vendorMessageCount + 1).apply();
             }
+            */
         }
         if (!isSelected && mPayreqData != null) {
             // When the page is changed with a payment request active, reset

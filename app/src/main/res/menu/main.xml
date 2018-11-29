@@ -3,12 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.greenaddress.greenbits.ui.MainActivity">
     <item
-        android:id="@+id/action_vendor"
-        android:orderInCategory="40"
-        android:title="@string/sellBitcoin"
-        app:showAsAction="never" />
-
-    <item
         android:id="@+id/network_unavailable"
         android:icon="@drawable/plug_ffffff"
         android:orderInCategory="90"

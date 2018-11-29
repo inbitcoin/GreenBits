@@ -477,13 +477,6 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             mService.setUserConfig("use_segwit", true, false);
         }
 
-        final Boolean isVendorMode = mService.cfg("is_vendor_mode").getBoolean("enabled", false);
-        if (isVendorMode) {
-            Intent intent = new Intent(this, VendorActivity.class);
-            startActivity(intent);
-            overridePendingTransition(R.anim.slide_from_right, R.anim.fade_out);
-        }
-
         if (mIsBitidUri) {
             final Intent intent = getIntent();
             final Uri uri = intent.getData();
@@ -943,11 +936,6 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                 return true;
              case R.id.action_dispute_twofactor_reset:
                 onDisputeTwoFactorResetSelected();
-                return true;
-            case R.id.action_vendor:
-                Intent intent = new Intent(caller, VendorActivity.class);
-                startActivity(intent);
-                overridePendingTransition(R.anim.slide_from_right, R.anim.fade_out);
                 return true;
          }
         return super.onOptionsItemSelected(item);
