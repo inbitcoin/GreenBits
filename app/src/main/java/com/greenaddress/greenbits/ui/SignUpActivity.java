@@ -630,5 +630,9 @@ public class SignUpActivity extends LoginActivity implements View.OnClickListene
         // hide two fac warnings
         service.cfg().edit().putBoolean("hideSingleTwoFacWarning", true).apply();
         service.cfg().edit().putBoolean("hideTwoFacWarning", true).apply();
+
+        // set mBTC default for new account
+        service.setUserConfig("unit", "mBTC", true);
+        service.cfg().edit().putString("denomination_key", "mBTC").apply();
     }
 }
