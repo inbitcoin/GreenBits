@@ -573,8 +573,13 @@ public class SPV {
     }
 
     private void updateNotification(final int total, final int soFar) {
-        mNotificationBuilder.setProgress(total, soFar, false);
-        mNotifyManager.notify(mNotificationId, mNotificationBuilder.build());
+        // show notification only with advanced option enabled
+        if (mService != null && mService.hasAdvancedOption()) {
+            mNotificationBuilder.setProgress(total, soFar, false);
+            mNotifyManager.notify(mNotificationId, mNotificationBuilder.build());
+        } else {
+            mNotifyManager.cancel(mNotificationId);
+        }
     }
 
     private PeerAddress getPeerAddress(final String address) throws URISyntaxException, UnknownHostException {
