@@ -113,7 +113,6 @@
     <string-array name="available_networks">
         <item>Bitcoin</item>
         <item>Testnet</item>
-        <item>GreenAddress Instant</item>
     </string-array>
 
     <string name="custom_requires_rbf">Custom fees require transaction replacement functionality to be enabled.</string>
