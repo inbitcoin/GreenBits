@@ -84,7 +84,7 @@
         <item>Confirmation in 12 blocks, up to two hours on average</item>
         <item>We know each other, I\'ll take my time.\nConfirmation in 24 blocks or later, 4 hours or longer on average</item>
         <item>Allora scusa, sei mejo te</item>
-        <item>The truth is out there, the network will decide\n10000 satoshi/kB</item>
+        <item>The truth is out there, the network will decide\n3000 satoshi/kB</item>
         <item>Panic selling /o\\</item>
     </string-array>
     <string-array name="fee_target_summaries_ga">
