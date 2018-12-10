@@ -574,7 +574,7 @@ public class SPV {
 
     private void updateNotification(final int total, final int soFar) {
         // show notification only with advanced option enabled
-        if (mService != null && mService.hasAdvancedOption()) {
+        if (mService != null && mService.isDev()) {
             mNotificationBuilder.setProgress(total, soFar, false);
             mNotifyManager.notify(mNotificationId, mNotificationBuilder.build());
         } else {

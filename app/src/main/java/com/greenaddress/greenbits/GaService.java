@@ -2015,4 +2015,12 @@ public class GaService extends Service implements INotificationHandler {
     public Boolean hasAdvancedOption() {
         return cfg("advanced_options").getBoolean("enabled", false);
     }
+
+    /**
+     * Get dev_mode flag
+     * @return dev_mode flag
+     */
+    public Boolean isDev() {
+        return cfg("dev_mode").getBoolean("enabled", false);
+    }
 }
