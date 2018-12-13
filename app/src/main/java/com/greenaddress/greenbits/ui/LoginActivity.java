@@ -16,11 +16,7 @@ public abstract class LoginActivity extends GaActivity {
 
     protected void onLoginSuccess() {
         // After login succeeds, show system messaages if there are any
-        final Intent intent;
-        if (mService.isWatchOnly() || !mService.haveUnackedMessages())
-            intent = new Intent(LoginActivity.this, TabbedMainActivity.class);
-        else
-            intent = new Intent(LoginActivity.this, MessagesActivity.class);
+        final Intent intent = new Intent(LoginActivity.this, TabbedMainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finishOnUiThread();
