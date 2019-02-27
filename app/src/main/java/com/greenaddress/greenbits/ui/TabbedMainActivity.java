@@ -394,6 +394,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
             if (days != null) {
                 final String message = getString(R.string.twofactor_reset_banner, days);
                 banner = showWarningBanner(message, null, false);
+            /* tmp disabled
             } else {
                 // Show a warning if the user has unacked messages
                 if (mService.haveUnackedMessages()) {
@@ -404,6 +405,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                        msgId = R.string.unacked_system_messages;
                     banner = showWarningBanner(msgId, null, false);
                 }
+             */
             }
         }
         if (banner != null) {
