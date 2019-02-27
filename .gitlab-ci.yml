@@ -1,5 +1,5 @@
 build_tag_release:
-  image: greenaddress/android@sha256:979d4491884a2eb7c42beed2918c0ea6a413616a27fae48634f46322e08dfb06
+  image: greenaddress/android@sha256:62e0e91850b79efa524733c4f7856f0631441bd2b9e59b59329f2da94a007dcc
   script:
     - cd $CI_PROJECT_DIR
     - ./app/fetch_libwally_binaries.sh
