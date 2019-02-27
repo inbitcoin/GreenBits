@@ -33,6 +33,8 @@ import com.greenaddress.greenbits.GaService;
 import com.greenaddress.greenbits.KeyStoreAES;
 import com.greenaddress.greenbits.ui.preferences.NetworkSettingsActivity;
 
+import org.bitcoinj.core.NetworkParameters;
+
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -182,7 +184,13 @@ public class PinActivity extends LoginActivity implements Observer, View.OnClick
                         message = getString(R.string.attemptsLeftLong, MAX_ATTEMPTS - counter);
                     } else {
                         message = getString(R.string.attemptsFinished);
-                        mService.cfgClearAll();
+                        if (mService.getNetworkParameters().getId().equals(NetworkParameters.ID_TESTNET)) {
+                            editor.clear();
+                            editor.apply();
+                        } else {
+                            mService.cfgClearAll();
+                        }
+
                     }
                     error = null;
                 } else {
