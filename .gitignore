@@ -25,3 +25,4 @@ bitcoinj/tools/checkpoints-testnet.txt
 bitcoinj/tools/checkpoints-testnet
 bitcoinj/tools/checkpoints
 android-ndk-r13b*
+app/production
