@@ -721,6 +721,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                     public void onFailure(Throwable t) {
                         super.onFailure(t);
                         dialogLoading.dismiss();
+                        mActivity.runOnUiThread(() -> UI.popup(mActivity, t.getMessage(), android.R.string.ok, UI.INVALID_RESOURCE_ID).show());
                     }
                 };
 
@@ -738,6 +739,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                             else
                                 callback.onSuccess(null);
                         } else if (result == -1) {
+                            dialogLoading.dismiss();
                             // unconfirmed balance, show message and open visiu
                             final String warningSweepPrivKey = mActivity.getResources().getString(R.string.warningSweepPrivKey);
                             mActivity.runOnUiThread(new Runnable() {
@@ -756,14 +758,15 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                                 }
                             });
                         } else if (result == 0) {
+                            dialogLoading.dismiss();
                             openVisiu(caller, pubKey);
                         }
-                        dialogLoading.dismiss();
                     }
 
                     @Override
                     public void onFailure(final Throwable t) {
                         toast(R.string.invalid_paperwallet);
+                        mActivity.runOnUiThread(() -> UI.popup(mActivity, R.string.invalid_paperwallet, android.R.string.ok, UI.INVALID_RESOURCE_ID).show());
                         dialogLoading.dismiss();
                     }
                 }, mService.getExecutor());
