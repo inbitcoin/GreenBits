@@ -581,7 +581,7 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
             }
 
             try {
-                URL newUrl = new URL("https://inbitcoin.it/identicon/image/" + txItem);
+                URL newUrl = new URL("https://identicon.inbitcoin.it/image/" + txItem);
                 bitmap = BitmapFactory.decodeStream(newUrl.openConnection().getInputStream());
                 addBitmapToCache(txItem, bitmap);
                 return  bitmap;
@@ -596,10 +596,10 @@ public class TransactionActivity extends GaActivity implements View.OnClickListe
             final ImageView identicon = UI.find(mActivity, R.id.identiconImage);
             final ProgressBar identiconProgressbar = UI.find(mActivity, R.id.identiconProgressbar);
             UI.hide(identiconProgressbar);
-            UI.show(identicon);
             if (bitmap == null) {
                 return;
             }
+            UI.show(identicon);
             identicon.setImageBitmap(bitmap);
             identicon.setOnClickListener(new View.OnClickListener() {
                                      @Override
