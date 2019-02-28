@@ -311,7 +311,6 @@ public class SendFragment extends SubaccountFragment {
 
         mBip70Progress = UI.find(mView, R.id.sendBip70ProgressBar);
         UI.hide(mBip70Progress);
-        populateFeeCombo();
 
         if (Build.VERSION.SDK_INT < 21) {
             // pre-Material Design the label was already a part of the switch
