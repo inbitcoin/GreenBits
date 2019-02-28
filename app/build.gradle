@@ -82,17 +82,9 @@ android {
     productFlavors {
         production {
         }
-        production_21 {
-            minSdkVersion 21
-        }
     }
 
     sourceSets {
-        production_21 {
-            java { srcDir 'src/production/java' }
-            assets { srcDir 'src/production/assets' }
-            res { srcDir 'altana-android-res/production/res' }
-        }
         production {
             res { srcDir 'altana-android-res/production/res' }
         }
