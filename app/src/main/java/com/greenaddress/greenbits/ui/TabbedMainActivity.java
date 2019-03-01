@@ -30,6 +30,7 @@ import android.view.ViewGroup;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -118,6 +119,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
     private final Runnable mSubaccountCB = new Runnable() { public void run() { mDialogCB.run(); mSubaccountDialog = null; } };
     private final Runnable mDialogCB = new Runnable() { public void run() { setBlockWaitDialog(false); } };
+    private final Runnable mDialogCBKeepScreenOf = () -> getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
     // workaround to manage only the create/onresume when is not connected
     private Boolean firstRun = true;
@@ -619,6 +621,7 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
                 final MaterialDialog dialogLoading = UI.popupWait(TabbedMainActivity.this, R.string.sweep_wait_message);
                 dialogLoading.hide();
                 dialogLoading.setCancelable(false);
+                UI.setDialogCloseHandler(dialogLoading, mDialogCBKeepScreenOf);
 
                 final ECKey keyNonBip38 = keyNonFinal;
                 final FutureCallback<Map<?, ?>> callback = new CB.Toast<Map<?, ?>>(caller) {
@@ -729,6 +732,9 @@ public class TabbedMainActivity extends GaActivity implements Observer, View.OnC
 
                 final ListenableFuture<Float> getAddressContent = mService.getAddressContent(pubKey);
                 dialogLoading.show();
+                // force display on
+                getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
                 Futures.addCallback(getAddressContent, new CB.Toast<Float>(this) {
                     @Override
                     public void onSuccess(final Float result) {
