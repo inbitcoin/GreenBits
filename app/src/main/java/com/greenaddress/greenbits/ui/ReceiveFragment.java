@@ -70,6 +70,10 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
     private TextView mCopyIcon;
     private LinearLayout mReceiveAddressLayout = null;
     private final Runnable mDialogCB = new Runnable() { public void run() { mQrCodeDialog = null; } };
+    private final Runnable mDialogCBRestoreKeepScreen = () -> {
+        restoreBrightness();
+        getGaActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    };
 
     private EditText mAmountEdit;
     private EditText mAmountFiatEdit;
@@ -439,6 +443,11 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
         });
         mQrCodeDialog = dialog;
         mQrCodeDialog.show();
+        // force display on
+        getGaActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // set max brightness
+        setMaxBrightness();
+        UI.setDialogCloseHandler(dialog, mDialogCBRestoreKeepScreen);
 
         getGAService().lockScreenRotation(getActivity());
     }
@@ -683,5 +692,30 @@ public class ReceiveFragment extends SubaccountFragment implements OnDiscoveredT
                         throwable.printStackTrace();
                     }
                 });
+    }
+
+    /**
+     * Restore default brightness (-1 is system setting)
+     */
+    private void restoreBrightness() {
+        changeScreenBrightness(-1);
+    }
+
+    /**
+     * Set max brightness
+     */
+    private void setMaxBrightness() {
+        changeScreenBrightness(1F);
+    }
+
+    /**
+     * Change brightness on the current window
+     * @param screenBrightnessValue the custom screen brightness in float
+     */
+    private void changeScreenBrightness(final float screenBrightnessValue) {
+        final Window window = getGaActivity().getWindow();
+        WindowManager.LayoutParams layoutParams = window.getAttributes();
+        layoutParams.screenBrightness = screenBrightnessValue;
+        window.setAttributes(layoutParams);
     }
 }
