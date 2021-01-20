@@ -39,7 +39,7 @@ android {
     buildToolsVersion '29.0.3'
 
     defaultConfig {
-        applicationId 'com.greenaddress.greenbits_android_wallet'
+        applicationId 'it.inbitcoin.altana'
         minSdkVersion 19
         targetSdkVersion 29
         versionCode 349
