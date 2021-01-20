@@ -13,7 +13,8 @@
     <style name="BitcoinTheme.NoActionBar" parent="BitcoinTheme">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <item name="android:windowBackground">@color/windowBackground</item>
-        <item name="colorPrimaryDark">@color/windowBackground</item>
+<!--        <item name="android:windowBackground">@color/windowBackground</item> -->
+<!--        <item name="colorPrimaryDark">@color/windowBackground</item> -->
+
     </style>
 </resources>

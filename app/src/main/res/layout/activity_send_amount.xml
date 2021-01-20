@@ -6,6 +6,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="@color/windowBackground"
+    android:layout_marginVertical="@dimen/activity_vertical_margin"
+    android:layout_marginHorizontal="@dimen/activity_horizontal_margin"
     tools:context="com.greenaddress.greenbits.ui.send.SendAmountActivity">
 
     <ScrollView
@@ -34,7 +37,7 @@
                 android:drawablePadding="8dp"
                 android:drawableStart="@drawable/account"
                 android:gravity="center_vertical"
-                android:textColor="@color/white"
+                android:textColor="@color/black"
                 android:textSize="12sp"/>
 
             <TextView
@@ -179,7 +182,7 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/darkJungleGreen">
+        android:background="@color/whiteSecondary">
 
         <Button
             android:id="@+id/nextButton"

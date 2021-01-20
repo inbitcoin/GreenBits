@@ -23,7 +23,7 @@ public class InfoActivity extends LoginActivity implements View.OnClickListener 
 
         final TextView tosByProceedingText = UI.find(this, R.id.tosByProceedingText);
         final String link =
-            String.format("<a href=\"https://blockstream.com/green/terms/\">%s</a>",
+            String.format("<a href=\"http://altanawallet.it/tos/\">%s</a>",
                           getString(R.string.id_terms_of_service));
         final String fullString = getString(R.string.id_by_proceeding_to_the_next_steps, link);
 

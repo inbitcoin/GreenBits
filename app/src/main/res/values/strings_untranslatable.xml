@@ -97,4 +97,6 @@
         <item>@string/id_wallet_coins_will_require</item>
         <item>@string/id_optimal_if_you_rarely_spend</item>
     </string-array>
+
+    <string name="descriptionAltana" translatable="false">ALTANA bitcoin wallet</string>
 </resources>

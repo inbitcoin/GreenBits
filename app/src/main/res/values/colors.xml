@@ -2,8 +2,8 @@
 <resources>
     <color name="colorPrimary">#414D55</color>
     <color name="colorPrimaryDark">#12171e</color>
-    <color name="colorAccent">#00B45A</color>
-    <color name="windowBackground">#12171e</color>
+    <color name="colorAccent">#f5a344</color>
+    <color name="windowBackground">#ffffff</color>
     <color name="darkJungleGreen">#12171e</color>
     <color name="mediumJungleGreen">#2b333b</color>
     <color name="buttonJungleGreen">#19222c</color>
@@ -18,11 +18,12 @@
 
     <color name="primary">@color/colorPrimary</color>
     <color name="primaryDark">@color/colorPrimaryDark</color>
-    <color name="accent">#00B45A</color>
-    <color name="accentLight">#21D873</color>
-    <color name="accentPressed">#247252</color>
-    <color name="textColor">#FFFFFF</color>
-    <color name="secondaryTextColor">#EEEEEE</color>
+    <color name="accent">#f5a344</color>
+    <color name="accentLight">#f5b442</color>
+    <color name="accentPressed">#f9a344</color>
+    <color name="textColor">#000000</color>
+    <color name="textColorSecondary">#7A7A7A</color>
+    <color name="secondaryTextColor">#3C3C3C</color>
     <color name="tertiaryTextColor">@color/grey_light</color>
 
     <color name="receiveArrowColor">#00B196</color>
@@ -37,7 +38,7 @@
     <color name="green_dark">#1b7745</color>
     <color name="red">#EA5262</color>
     <color name="grey_light">#6D7880</color>
-    <color name="separator">#313B45</color>
+    <color name="separator">#EFF2F5</color>
 
 
     <!-- scanner -->
@@ -46,4 +47,5 @@
     <color name="scan_result_view">#b0000000</color>
     <color name="scan_result_dots">#c099cc00</color>
 
+    <color name="black">#000000</color>
 </resources>

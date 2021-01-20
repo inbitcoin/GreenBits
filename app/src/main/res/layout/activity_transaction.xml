@@ -4,6 +4,9 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
+    android:background="@color/windowBackground"
+    android:layout_marginVertical="@dimen/activity_vertical_margin"
+    android:layout_marginHorizontal="@dimen/activity_horizontal_margin"
     tools:context="com.greenaddress.greenbits.ui.transactions.TransactionActivity">
 
     <ScrollView
@@ -78,7 +81,7 @@
                     android:maxLines="2"
                     android:layout_alignParentEnd="true"
                     android:text="@string/id_increase_fee"
-                    android:textColor="@color/secondaryTextColor"
+                    android:textColor="@color/white"
                     android:background="@drawable/material_button_increase_fee"
                     android:paddingStart="8dp"
                     android:paddingEnd="8dp"
@@ -86,7 +89,7 @@
                     android:paddingTop="4dp"
                     android:drawablePadding="4dp"
                     android:drawableEnd="@drawable/ic_bump_fee"
-                    android:drawableTint="@color/accent"/>
+                    android:drawableTint="@color/white"/>
 
             </RelativeLayout>
 

@@ -9,7 +9,7 @@
         android:id="@+id/set_custom_feerate_amount"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/white"
+        android:textColor="@color/black"
         android:inputType="numberDecimal" />
 
 </LinearLayout>

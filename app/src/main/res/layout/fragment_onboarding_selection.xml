@@ -10,7 +10,7 @@
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif"
         android:gravity="center"
-        android:textColor="@color/white"
+        android:textColor="@color/black"
         android:textSize="16sp" />
 
     <View
@@ -33,6 +33,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="24sp"
                 android:padding="8dp"
+                android:textColor="@color/black"
                 android:text="one"/>
             <TextView
                 android:id="@+id/word2"
@@ -40,6 +41,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="24sp"
                 android:padding="8dp"
+                android:textColor="@color/black"
                 android:text="two"/>
             <TextView
                 android:id="@+id/word3"
@@ -47,6 +49,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="24sp"
                 android:padding="8dp"
+                android:textColor="@color/black"
                 android:text="three"/>
         </LinearLayout>
 

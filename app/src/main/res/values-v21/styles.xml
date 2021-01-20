@@ -13,7 +13,8 @@
 
     <style name="AppTheme" parent="AppTheme.Base">
         <item name="android:colorButtonNormal">@color/accent</item>
-        <item name="android:itemBackground">@color/buttonJungleGreen</item>
+        <item name="android:windowBackground">@drawable/background_activity</item>
+        <item name="android:itemBackground">@color/white</item>
         <item name="materialFeeButtonSelected">@drawable/fee_button_selected</item>
         <item name="materialFeeButtonUnSelected">@drawable/fee_button_unselected</item>
     </style>
@@ -30,7 +31,7 @@
 
     <style name="selectionButton" parent="AppTheme.Button">
         <item name="android:background">?attr/materialButtonSelection</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">@color/black</item>
     </style>
 
     <style name="qrBg" parent="AppTheme.Base">
@@ -42,6 +43,7 @@
     </style>
 
     <style name="nextButton" parent="AppTheme.Button">
+        <item name="android:textColor">@color/white</item>
         <item name="android:layout_margin">16dp</item>
         <item name="android:background">?attr/materialButton</item>
         <item name="android:drawableEnd">@drawable/ic_next</item>

@@ -99,7 +99,7 @@ public class SubaccountSelectActivity extends LoggedActivity implements AccountA
             final BalanceData total = getSession().convertBalance(balanceReq);
             final String btcString = Conversion.getBtc(total, true);
             final String fiatString = Conversion.getFiat(total, true);
-            mTotalAmountBtc.setTextColor(ThemeUtils.resolveColorAccent(this));
+            //mTotalAmountBtc.setTextColor(ThemeUtils.resolveColorAccent(this));
             mTotalAmountBtc.setText(btcString);
             mTotalAmountFiat.setText(" ≈ " + fiatString);
         } catch (final Exception e) {

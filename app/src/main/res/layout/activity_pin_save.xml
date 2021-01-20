@@ -8,6 +8,9 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
+    android:layout_marginHorizontal="@dimen/activity_horizontal_margin"
+    android:layout_marginVertical="@dimen/activity_vertical_margin"
+    android:background="@color/white"
     tools:context="com.greenaddress.greenbits.ui.onboarding.PinSaveActivity">
 
     <TextView
@@ -15,7 +18,7 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:textColor="@color/white"
+        android:textColor="@color/black"
         android:text="@string/id_create_a_pin_to_access_your"
         android:textSize="20sp" />
 

@@ -426,6 +426,7 @@
   <string name="id_restore">Restore</string>
   <string name="id_restore_a_blockstream_green">Restore a Blockstream Green wallet using your 24 words mnemonic backup. You can find it in the settings of any Blockstream Green app.</string>
   <string name="id_restore_green_wallet">Restore Green Wallet</string>
+  <string name="id_restore_wallet">Restore Wallet</string>
   <string name="id_restore_temporary_wallet">Restore temporary wallet</string>
   <string name="id_review">Review</string>
   <string name="id_review_account_information">Review account information</string>

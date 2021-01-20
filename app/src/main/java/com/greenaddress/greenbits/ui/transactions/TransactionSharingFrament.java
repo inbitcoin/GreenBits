@@ -98,7 +98,7 @@ public class TransactionSharingFrament extends BottomSheetDialogFragment {
                              isChecked) -> cfg.edit().putBoolean(PrefKeys.DONT_ASK_AGAIN_TO_OPEN_URL,
                                     isChecked).apply())
                     .content(getString(R.string.id_are_you_sure_you_want_to_view, stripped))
-                    .backgroundColor(getResources().getColor(R.color.buttonJungleGreen))
+                    .backgroundColor(getResources().getColor(R.color.windowBackground))
                     .positiveText(android.R.string.ok)
                     .negativeText(android.R.string.cancel)
                     .cancelable(false)

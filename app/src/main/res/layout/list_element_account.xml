@@ -28,7 +28,7 @@
             android:layout_height="@dimen/card_size"
             android:padding="16dp"
             android:elevation="6dp"
-            android:background="?attr/themeCardview"
+            android:background="@drawable/wallet_pattern"
             android:orientation="vertical">
 
             <LinearLayout
@@ -42,11 +42,12 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:ellipsize="end"
+                    android:text="name"
                     android:gravity="center_vertical"
                     android:maxLines="1"
                     android:padding="@dimen/card_padding"
                     android:paddingStart="0dp"
-                    android:textColor="@color/white"
+                    android:textColor="@android:color/black"
                     android:textSize="20sp" />
 
             </LinearLayout>

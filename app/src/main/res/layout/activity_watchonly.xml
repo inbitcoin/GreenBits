@@ -3,6 +3,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/windowBackground"
+    android:layout_marginVertical="@dimen/activity_vertical_margin"
+    android:layout_marginHorizontal="@dimen/activity_horizontal_margin"
     android:fillViewport="true" >
 
     <LinearLayout
@@ -20,7 +23,7 @@
                 android:text="@string/id_log_in_via_watchonly_to_receive"
                 android:textSize="32sp"
                 android:fontFamily="sans-serif-regular"
-                android:textColor="@color/white"/>
+                android:textColor="@color/black"/>
 
             <View
                 android:layout_width="match_parent"

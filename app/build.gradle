@@ -42,7 +42,7 @@ android {
         applicationId 'it.inbitcoin.altana'
         minSdkVersion 19
         targetSdkVersion 29
-        versionCode 349
+        versionCode 96
         // Don't use defaultConfig.getProperty("versionCode") in versionName
         // because it breaks F-Droid!
         versionName "3.4.9"
@@ -83,6 +83,14 @@ android {
         }
         production_21 {
             minSdkVersion 21
+        }
+    }
+    sourceSets {
+        production {
+            res { srcDir 'altana-android-res/production/res' }
+        }
+        production_21 {
+            res { srcDir 'altana-android-res/production/res' }
         }
     }
     compileOptions {

@@ -58,11 +58,12 @@ public class ResetActivePreferenceFragment extends GAPreferenceFragment
 
         // Terms of service
         final Preference termsOfUse = find(PrefKeys.TERMS_OF_USE);
-        termsOfUse.setOnPreferenceClickListener(preference -> openURI("https://blockstream.com/green/terms/"));
+        termsOfUse.setOnPreferenceClickListener(preference -> openURI("http://altanawallet.it/tos/"));
 
         // Privacy policy
         final Preference privacyPolicy = find(PrefKeys.PRIVACY_POLICY);
         privacyPolicy.setOnPreferenceClickListener(preference -> openURI("https://blockstream.com/green/privacy/"));
+        privacyPolicy.setVisible(false);
 
         // Actions
         ((Preference) find(PrefKeys.CANCEL_TWOFACTOR_RESET)).setOnPreferenceClickListener(this);

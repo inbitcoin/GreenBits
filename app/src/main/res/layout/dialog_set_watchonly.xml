@@ -9,21 +9,21 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/id_username"
-        android:textColor="@color/whiteSecondary"
+        android:textColor="@color/secondaryTextColor"
         android:textSize="20sp" />
 
     <EditText
         android:id="@+id/input_user"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/white"
+        android:textColor="@color/black"
         android:inputType="textNoSuggestions|textVisiblePassword" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/id_password"
-        android:textColor="@color/whiteSecondary"
+        android:textColor="@color/secondaryTextColor"
         android:textSize="20sp" />
 
     <com.google.android.material.textfield.TextInputLayout
@@ -35,7 +35,7 @@
             android:id="@+id/input_password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/white"
+            android:textColor="@color/black"
             android:inputType="textPassword"
             android:imeOptions="flagNoPersonalizedLearning"
             android:importantForAccessibility="no" />

@@ -2,6 +2,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/windowBackground"
+    android:layout_marginVertical="@dimen/activity_vertical_margin"
+    android:layout_marginHorizontal="@dimen/activity_horizontal_margin"
     android:orientation="vertical">
 
     <TextView
@@ -9,7 +12,7 @@
         android:layout_height="wrap_content"
         android:padding="16dp"
         android:text="@string/id_where_would_you_like_to"
-        android:textColor="@color/white"/>
+        android:textColor="@color/black"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/accountsList"

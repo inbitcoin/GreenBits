@@ -2,12 +2,15 @@ package com.greenaddress.greenbits.ui.preferences;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -315,11 +318,12 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment {
 
         // Terms of service
         final Preference termsOfUse = find(PrefKeys.TERMS_OF_USE);
-        termsOfUse.setOnPreferenceClickListener(preference -> openURI("https://blockstream.com/green/terms/"));
+        termsOfUse.setOnPreferenceClickListener(preference -> openURI("http://altanawallet.it/tos/"));
 
         // Privacy policy
         final Preference privacyPolicy = find(PrefKeys.PRIVACY_POLICY);
         privacyPolicy.setOnPreferenceClickListener(preference -> openURI("https://blockstream.com/green/privacy/"));
+        privacyPolicy.setVisible(false);
 
         // Version
         final Preference version = find(PrefKeys.VERSION);
@@ -437,7 +441,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment {
         final EditText inputPassword = UI.find(v, R.id.input_password);
         final MaterialDialog dialog = UI.popup(getActivity(), R.string.id_watchonly_login)
                                       .customView(v, true)
-                                      .backgroundColor(getResources().getColor(R.color.buttonJungleGreen))
+                                      .backgroundColor(getResources().getColor(R.color.windowBackground))
                                       .onPositive((dlg, which) -> {
             final String username = UI.getText(inputUser);
             final String password = UI.getText(inputPassword);
@@ -475,7 +479,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment {
 
         final MaterialDialog dialog = UI.popup(getActivity(), R.string.id_pgp_key)
                                       .customView(v, true)
-                                      .backgroundColor(getResources().getColor(R.color.buttonJungleGreen))
+                                      .backgroundColor(getResources().getColor(R.color.windowBackground))
                                       .onPositive((dlg, which) -> {
             final String newValue = UI.getText(inputPGPKey);
             if (!newValue.equals(oldValue)) {
@@ -507,7 +511,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment {
         final MaterialDialog dialog;
         dialog = UI.popup(getActivity(), R.string.id_set_custom_fee_rate)
                  .customView(v, true)
-                 .backgroundColor(getResources().getColor(R.color.buttonJungleGreen))
+                 .backgroundColor(getResources().getColor(R.color.windowBackground))
                  .onPositive((dlg, which) -> {
             try {
                 final Long minFeeRateKB = getSession().getFees().get(0);
@@ -729,7 +733,7 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment {
         dialog = UI.popup(getActivity(), R.string.id_set_twofactor_threshold)
                  .cancelable(false)
                  .customView(v, true)
-                 .backgroundColor(getResources().getColor(R.color.buttonJungleGreen))
+                 .backgroundColor(getResources().getColor(R.color.windowBackground))
                  .onPositive((dlg, which) -> {
             try {
                 final String unit = unitSpinner.getSelectedItem().toString();
@@ -814,6 +818,20 @@ public class GeneralPreferenceFragment extends GAPreferenceFragment {
         } else if (requestCode == NETWORK_SELECTOR_REQUEST && resultCode == RESULT_OK) {
             logout();
         }
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        //container.setBackgroundColor(Color.WHITE);
+        Log.d("COUNTER", "COUNTER " + container.getChildCount());
+        
+//        container.getChildAt(2).setBackgroundColor(Color.WHITE);
+        View view = container.findViewById(android.R.id.list_container) ;
+        //View view = container.findViewById(android.R.id.list);
+        if (view != null) {
+            //view.setBackgroundColor(Color.WHITE);
+        }
+        return super.onCreateView(inflater, container, savedInstanceState);
     }
 }
 

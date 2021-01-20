@@ -19,16 +19,16 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:visibility="visible"
-        android:background="?attr/sendReceiveBtnBg"
+        android:background="@color/white"
         >
 
         <LinearLayout
             android:id="@+id/body"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/card_size"
+            android:layout_height="@dimen/card_size_main"
             android:padding="16dp"
             android:elevation="6dp"
-            android:background="?attr/themeCardview"
+            android:background="@drawable/wallet_pattern"
             android:orientation="vertical">
 
             <LinearLayout
@@ -46,7 +46,7 @@
                     android:maxLines="1"
                     android:padding="@dimen/card_padding"
                     android:paddingStart="0dp"
-                    android:textColor="@color/white"
+                    android:textColor="@color/black"
                     android:textSize="20sp" />
 
                 <ImageButton
@@ -57,7 +57,7 @@
                     android:layout_gravity="center_vertical"
                     android:padding="@dimen/button_margin"
                     android:background="@color/hide"
-                    android:tint="@color/white"
+                    android:tint="@color/black"
                     />
 
             </LinearLayout>
@@ -113,7 +113,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:background="?attr/sendReceiveBtnBg"
+                android:background="?android:attr/selectableItemBackground"
                 android:orientation="horizontal">
 
                 <Space
@@ -147,7 +147,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?attr/sendReceiveBtnBg"
+                android:background="@color/white"
                 android:layout_weight="1"
                 android:orientation="horizontal">
 

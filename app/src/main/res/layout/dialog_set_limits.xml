@@ -9,27 +9,27 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/id_currency"
-        android:textColor="@color/whiteSecondary"
+        android:textColor="@color/secondaryTextColor"
         android:textSize="20sp" />
 
     <Spinner
         android:id="@+id/set_limits_currency"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/white" />
+        android:textColor="@color/black" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/id_amount"
-        android:textColor="@color/whiteSecondary"
+        android:textColor="@color/secondaryTextColor"
         android:textSize="20sp" />
 
     <EditText
         android:id="@+id/set_limits_amount"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/white"
+        android:textColor="@color/black"
         android:hint="@string/zeroDecimal"
         android:inputType="numberDecimal" />
 

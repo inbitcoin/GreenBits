@@ -7,6 +7,7 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.greenaddress.greenbits.ui.authentication.FirstScreenActivity">
+    <!--android:background="@drawable/background_activity"-->
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -28,18 +29,32 @@
             android:layout_width="fill_parent"
             android:layout_height="16dp"/>
 
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/descriptionAltana"
+            android:textSize="24sp"
+            android:textColor="@color/grey_light" />
+
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="16dp"/>
+
         <Button
             android:id="@+id/settingsButton"
             style="@style/settingsButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
+            android:visibility="gone"
             android:text="@string/id_select_network"
             />
 
         <View
             android:layout_width="fill_parent"
             android:layout_height="0dp"
+            android:visibility="gone"
             android:layout_weight="1"/>
 
 
@@ -68,7 +83,7 @@
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:text="@string/id_restore_green_wallet" />
+                android:text="@string/id_restore_wallet" />
 
             <View
                 android:layout_width="fill_parent"

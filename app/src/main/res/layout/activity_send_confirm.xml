@@ -6,6 +6,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="@color/windowBackground"
+    android:layout_marginVertical="@dimen/activity_vertical_margin"
+    android:layout_marginHorizontal="@dimen/activity_horizontal_margin"
     tools:context="com.greenaddress.greenbits.ui.send.SendConfirmActivity">
 
     <ScrollView
@@ -73,7 +76,7 @@
                 android:layout_height="wrap_content"
                 android:padding="8dp"
                 android:gravity="center_vertical"
-                android:textColor="@color/white"
+                android:textColor="@color/black"
                 android:textSize="12sp"/>
 
             <LinearLayout
@@ -94,7 +97,7 @@
                     android:layout_height="wrap_content"
                     android:padding="8dp"
                     android:gravity="center_vertical"
-                    android:textColor="@color/white"
+                    android:textColor="@color/black"
                     android:textSize="12sp" />
             </LinearLayout>
 
@@ -124,7 +127,7 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/primaryDark"
+        android:background="@color/whiteSecondary"
         android:padding="16dp">
 
         <com.greenaddress.greenbits.ui.send.SwipeButton

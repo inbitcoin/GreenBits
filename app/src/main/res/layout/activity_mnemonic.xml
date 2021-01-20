@@ -7,6 +7,9 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
+    android:background="@color/white"
+    android:layout_marginHorizontal="@dimen/activity_horizontal_margin"
+    android:layout_marginVertical="@dimen/activity_vertical_margin"
     tools:context="com.greenaddress.greenbits.ui.authentication.MnemonicActivity">
 
     <ScrollView
@@ -50,6 +53,7 @@
                    android:layout_width="wrap_content"
                    android:layout_height="wrap_content"
                    android:textSize="17sp"
+                   android:textColor="@color/accent"
                    android:text="@string/id_password_protected"
                    android:padding="@dimen/sections_padding"/>
            </LinearLayout>

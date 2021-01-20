@@ -426,6 +426,7 @@
   <string name="id_restore">Ripristina</string>
   <string name="id_restore_a_blockstream_green">Ripristina un wallet Blockstream Green utilizzando la tua mnemonica da 24 parole. Puoi trovarla nelle impostazione di qualsiasi app Blockstream Green.</string>
   <string name="id_restore_green_wallet">Ripristina un Wallet Green</string>
+  <string name="id_restore_wallet">Ripristina un Wallet</string>
   <string name="id_restore_temporary_wallet">Ripristina wallet temporaneamente</string>
   <string name="id_review">Controlla</string>
   <string name="id_review_account_information">Rivedi le informazioni account</string>

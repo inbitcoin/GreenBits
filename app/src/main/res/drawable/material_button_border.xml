@@ -13,7 +13,7 @@
 
     <item>
         <shape android:shape="rectangle">
-            <stroke android:width="2dp" android:color="@color/green"/>
+            <stroke android:width="2dp" android:color="@color/accent"/>
         </shape>
     </item>
 </selector>

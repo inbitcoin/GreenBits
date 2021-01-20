@@ -1,0 +1,3 @@
+[submodule "app/altana-android-res"]
+	path = app/altana-android-res
+	url = ssh://git@gitlab.inbitcoin.it:2222/wallet/altana-android-res.git

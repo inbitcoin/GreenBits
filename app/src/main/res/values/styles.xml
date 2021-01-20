@@ -1,30 +1,36 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat">
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+<!--        <item name="android:windowTranslucentStatus">true</item>-->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/darkJungleGreen</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/accent</item>
         <item name="drawableSendReceiveIcColor">@color/accent</item>
-        <item name="android:windowBackground">@color/darkJungleGreen</item>
+        <item name="android:windowBackground">@color/windowBackground</item>
         <item name="preferenceTheme">@style/preferenceTheme</item>
         <item name="actionMenuTextAppearance">@style/MenuTextAppearance</item>
         <item name="android:actionMenuTextAppearance">@style/MenuTextAppearance</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="colorBackgroundFloating">@color/buttonJungleGreen</item>
-        <item name="android:itemBackground">@color/buttonJungleGreen</item>
+        <item name="android:itemBackground">@color/white</item>
+        <item name="android:textColorPrimary">@color/textColor</item>
+        <item name="android:textColorSecondary">@color/textColorSecondary</item>
     </style>
     <style name="AppTheme.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <item name="android:windowBackground">@color/windowBackground</item>
-        <item name="colorPrimaryDark">@color/windowBackground</item>
+        <item name="android:windowBackground">@drawable/background_activity</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.ActionBar"/>
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat"/>
 
-    <style name="AppTheme.Base" parent="Theme.AppCompat">
+    <style name="AppTheme.Base" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <!-- Customize your theme here. -->
 
         <!-- colorPrimary is used for the default action bar background -->
@@ -36,11 +42,12 @@
         <!-- colorAccent is used as the default value for colorControlActivated
              which is used to tint widgets -->
         <item name="colorAccent">@color/accent</item>
+        <item name="colorControlNormal">@color/grey_light</item>
 
         <!-- Default drawables for buttons -->
         <item name="materialButton">@drawable/material_button</item>
         <item name="materialButtonBorder">@drawable/material_button_border</item>
-        <item name="materialButtonBorderText">@color/green</item>
+        <item name="materialButtonBorderText">@color/accent</item>
         <item name="materialButtonKeyboard">@drawable/material_button_keyboard</item>
         <item name="materialButtonSelection">@drawable/material_button_selection</item>
         <item name="materialFeeButtonSelected">@drawable/fee_button_selected</item>
@@ -49,11 +56,14 @@
 
         <!-- You can also set colorControlNormal, colorControlActivated
              colorControlHighlight & colorSwitchThumbNormal. -->
-        <item name="android:windowBackground">@color/windowBackground</item>
+        <item name="android:windowBackground">@drawable/background_activity</item>
         <item name="preferenceTheme">@style/preferenceTheme</item>
         <item name="actionMenuTextAppearance">@style/MenuTextAppearance</item>
         <item name="android:actionMenuTextAppearance">@style/MenuTextAppearance</item>
         <item name="android:windowContentOverlay">@null</item>
+
+        <item name="android:textColorPrimary">@color/textColor</item>
+        <item name="android:textColorSecondary">@color/textColorSecondary</item>
     </style>
 
     <style name="AppTheme.Button">
@@ -84,12 +94,12 @@
 
     <style name="borderButton" parent="AppTheme.Button">
         <item name="android:background">@drawable/material_button_border</item>
-        <item name="android:textColor">@color/green</item>
+        <item name="android:textColor">@color/accent</item>
     </style>
 
     <style name="selectionButton" parent="AppTheme.Button">
         <item name="android:background">@drawable/material_button_selection</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">@color/black</item>
     </style>
 
     <style name="qrBg" parent="AppTheme.Base">
@@ -108,13 +118,14 @@
 
     <style name="settingsButton" parent="AppTheme.Button">
         <item name="android:background">@android:color/transparent</item>
-        <item name="android:textColor">@color/grey_light</item>
+        <item name="android:textColor">@color/accentLight</item>
         <item name="android:drawableEnd">@drawable/ic_arrow_down</item>
         <item name="android:padding">10dp</item>
     </style>
 
     <style name="nextButton" parent="AppTheme.Button">
         <item name="android:layout_margin">16dp</item>
+        <item name="android:textColor">@color/white</item>
         <item name="android:background">@drawable/material_button</item>
         <item name="android:drawableEnd">@drawable/ic_next</item>
         <!-- Negative padding matching the width of ic_next -->
@@ -134,8 +145,8 @@
 
     <style name="preferenceTheme" parent="@style/PreferenceThemeOverlay.v14.Material">
         <item name="preferenceCategoryStyle">@style/FixForPreferenceCategoryStyle</item>
-        <item name="android:textColor">@color/white</item>
-        <item name="textColor">@color/white</item>
+        <item name="android:textColor">@android:color/black</item>
+        <item name="textColor">@android:color/black</item>
         <item name="android:tint">?attr/colorAccent</item>
     </style>
 

@@ -53,7 +53,7 @@ public class NotificationsFragment extends GAPreferenceFragment {
         setPreferenceScreen(preferenceScreen);
 
         final TypedValue themeTypedValue = new TypedValue();
-        activityContext.getTheme().resolveAttribute(R.attr.preferenceTheme, themeTypedValue, true);
+//        activityContext.getTheme().resolveAttribute(R.attr.preferenceTheme, themeTypedValue, true);
         mContextThemeWrapper = new ContextThemeWrapper(activityContext, themeTypedValue.resourceId);
         mEmptyNotifications = new PreferenceCategory(mContextThemeWrapper);
         mEmptyNotifications.setTitle(R.string.id_your_notifications_will_be);

@@ -178,8 +178,8 @@ public class ListTransactionsAdapter extends
             iconColor = amountColor;
             sentOrReceive= drawable.ic_received;
         } else {
-            amountColor = color.white;
-            iconColor = color.grey_light;
+            amountColor = color.red;
+            iconColor = amountColor;
             sentOrReceive= drawable.ic_sent;
         }
         if (VERSION.SDK_INT >= VERSION_CODES.LOLLIPOP) {
