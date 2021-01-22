@@ -99,4 +99,5 @@
     </string-array>
 
     <string name="descriptionAltana" translatable="false">ALTANA bitcoin wallet</string>
+    <string name="madeBy" translatable="false">by inbitcoin</string>
 </resources>
