@@ -233,6 +233,7 @@ public class PinActivity extends LoginActivity implements PinFragment.OnPinListe
         final NetworkData network = getNetwork();
         final String nativePIN = mPin.getString("native", null);
         final String nativeIV = mPin.getString("nativeiv", null);
+        final int nativeVersion = mPin.getInt("nativeVersion", 1);
 
         try {
             final KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
@@ -262,10 +263,18 @@ public class PinActivity extends LoginActivity implements PinFragment.OnPinListe
         } catch (final InvalidAlgorithmParameterException | BadPaddingException | IllegalBlockSizeException |
                  CertificateException | UnrecoverableKeyException | IOException |
                  NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
-            UI.popup(this, R.string.id_warning, R.string.id_continue)
-            .content(e.getLocalizedMessage())
-            .onAny((dlg, which) -> { onPinAuth(); onResume(); })
-            .show();
+            if (nativeVersion > 1) {
+                onPinAuth();
+                onResume();
+            } else {
+                UI.popup(this, R.string.id_warning, R.string.id_continue)
+                        .content(e.getLocalizedMessage())
+                        .onAny((dlg, which) -> {
+                            onPinAuth();
+                            onResume();
+                        })
+                        .show();
+            }
         }
     }
 

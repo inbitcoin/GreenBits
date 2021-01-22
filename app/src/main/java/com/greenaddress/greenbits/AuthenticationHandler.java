@@ -29,6 +29,8 @@ public class AuthenticationHandler {
         final SharedPreferences secPin = cfgSecPin(context);
         if (isValid(pin) && !isNative(pin))
             return pin;
+        else if (isValid(pin) && isV2(pin))
+            return pin;
         else if (isValid(secPin) && !isNative(secPin))
             return secPin;
         return null;
@@ -52,6 +54,11 @@ public class AuthenticationHandler {
     private static boolean isNative(final SharedPreferences pin) {
         final String nativePin = pin != null ? pin.getString("native", null) : null;
         return nativePin != null && !TextUtils.isEmpty(nativePin);
+    }
+    
+    private static boolean isV2(final SharedPreferences pin) {
+        final int nativePinVersion = pin != null ? pin.getInt("nativeVersion", 1) : 1;
+        return nativePinVersion > 1;
     }
 
     public static String network(final Context context) {
