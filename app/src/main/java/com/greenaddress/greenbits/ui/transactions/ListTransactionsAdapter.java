@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
+import android.text.Html;
+import android.text.Spanned;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -24,6 +26,7 @@ import com.greenaddress.greenapi.data.NetworkData;
 import com.greenaddress.greenapi.data.TransactionData;
 import com.greenaddress.greenapi.data.TransactionData.TYPE;
 import com.greenaddress.greenapi.model.Conversion;
+import com.greenaddress.greenbits.FormatMemo;
 import com.greenaddress.greenbits.spv.SPV;
 import com.greenaddress.greenbits.ui.R.color;
 import com.greenaddress.greenbits.ui.R.drawable;
@@ -123,6 +126,7 @@ public class ListTransactionsAdapter extends
         UI.showIf(replaceable && !mNetworkData.getLiquid(), holder.imageReplaceable);
 
         final String message;
+        final Spanned messageMerchant;
         if (TextUtils.isEmpty(txItem.getMemo())) {
             if (mNetworkData.getLiquid() && assetsNumber > 1)
                 message = mActivity.getString(string.id_multiple_assets);
@@ -150,7 +154,11 @@ public class ListTransactionsAdapter extends
             else
                 message = txItem.getMemo();
         }
-        holder.textWho.setText(message);
+        final String [] memoInfo = FormatMemo.sanitizeMemo(txItem.getMemo());
+        if (memoInfo.length == 3)
+            holder.textWho.setText(Html.fromHtml(String.format("<b>%s</b>", memoInfo[2])));
+        else
+            holder.textWho.setText(message);
 
         final String confirmations;
         final int confirmationsColor;
