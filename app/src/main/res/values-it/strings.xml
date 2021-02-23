@@ -652,4 +652,5 @@
   <string name="id_your_wallet_is_locked_for_a">Wallet bloccato per reset dell\' Autenticazione a due fattori. Il reset sarà completato in %d giorni.</string>
   <string name="id_your_wallet_is_not_yet_fully">Il tuo wallet non è ancora in totale sicurezza.\nAbilita l\'Autenticazione a Due Fattori.</string>
   <string name="id_your_watchonly_username_and">I tuoi username e password per watch-only verranno salvati in chiaro su questo dispositivo. Se il tuo device è compromesso terze parti possono avere accesso alle tue transazioni. Premi OK per continuare.</string>
+  <string name="sharedVia">Condiviso via</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.greenaddress.greenbits.ui.receive;
 
 import android.R.color;
+import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -23,6 +24,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.FragmentTransaction;
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -40,6 +42,7 @@ import com.greenaddress.greenapi.data.HWDeviceDetailData;
 import com.greenaddress.greenapi.data.SubaccountData;
 import com.greenaddress.greenapi.model.Conversion;
 import com.greenaddress.greenbits.QrBitmap;
+import com.greenaddress.greenbits.ui.BuildConfig;
 import com.greenaddress.greenbits.ui.LoggedActivity;
 import com.greenaddress.greenbits.ui.R;
 import com.greenaddress.greenbits.ui.R.drawable;
@@ -51,6 +54,14 @@ import com.greenaddress.greenbits.ui.accounts.SubaccountPopup;
 import com.greenaddress.greenbits.ui.components.AmountTextWatcher;
 import com.greenaddress.greenbits.wallets.HardwareCodeResolver;
 
+import org.bitcoinj.uri.BitcoinURI;
+import org.bitcoinj.uri.BitcoinURIParseException;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.Locale;
@@ -377,12 +388,75 @@ public class ReceiveActivity extends LoggedActivity implements TextWatcher {
     public void onShareClicked() {
         if (TextUtils.isEmpty(mCurrentAddress))
             return;
+        final Bitmap qrcodeBitmap = ((BitmapDrawable)mAddressImage.getDrawable()).getBitmap();
+        shareQrcodeAddress(this, qrcodeBitmap, getAddressUri(mCurrentAddress, mCurrentAmount));
+    }
 
-        final Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_SEND);
-        intent.putExtra(Intent.EXTRA_TEXT, UI.getText(mAddressText));
-        intent.setType("text/plain");
-        startActivity(intent);
+    public static void shareQrcodeAddress(Activity activity, Bitmap bitmap, String text) {
+        final String sharedViaShare = String.format("%s %s",
+                activity.getResources().getString(R.string.sharedVia),
+                activity.getResources().getString(R.string.app_name));
+
+        String address = "", amount = "0", label = sharedViaShare;
+
+        if (text.startsWith("bitcoin:")) {
+            try {
+                BitcoinURI bitcoinURI = new BitcoinURI(text);
+                if (bitcoinURI.getAddress() != null)
+                    address = bitcoinURI.getAddress().toString();
+                if (bitcoinURI.getAmount() != null)
+                    amount = bitcoinURI.getAmount().toPlainString();
+                if (bitcoinURI.getLabel() != null)
+                    label = bitcoinURI.getLabel();
+            } catch (BitcoinURIParseException e) {
+                e.printStackTrace();
+            }
+            if (address.isEmpty()) {
+                Toast.makeText(activity, string.id_invalid_address, Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (amount.isEmpty())
+                amount = "0";
+            if (label.isEmpty())
+                label = sharedViaShare;
+        } else {
+            address = text;
+        }
+
+        try {
+            label = URLEncoder.encode(label, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        final String url = String.format("http://inbitcoin.it/altana/%s/%s/%s", address, amount, label);
+        shareImageWithText(activity, bitmap, url);
+    }
+
+    public static void shareImageWithText(Activity activity, Bitmap image, String text) {
+        final File file = new File(activity.getCacheDir(), "imagetoshare.png");
+        final FileOutputStream fOut;
+        final String textToShare = String.format("%s \n\n%s %s", text,
+                activity.getResources().getString(R.string.sharedVia),
+                activity.getResources().getString(R.string.app_name));
+        try {
+            fOut = new FileOutputStream(file);
+            image.compress(Bitmap.CompressFormat.PNG, 100, fOut);
+            fOut.flush();
+            fOut.close();
+            file.setReadable(true, false);
+
+            Uri fileUri = FileProvider.getUriForFile(activity,
+                    BuildConfig.APPLICATION_ID + ".provider",
+                    file);
+
+            final Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.putExtra(Intent.EXTRA_STREAM, fileUri);
+            intent.putExtra(Intent.EXTRA_TEXT, textToShare);
+            intent.setType("image/*");
+            activity.startActivity(intent);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void onCopyClicked(final String label, final String data, final int toast) {
