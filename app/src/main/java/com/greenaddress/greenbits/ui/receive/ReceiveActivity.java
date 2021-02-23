@@ -88,6 +88,7 @@ public class ReceiveActivity extends LoggedActivity implements TextWatcher {
     private boolean isGenerationOnProgress = false;
     private Disposable generateDisposte, validateDisposte;
     private AmountTextWatcher mAmountTextWatcher;
+    private Context mContext;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -95,6 +96,8 @@ public class ReceiveActivity extends LoggedActivity implements TextWatcher {
 
         setContentView(layout.activity_receive);
         setTitleBackTransparent();
+
+        mContext = this;
 
         mAddressImage = UI.find(this, id.receiveQrImageView);
         mAddressText = UI.find(this, id.receiveAddressText);
@@ -494,7 +497,7 @@ public class ReceiveActivity extends LoggedActivity implements TextWatcher {
         protected Bitmap doInBackground(final Object ... integers) {
             Log.d(TAG, " doInBackground(" + address + ")");
             try {
-                return new QrBitmap(getAddressUri(address, amount), qrCodeBackground).getQRCode();
+                return new QrBitmap(getAddressUri(address, amount), qrCodeBackground, mContext).getQRCode();
             } catch (final Exception e) {
                 e.printStackTrace();
                 return null;

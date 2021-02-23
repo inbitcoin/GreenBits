@@ -247,7 +247,8 @@ public class TwoFactorActivity extends LoggedActivity {
         try {
             final BitmapDrawable bd =
                 new BitmapDrawable(getResources(), new QrBitmap(gauthUrl, getResources().getColor(
-                                                                    R.color.white)).getQRCode());
+                                                                    R.color.white), this)
+                                                                    .getQRCode());
             bd.setFilterBitmap(false);
             imageView.setImageDrawable(bd);
         }catch (final Exception e) {
