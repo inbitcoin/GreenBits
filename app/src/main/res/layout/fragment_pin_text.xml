@@ -58,6 +58,8 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:background="@android:color/transparent"
+        android:keyTextColor="@color/black"
+        android:shadowColor="@color/white"
         android:focusable="false"
         android:focusableInTouchMode="false"
         android:keyBackground="?attr/materialButtonKeyboard"
