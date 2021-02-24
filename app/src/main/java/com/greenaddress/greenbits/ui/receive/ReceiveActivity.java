@@ -79,6 +79,7 @@ public class ReceiveActivity extends LoggedActivity implements TextWatcher {
     private ImageView mAddressImage;
     private EditText mAmountText;
     private Button mUnitButton;
+    private Bitmap mQrcode;
 
     private Boolean mIsFiat = false;
     private String mCurrentAddress = "";
@@ -391,8 +392,7 @@ public class ReceiveActivity extends LoggedActivity implements TextWatcher {
     public void onShareClicked() {
         if (TextUtils.isEmpty(mCurrentAddress))
             return;
-        final Bitmap qrcodeBitmap = ((BitmapDrawable)mAddressImage.getDrawable()).getBitmap();
-        shareQrcodeAddress(this, qrcodeBitmap, getAddressUri(mCurrentAddress, mCurrentAmount));
+        shareQrcodeAddress(this, mQrcode, getAddressUri(mCurrentAddress, mCurrentAmount));
     }
 
     public static void shareQrcodeAddress(Activity activity, Bitmap bitmap, String text) {
@@ -509,6 +509,7 @@ public class ReceiveActivity extends LoggedActivity implements TextWatcher {
             if (bitmap == null)
                 return;
             Log.d(TAG, "onPostExecute (" + address + ")");
+            mQrcode = bitmap;
             if (TextUtils.isEmpty(address)) {
                 mAddressImage.setImageDrawable(getResources().getDrawable(color.transparent));
                 mAddressImage.setOnClickListener(null);
