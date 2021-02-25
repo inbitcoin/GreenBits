@@ -20,6 +20,7 @@
     <color name="primaryDark">@color/colorPrimaryDark</color>
     <color name="accent">#f5a344</color>
     <color name="accentLight">#f5b442</color>
+    <color name="accentLight2">#FFD180</color>
     <color name="accentPressed">#f9a344</color>
     <color name="textColor">#000000</color>
     <color name="textColorSecondary">#7A7A7A</color>
