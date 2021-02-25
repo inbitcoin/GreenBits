@@ -433,7 +433,7 @@ public abstract class UI {
         if (!textOrIdentifier.startsWith("id_"))
             return textOrIdentifier; // Not a string id
         try {
-            int resId = res.getIdentifier(textOrIdentifier, "string", "com.greenaddress.greenbits_android_wallet");
+            int resId = res.getIdentifier(textOrIdentifier, "string", BuildConfig.APPLICATION_ID);
             return res.getString(resId);
         } catch (final Exception e) {
             return textOrIdentifier; // Unknown id
