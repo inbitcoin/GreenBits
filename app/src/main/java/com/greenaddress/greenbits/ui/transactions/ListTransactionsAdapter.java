@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView.Adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.greenaddress.greenapi.data.AssetInfoData;
+import com.greenaddress.greenapi.data.BalanceData;
 import com.greenaddress.greenapi.data.NetworkData;
 import com.greenaddress.greenapi.data.TransactionData;
 import com.greenaddress.greenapi.data.TransactionData.TYPE;
@@ -43,6 +44,7 @@ import java.util.List;
 
 import static android.content.Context.MODE_PRIVATE;
 import static com.greenaddress.greenapi.Registry.getRegistry;
+import static com.greenaddress.greenapi.Session.getSession;
 
 public class ListTransactionsAdapter extends
     Adapter<ViewHolder> {
@@ -108,6 +110,16 @@ public class ListTransactionsAdapter extends
             holder.textValue.setText(getAmountWithUnit(txItem, assetId));
         } else {
             holder.textValue.setText(mActivity.getString(string.id_d_assets, assetsNumber));
+        }
+
+        final boolean negative = txItem.getTxType() != TransactionData.TYPE.IN;
+        final String neg = negative ? "-" : "";
+        try {
+            final BalanceData balance = getSession().convertBalance(txItem.getSatoshi().get("btc"));
+            final String fiat = Conversion.getFiat(balance, true);
+            holder.textValueFiat.setText(String.format("%s%s", neg, fiat));
+        } catch (final Exception e) {
+            e.printStackTrace();
         }
 
         // Hide question mark if we know this tx is verified
@@ -238,6 +250,7 @@ public class ListTransactionsAdapter extends
 
         public final TextView listNumberConfirmation;
         public final TextView textValue;
+        public final TextView textValueFiat;
         public final TextView textWhen;
         public final ImageView imageReplaceable;
         public final TextView spvUnconfirmed;
@@ -251,6 +264,7 @@ public class ListTransactionsAdapter extends
             super(v);
 
             textValue = UI.find(v, id.listValueText);
+            textValueFiat = UI.find(v, id.listValueFiatText);
             textWhen = UI.find(v, id.listWhenText);
             imageReplaceable = UI.find(v, id.listReplaceableIcon);
             spvUnconfirmed = UI.find(v, id.spvUnconfirmed);
