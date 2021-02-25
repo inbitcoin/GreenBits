@@ -7,6 +7,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -486,7 +487,7 @@ public class ReceiveActivity extends LoggedActivity implements TextWatcher {
     class BitmapWorkerTask extends AsyncTask<Object, Object, Bitmap> {
         final ObjectNode amount;
         final String address;
-        final int qrCodeBackground = 0; // Transparent background
+        final int qrCodeBackground = Color.WHITE;
 
         BitmapWorkerTask() {
             amount = mCurrentAmount;
