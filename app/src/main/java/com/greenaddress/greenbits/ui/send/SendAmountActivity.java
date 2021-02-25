@@ -438,7 +438,7 @@ public class SendAmountActivity extends LoggedActivity implements TextWatcher, V
         final MaterialDialog dialog;
         dialog = UI.popup(this, R.string.id_set_custom_fee_rate)
                  .customView(v, true)
-                 .backgroundColor(getResources().getColor(R.color.buttonJungleGreen))
+                 .backgroundColor(getResources().getColor(R.color.windowBackground))
                  .onPositive((dlg, which) -> {
             try {
                 final String rateText = rateEdit.getText().toString().trim();
