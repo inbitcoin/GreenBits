@@ -42,10 +42,10 @@ android {
         applicationId 'it.inbitcoin.altana'
         minSdkVersion 19
         targetSdkVersion 29
-        versionCode 96
+        versionCode 100
         // Don't use defaultConfig.getProperty("versionCode") in versionName
         // because it breaks F-Droid!
-        versionName "3.4.9"
+        versionName "21.02.25"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     flavorDimensions 'normal'
