@@ -144,7 +144,7 @@ public class KeyStoreAES {
     public static void showAuthenticationScreen(final Activity act, final String network) throws RuntimeException {
         final KeyguardManager keyguardManager = (KeyguardManager) act.getSystemService(Context.KEYGUARD_SERVICE);
         final boolean isSaveActivity = (act instanceof PinSaveActivity);
-        final String authTitle = !isSaveActivity ? act.getString(R.string.id_blockstream_green) : "";
+        final String authTitle = !isSaveActivity ? act.getString(R.string.id_altana) : "";
         final String authDesc = !isSaveActivity ? act.getString(R.string.id_log_in_into_your_s_wallet, network) : "";
         final Intent intent = keyguardManager.createConfirmDeviceCredentialIntent(authTitle, authDesc);
         if (intent == null)

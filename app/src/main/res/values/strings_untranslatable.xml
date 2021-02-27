@@ -100,4 +100,5 @@
 
     <string name="descriptionAltana" translatable="false">ALTANA bitcoin wallet</string>
     <string name="madeBy" translatable="false">by inbitcoin</string>
+    <string name="id_altana" translatable="false">ALTANA bitcoin wallet</string>
 </resources>
