@@ -41,6 +41,8 @@ public class KeyStoreAES {
     public static final String KEYSTORE_KEY = "NativeAndroidAuth";
     private static final int SECONDS_AUTH_VALID = 5;
     public static final int ACTIVITY_REQUEST_CODE = 1;
+    // old altana pin version to manage same pin in native and not native
+    public static final int SAVED_PIN_VERSION = 2;
 
     private static String getKeyName(final String network, final boolean temporary) {
         return KEYSTORE_KEY + "_" + network + (temporary ? "temp" : "");

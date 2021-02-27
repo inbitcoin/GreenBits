@@ -246,7 +246,11 @@ public class PinActivity extends LoginActivity implements PinFragment.OnPinListe
             final Cipher cipher = getAESCipher();
             cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(Base64.decode(nativeIV, Base64.NO_WRAP)));
             final byte[] decrypted = cipher.doFinal(Base64.decode(nativePIN, Base64.NO_WRAP));
-            final String pin = Base64.encodeToString(decrypted, Base64.NO_WRAP).substring(0, 15);
+            final String pin;
+            if (nativeVersion < KeyStoreAES.SAVED_PIN_VERSION)
+                pin = Base64.encodeToString(decrypted, Base64.NO_WRAP).substring(0, 15);
+            else
+                pin = new String(decrypted);
             login(pin);
         } catch (final KeyStoreException | UserNotAuthenticatedException e) {
             try {
@@ -263,7 +267,7 @@ public class PinActivity extends LoginActivity implements PinFragment.OnPinListe
         } catch (final InvalidAlgorithmParameterException | BadPaddingException | IllegalBlockSizeException |
                  CertificateException | UnrecoverableKeyException | IOException |
                  NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
-            if (nativeVersion > 1) {
+            if (nativeVersion >= KeyStoreAES.SAVED_PIN_VERSION) {
                 onPinAuth();
                 onResume();
             } else {
