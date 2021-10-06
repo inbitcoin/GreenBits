@@ -216,10 +216,6 @@
             android:screenOrientation="portrait"
             android:label="@string/id_send_to" />
         <activity
-            android:name=".onboarding.TermsActivity"
-            android:screenOrientation="portrait"
-            />
-        <activity
             android:name=".onboarding.WordsActivity"
             android:screenOrientation="portrait"
             />
